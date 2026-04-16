@@ -128,6 +128,11 @@ const api = {
   // GET /api/faturamentos/cmv/detalhado - Obter CMV por subcategoria
   obterCMVDetalhado(from, to) {
     return axios.get(`${API_BASE}/faturamentos/cmv/detalhado?from=${from}&to=${to}`);
+  },
+
+  // POST /api/criar-categoria-simples - Criar categoria rápida
+  criarCategoriaSimples(nome, classificacao = 'Operacional') {
+    return axios.post(`${API_BASE}/criar-categoria-simples`, { nome, classificacao });
   }
 };
 

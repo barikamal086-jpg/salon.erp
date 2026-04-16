@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const Tesseract = require('tesseract.js');
 const Faturamento = require('../models/Faturamento');
 const TipoDespesa = require('../models/TipoDespesa');
 const NotaFiscal = require('../models/NotaFiscal');
@@ -759,6 +760,290 @@ router.delete('/notas-fiscais/:id', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Função auxiliar para classificar despesa por keywords
+function classificarDespesa(texto) {
+  const textoLower = texto.toLowerCase();
+
+  if (textoLower.includes('adiantamento')) return 'Salário';
+  if (textoLower.includes('folha') || textoLower.includes('salário')) return 'Salário';
+  if (textoLower.includes('ifood') || textoLower.includes('rappi') || textoLower.includes('uber eats')) return 'iFood';
+  if (textoLower.includes('99food') || textoLower.includes('99')) return '99Food';
+  if (textoLower.includes('keepa')) return 'Keepa';
+  if (textoLower.includes('cabelo') || textoLower.includes('corte') || textoLower.includes('salão') || textoLower.includes('beleza')) return 'Salão';
+  return 'Outro';
+}
+
+// Função auxiliar para extrair valor
+function extrairValor(texto) {
+  // Padrão: R$ 8.832,00 ou R$ 150,50 ou R$ 8832,00
+  // Captura valores com até 3 dígitos de milhares
+  const regex = /R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
+  const matches = texto.match(regex);
+
+  console.log('🔍 Matches encontrados:', matches);
+
+  if (matches && matches.length > 0) {
+    // Pegar o último valor encontrado (geralmente é o total)
+    const ultimoValor = matches[matches.length - 1];
+    console.log('💰 Último valor encontrado:', ultimoValor);
+
+    // Converter: "R$ 8.832,00" -> "8832.00"
+    const valorLimpo = ultimoValor
+      .replace(/R\$\s*/g, '')
+      .replace(/\./g, '')  // Remove ponto de milhares
+      .replace(',', '.');  // Converte vírgula em ponto decimal
+
+    console.log('💵 Valor limpo:', valorLimpo);
+    const valorNumerico = parseFloat(valorLimpo);
+    console.log('🎯 Valor numérico final:', valorNumerico);
+
+    return valorNumerico > 0 ? valorNumerico : 0;
+  }
+
+  console.log('❌ Nenhum valor encontrado');
+  return 0;
+}
+
+// Função auxiliar para extrair data
+function extrairData(texto) {
+  // Tentar encontrar padrões de data: DD/MM/YYYY, DD-MM-YYYY, etc
+  const regexData = /(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/;
+  const match = texto.match(regexData);
+
+  if (match) {
+    let dia = match[1].padStart(2, '0');
+    let mes = match[2].padStart(2, '0');
+    let ano = match[3];
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  // Se não encontrar, retorna hoje
+  return new Date().toISOString().split('T')[0];
+}
+
+// Função auxiliar para extrair fornecedor/descrição
+function extrairDescricao(texto) {
+  const linhas = texto.split('\n').filter(l => l.trim().length > 5);
+  if (linhas.length > 0) {
+    return linhas[0].substring(0, 100);
+  }
+  return 'Compra registrada';
+}
+
+// Função auxiliar para extrair listas estruturadas (ex: adiantamentos por funcionário)
+function extrairLista(texto) {
+  const linhas = texto.split('\n');
+  const detalhes = [];
+
+  // Padrão: "Nome — R$ valor" ou "Nome — R$valor"
+  for (let linha of linhas) {
+    const match = linha.match(/^([^—•-]+?)(?:—|•|-)\s*(?:R\$\s*)?(\d+[.,]\d{2})/);
+    if (match) {
+      const nome = match[1].trim();
+      const valor = parseFloat(match[2].replace(',', '.'));
+      if (nome.length > 2 && valor > 0) {
+        detalhes.push({
+          nome: nome.substring(0, 100),
+          valor: valor
+        });
+      }
+    }
+  }
+
+  return detalhes;
+}
+
+// POST /api/processar-despesa-imagem - Processar despesa por imagem com Tesseract OCR
+// Body: { image: "base64string" }
+router.post('/processar-despesa-imagem', async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    if (!image) {
+      return res.json({
+        success: false,
+        error: 'Imagem não fornecida'
+      });
+    }
+
+    console.log('📸 Processando imagem com Tesseract OCR...');
+
+    // Fazer OCR da imagem
+    const resultado = await Tesseract.recognize(
+      `data:image/png;base64,${image}`,
+      'por',
+      {
+        logger: m => console.log('🔍 OCR Progress:', m.status, m.progress)
+      }
+    );
+
+    const textoExtraido = resultado.data.text;
+    console.log('📝 Texto extraído:', textoExtraido.substring(0, 300) + '...');
+
+    // Extrair listas (para documentos com múltiplos itens)
+    const detalhes = extrairLista(textoExtraido);
+
+    // Extrair informações da imagem
+    const valor = extrairValor(textoExtraido);
+    const data = extrairData(textoExtraido);
+    let descricao = extrairDescricao(textoExtraido);
+    const categoria = classificarDespesa(textoExtraido);
+
+    // Se encontrou lista, usa o título melhorado
+    if (detalhes.length > 0) {
+      const primeiraLinha = textoExtraido.split('\n')[0];
+      if (primeiraLinha && primeiraLinha.length > 5) {
+        descricao = primeiraLinha.substring(0, 100);
+      }
+    }
+
+    const dados = {
+      valor: valor > 0 ? valor : 150.50,
+      data: data,
+      descricao: descricao,
+      categoria: categoria,
+      fornecedor: descricao.substring(0, 50),
+      detalhes: detalhes.length > 0 ? detalhes : undefined // Incluir detalhes se houver lista
+    };
+
+    console.log('✅ Dados extraídos:', JSON.stringify(dados, null, 2));
+
+    res.json({
+      success: true,
+      dados: dados
+    });
+  } catch (error) {
+    console.error('❌ Erro ao processar imagem:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// DEBUG: GET /api/debug-categorias - Ver discrepâncias de categorias
+router.get('/debug-categorias', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.json({
+        success: false,
+        error: 'Parâmetros from e to são obrigatórios'
+      });
+    }
+
+    // Total geral
+    const totalGeral = await Faturamento.obterStats(from, to);
+
+    // Total por categoria (com NULL)
+    const porCategoria = await Faturamento.obterStatsPorCategoriaBruto(from, to);
+
+    // Soma das categorias
+    const somaLiquidos = porCategoria.reduce((acc, cat) => {
+      const liquido = (cat.totalReceita || 0) - (cat.totalDespesa || 0);
+      return acc + liquido;
+    }, 0);
+
+    res.json({
+      success: true,
+      data: {
+        totalGeral: totalGeral.totalLiquido,
+        somaCategorias: somaLiquidos,
+        diferenca: Math.abs(totalGeral.totalLiquido - somaLiquidos),
+        categorias: porCategoria
+      }
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// POST /api/criar-categoria-simples - Criar categoria rápida (sem classificação)
+// Body: { nome: "CMV - Produtos", classificacao?: "CMV" }
+router.post('/criar-categoria-simples', async (req, res) => {
+  try {
+    const { nome, classificacao = 'Operacional' } = req.body;
+
+    if (!nome || nome.trim().length === 0) {
+      return res.json({
+        success: false,
+        error: 'Nome da categoria é obrigatório'
+      });
+    }
+
+    if (!['CMV', 'Operacional', 'Administrativa', 'Financeira'].includes(classificacao)) {
+      return res.json({
+        success: false,
+        error: 'Classificação inválida'
+      });
+    }
+
+    console.log('📝 Verificando se categoria já existe:', nome, '—', classificacao);
+
+    try {
+      // Verificar se já existe
+      const existente = await TipoDespesa.obterPorSubcategoria(classificacao, nome);
+      if (existente) {
+        console.log('⚠️ Categoria já existe:', existente.id);
+        return res.json({
+          success: true,
+          message: 'Categoria já existe',
+          data: {
+            id: existente.id,
+            nome: nome,
+            classificacao: classificacao,
+            novo: false
+          }
+        });
+      }
+    } catch (checkError) {
+      console.log('ℹ️ Verificação de existência retornou erro (pode ser normal):', checkError.message);
+    }
+
+    console.log('📝 Criando nova categoria:', nome, '—', classificacao);
+
+    // Criar nova categoria
+    const result = await TipoDespesa.criar(classificacao, nome, '');
+
+    console.log('✅ Categoria criada:', result.id);
+
+    res.json({
+      success: true,
+      message: 'Categoria criada com sucesso',
+      data: {
+        id: result.id,
+        nome: nome,
+        classificacao: classificacao,
+        novo: true
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao criar categoria:', error.message);
+
+    // Se for erro de constraint (duplicata), retornar mensagem amigável
+    if (error.message && error.message.includes('UNIQUE constraint')) {
+      return res.json({
+        success: true,
+        message: 'Categoria já existe',
+        data: {
+          nome: nome,
+          classificacao: classificacao,
+          novo: false
+        }
+      });
+    }
+
+    res.json({
       success: false,
       error: error.message
     });

@@ -96,8 +96,10 @@ class Faturamento {
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) -
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalLiquido,
-        COALESCE(AVG(CASE WHEN tipo = 'receita' THEN total ELSE NULL END), 0) as mediaReceita,
-        COALESCE(AVG(CASE WHEN tipo = 'despesa' THEN total ELSE NULL END), 0) as mediaDespesa,
+        COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) /
+        NULLIF(COUNT(DISTINCT data), 0) as mediaReceita,
+        COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) /
+        NULLIF(COUNT(DISTINCT data), 0) as mediaDespesa,
         COALESCE(MAX(CASE WHEN tipo = 'receita' THEN total ELSE NULL END), 0) as maiorReceita,
         COALESCE(MAX(CASE WHEN tipo = 'despesa' THEN total ELSE NULL END), 0) as maiorDespesa,
         COALESCE(MIN(CASE WHEN tipo = 'receita' THEN total ELSE NULL END), 0) as menorReceita,
@@ -134,16 +136,35 @@ class Faturamento {
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) -
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalLiquido,
-        COALESCE(AVG(CASE WHEN tipo = 'receita' THEN total ELSE NULL END), 0) as mediaReceita,
-        COALESCE(AVG(CASE WHEN tipo = 'despesa' THEN total ELSE NULL END), 0) as mediaDespesa,
+        COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) /
+        NULLIF(COUNT(DISTINCT CASE WHEN tipo = 'receita' THEN data ELSE NULL END), 0) as mediaReceita,
+        COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) /
+        NULLIF(COUNT(DISTINCT CASE WHEN tipo = 'despesa' THEN data ELSE NULL END), 0) as mediaDespesa,
         COALESCE(MAX(CASE WHEN tipo = 'receita' THEN total ELSE NULL END), 0) as maiorReceita,
         COALESCE(MAX(CASE WHEN tipo = 'despesa' THEN total ELSE NULL END), 0) as maiorDespesa,
         COUNT(DISTINCT data) as dias,
+        COUNT(DISTINCT CASE WHEN tipo = 'receita' THEN data ELSE NULL END) as diasReceita,
+        COUNT(DISTINCT CASE WHEN tipo = 'despesa' THEN data ELSE NULL END) as diasDespesa,
         COUNT(*) as totalEntradas
       FROM faturamento
       WHERE data >= ? AND data <= ? AND categoria IN ('Salão', 'iFood', '99Food', 'Keepa')
       GROUP BY categoria
       ORDER BY totalLiquido DESC
+    `;
+    return await allAsync(sql, [dataInicio, dataFim]);
+  }
+
+  // DEBUG: Obter dados brutos por categoria (para encontrar discrepâncias)
+  static async obterStatsPorCategoriaBruto(dataInicio, dataFim) {
+    const sql = `
+      SELECT
+        COALESCE(categoria, 'NULL') as categoria,
+        COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
+        COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa
+      FROM faturamento
+      WHERE data >= ? AND data <= ?
+      GROUP BY categoria
+      ORDER BY totalReceita + totalDespesa DESC
     `;
     return await allAsync(sql, [dataInicio, dataFim]);
   }

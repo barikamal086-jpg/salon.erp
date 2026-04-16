@@ -80,6 +80,17 @@ class TipoDespesa {
     `;
     return await runAsync(sql, [id]);
   }
+
+  // Verificar se existe categoria por classificação e subcategoria
+  static async obterPorSubcategoria(classificacao, subcategoria) {
+    const sql = `
+      SELECT id, classificacao, subcategoria, descricao
+      FROM tipo_despesa
+      WHERE classificacao = ? AND subcategoria = ? AND ativa = 1
+      LIMIT 1
+    `;
+    return await getAsync(sql, [classificacao, subcategoria]);
+  }
 }
 
 module.exports = TipoDespesa;
