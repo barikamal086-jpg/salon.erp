@@ -1,0 +1,111 @@
+SALON ERP - BRIEFING PARA DESENVOLVIMENTO
+
+## 📋 VISÃO GERAL
+Desenvolver um ERP profissional para gestão de restaurante , começando com Módulo 1 (Lançamento de Faturamento) com integração ao Conta Azul Pro.
+
+## 👤 USUÁRIO
+Nome: Kamal
+Negócio: Restaurante 
+Dados: Recebe relatório de fechamento diário via WhatsApp com (Data + Total)
+
+## 🎯 ESCOPO MVP - MÓDULO 1: LANÇAR FATURAMENTO
+
+### Funcionalidades Principais:
+1. **Lançamento de Receita**
+   - Campo Data (padrão: hoje)
+   - Campo Total (valor do faturamento)
+   - Validações: data não pode ser futura, total > 0
+   - Status: Pendente ou Enviado ao Conta Azul
+
+2. **Histórico com Tabela**
+   - Mostra últimos 30 dias (customizável)
+   - Colunas: Data | Total | Status | Ações
+   - Funcionalidade: Editar (update total) e Deletar
+   - Filtro por Status (Pendente/Enviado/Todos)
+
+3. **KPIs Customizáveis**
+   - Total do Período (soma)
+   - Média Diária (média)
+   - Maior Dia (máximo)
+   - Menor Dia (mínimo)
+   - Total de Dias (contagem)
+   - Picker de período (data início + data fim)
+
+4. **Gráfico de Tendência**
+   - Line chart com faturamento diário
+   - Atualiza com período dos KPIs
+   - Interativo (hover mostra valores)
+
+5. **Integração Conta Azul**
+   - Botão "Enviar ao Conta Azul"
+   - Integra com skill lancar-receitas existente
+   - Marca como enviado no banco local
+   - Status = true quando enviado
+
+## 🛠️ STACK RECOMENDADA (Escolha do desenvolvedor)
+
+### Backend:
+- Node.js + Express.js
+- SQLite (local) ou PostgreSQL (cloud-ready)
+- Autenticação: Não necessária (single user por enquanto)
+
+### Frontend:
+- React.js (moderno, profissional) OU Vue.js (mais simples) OU Vanilla JS
+- Tailwind CSS ou Bootstrap para styling
+- Chart.js para gráficos
+
+### Deploy:
+- Railway.app ou Heroku (quando pronto)
+
+## 📊 BANCO DE DADOS
+
+Tabela: faturamento
+id (INTEGER, PK, AUTO_INC)
+data (DATE, UNIQUE)
+total (DECIMAL 10,2)
+status (BOOLEAN, DEFAULT false)
+enviado_em (TIMESTAMP, NULL)
+created_at (TIMESTAMP, DEFAULT now)
+updated_at (TIMESTAMP, DEFAULT now)
+
+Índices:
+- idx_data ON data DESC
+- idx_status ON status
+- idx_created ON created_at DESC
+
+## 🔄 FLUXO DO USUÁRIO
+
+1. Usuário abre app
+2. Preencha Data + Total
+3. Clique "Salvar"
+4. Receita aparece na tabela com Status "Pendente"
+5. Customize KPIs (escolhe período)
+6. Vê gráfico atualizar
+7. Pode editar/deletar qualquer receita
+8. Clica "Enviar ao Conta Azul" para marcar como enviado
+
+## ✅ CRITÉRIO DE ACEITAÇÃO
+
+- ✅ Formulário funciona (salva no banco)
+- ✅ Tabela mostra histórico (últimos 30 dias)
+- ✅ Editar/Deletar funcionam
+- ✅ KPIs calculam corretamente
+- ✅ Gráfico renderiza e atualiza
+- ✅ Filtro por status funciona
+- ✅ Dados persistem (reload não perde dados)
+- ✅ Interface responsiva (mobile + desktop)
+
+## 📅 TIMELINE
+MVP completo: 2-3 semanas
+
+## 🚀 PRÓXIMOS MÓDULOS (Futuro)
+- Módulo 2: Lançar Despesas
+- Módulo 3: Notas Fiscais
+- Módulo 4: Dashboard com relatórios
+- v1.0: App Web completo + Cloud
+
+## 📝 NOTAS
+- Já existe skill lancar-receitas pronto (integração Conta Azul)
+- Usuário recebe dados via WhatsApp (Data + Total)
+- Foco em simplicidade + funcionalidade
+- Depois será expandido para múltiplos usuários com autenticaçã

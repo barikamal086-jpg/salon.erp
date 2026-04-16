@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versaoProc="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe35231001234567000123550010000000011234567890" versao="4.00">
+      <ide>
+        <cUF>35</cUF>
+        <AAMM>202304</AAMM>
+        <modelo>55</modelo>
+        <serie>1</serie>
+        <nNF>1</nNF>
+        <dEmi>2023-04-13</dEmi>
+      </ide>
+      <emit>
+        <CNPJ>12345678000123</CNPJ>
+        <xNome>Fornecedor de Hortifruti LTDA</xNome>
+      </emit>
+      <dest>
+        <CNPJ>00000000000000</CNPJ>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <xProd>Tomate Carioca</xProd>
+          <vItem12741>50.00</vItem12741>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vNF>150.00</vNF>
+        </ICMSTot>
+      </total>
+    </infNFe>
+  </NFe>
+</nfeProc>

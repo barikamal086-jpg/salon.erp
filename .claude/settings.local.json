@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_in_Chrome__read_page",
+      "mcp__Claude_in_Chrome__computer",
+      "mcp__Claude_in_Chrome__read_console_messages",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__read_network_requests",
+      "Bash(tasklist)",
+      "Bash(taskkill /PID 13144 /F)",
+      "Bash(taskkill /PID 9512 /F)",
+      "Bash(pkill -f \"node.*backend\")",
+      "Bash(wmic process:*)",
+      "Bash(find \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\" -name \"*.html\" -type f -exec grep -l \"app\\\\.js\" {} \\\\;)",
+      "mcp__Claude_in_Chrome__tabs_close_mcp",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(curl -s http://localhost:5004)",
+      "Bash(curl -i http://localhost:5004)",
+      "Bash(find \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\frontend\" -name \"*.js\" -type f -exec grep -l \"async carregarGrafico\" {} \\\\;)",
+      "Bash(npm start:*)",
+      "Bash(powershell -Command \"cd 'C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\backend' -ErrorAction SilentlyContinue; npm start\")",
+      "Bash(node -c \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\frontend\\\\js\\\\components\\\\GraficoMensal.vue.js\")",
+      "Bash(findstr /i \"node\")",
+      "Bash(node \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\backend\\\\app.js\")",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\backend\\\\app.js\")",
+      "Bash(taskkill /PID 1848 /F)",
+      "Bash(kill 1848)",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" app.js)",
+      "Bash(netstat -ano)",
+      "Bash(ipconfig)",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "Bash(curl -s \"http://localhost:5004/js/components/GraficoMensal.vue.js\")",
+      "mcp__Claude_in_Chrome__switch_browser"
+    ]
+  }
+}

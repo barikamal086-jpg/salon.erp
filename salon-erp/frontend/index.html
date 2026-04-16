@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaia ERP - Dashboard de Faturamento</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <!-- Axios para requisições HTTP -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- Font Awesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100">
+  <div id="app" class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-lg fixed h-screen overflow-y-auto">
+      <!-- Logo -->
+      <div class="p-6 border-b border-blue-700">
+        <h1 class="text-2xl font-bold">🍽️ Kaia ERP</h1>
+        <p class="text-blue-200 text-xs mt-1">Bar & Cozinha</p>
+      </div>
+
+      <!-- Menu -->
+      <nav class="p-4 space-y-2">
+        <div class="px-4 py-2 rounded-lg bg-blue-700 text-white cursor-pointer">
+          <i class="fas fa-chart-line mr-2"></i> Dashboard
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 ml-64 overflow-auto">
+      <!-- Top Bar -->
+      <div class="bg-white shadow-sm border-b border-gray-200">
+        <div class="px-8 py-4 flex justify-between items-center">
+          <h2 class="text-2xl font-bold text-gray-900">Dashboard</h2>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="p-8 space-y-6">
+
+        <!-- Seletor de Período -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📅 Selecione o Período</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Início</label>
+              <input
+                v-model="periodo.dataInicio"
+                type="date"
+                @change="atualizarPeriodo"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Fim</label>
+              <input
+                v-model="periodo.dataFim"
+                type="date"
+                @change="atualizarPeriodo"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Atalhos</label>
+              <div class="flex gap-2">
+                <button
+                  @click="setUltimos7Dias"
+                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  Últimos 7d
+                </button>
+                <button
+                  @click="setUltimos30Dias"
+                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  Últimos 30d
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs Gerais -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">📊 Indicadores de Performance</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <p class="text-gray-600 text-sm font-medium">💰 Total Receita</p>
+              <p class="text-2xl font-bold text-green-600 mt-2">R$ {{ formatarValor(stats.totalReceita) }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <p class="text-gray-600 text-sm font-medium">💸 Total Despesa</p>
+              <p class="text-2xl font-bold text-red-600 mt-2">R$ {{ formatarValor(stats.totalDespesa) }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <p class="text-gray-600 text-sm font-medium">📈 Total Líquido</p>
+              <p class="text-2xl font-bold text-blue-600 mt-2">R$ {{ formatarValor(stats.totalLiquido) }}</p>
+            </div>
+            <div class="bg-green-100 rounded-lg p-4 border-l-4 border-green-600">
+              <p class="text-gray-600 text-sm font-medium">📊 Média Receita</p>
+              <p class="text-2xl font-bold text-green-700 mt-2">R$ {{ formatarValor(stats.mediaReceita) }}</p>
+            </div>
+            <div class="bg-red-100 rounded-lg p-4 border-l-4 border-red-600">
+              <p class="text-gray-600 text-sm font-medium">📊 Média Despesa</p>
+              <p class="text-2xl font-bold text-red-700 mt-2">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+              <p class="text-gray-600 text-sm font-medium">📅 Dias</p>
+              <p class="text-2xl font-bold text-purple-600 mt-2">{{ stats.dias }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs por Categoria -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">🏷️ Performance por Categoria</h3>
+          <div v-if="statsPorCategoria.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              v-for="cat in statsPorCategoria"
+              :key="cat.categoria"
+              class="bg-white rounded-lg p-6 border-l-4 shadow-sm"
+              :class="{
+                'border-blue-500': cat.categoria === 'Salão',
+                'border-red-500': cat.categoria === 'iFood',
+                'border-yellow-500': cat.categoria === '99Food',
+                'border-green-500': cat.categoria === 'Keepa',
+                'border-purple-500': cat.categoria !== 'Salão' && cat.categoria !== 'iFood' && cat.categoria !== '99Food' && cat.categoria !== 'Keepa'
+              }"
+            >
+              <div class="text-sm font-medium mb-2" :class="{
+                'text-blue-600': cat.categoria === 'Salão',
+                'text-red-600': cat.categoria === 'iFood',
+                'text-yellow-600': cat.categoria === '99Food',
+                'text-green-600': cat.categoria === 'Keepa',
+                'text-purple-600': cat.categoria !== 'Salão' && cat.categoria !== 'iFood' && cat.categoria !== '99Food' && cat.categoria !== 'Keepa'
+              }">
+                {{ cat.categoria }}
+              </div>
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-xs text-green-600">💰 Receita:</span>
+                  <span class="text-sm font-semibold text-green-700">R$ {{ formatarValor(cat.totalReceita) }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-xs text-red-600">💸 Despesa:</span>
+                  <span class="text-sm font-semibold text-red-700">R$ {{ formatarValor(cat.totalDespesa) }}</span>
+                </div>
+                <div class="border-t pt-2 flex justify-between items-center">
+                  <span class="text-xs font-medium text-blue-600">📈 Líquido:</span>
+                  <span class="text-sm font-bold text-blue-700">R$ {{ formatarValor(cat.totalLiquido) }}</span>
+                </div>
+              </div>
+              <div class="text-xs text-gray-500 mt-3 pt-3 border-t">
+                <div>{{ cat.dias }} {{ cat.dias === 1 ? 'dia' : 'dias' }}</div>
+                <div v-if="cat.mediaReceita > 0">Média Receita: R$ {{ formatarValor(cat.mediaReceita) }}</div>
+                <div v-if="cat.mediaDespesa > 0">Média Despesa: R$ {{ formatarValor(cat.mediaDespesa) }}</div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="text-gray-500 text-center py-8">
+            Nenhuma receita/despesa neste período
+          </div>
+        </div>
+
+        <!-- Gráfico Mensal - INLINE -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Receitas vs Despesas por Dia</h3>
+          <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Mês</label>
+                <select v-model="graficoMes" @change="renderizarGraficoMensal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="01">Janeiro</option>
+                  <option value="02">Fevereiro</option>
+                  <option value="03">Março</option>
+                  <option value="04">Abril</option>
+                  <option value="05">Maio</option>
+                  <option value="06">Junho</option>
+                  <option value="07">Julho</option>
+                  <option value="08">Agosto</option>
+                  <option value="09">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11">Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Ano</label>
+                <input v-model.number="graficoAno" type="number" @change="renderizarGraficoMensal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              </div>
+            </div>
+          </div>
+          <div class="w-full">
+            <canvas id="graficoMensalInline" height="80"></canvas>
+          </div>
+        </div>
+
+        <!-- Formulário + Tabela -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Formulário -->
+          <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">📝 Lançar Receita/Despesa</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                <select v-model="novaReceita.tipo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="receita">💰 Receita</option>
+                  <option value="despesa">💸 Despesa</option>
+                </select>
+              </div>
+
+              <!-- Campos específicos para DESPESA -->
+              <div v-if="novaReceita.tipo === 'despesa'" class="border-l-4 border-orange-500 bg-orange-50 p-4 rounded">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Classificação da Despesa</label>
+                  <select v-model="novaReceita.classificacao" @change="atualizarSubcategorias" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Selecione classificação...</option>
+                    <option value="CMV">🔴 CMV (Custo de Mercadoria)</option>
+                    <option value="Operacional">⚪ Operacional</option>
+                    <option value="Administrativa">🟡 Administrativa</option>
+                    <option value="Financeira">🟣 Financeira</option>
+                  </select>
+                </div>
+
+                <div v-if="novaReceita.classificacao" class="mt-3">
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
+                  <select v-model="novaReceita.tipoDespesaId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option :value="null">Selecione subcategoria...</option>
+                    <option v-for="tipo in subcategoriasDisponiveis" :key="tipo.id" :value="tipo.id">
+                      {{ tipo.subcategoria }}
+                    </option>
+                  </select>
+                  <button
+                    @click="abrirModalNovaCategoria"
+                    type="button"
+                    class="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    ➕ Adicionar nova categoria
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
+                <input v-model="novaReceita.data" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Total (R$)</label>
+                <input v-model.number="novaReceita.total" type="number" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">{{ novaReceita.tipo === 'receita' ? 'Categoria' : 'Local/Origem' }}</label>
+                <select v-model="novaReceita.categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Selecione uma categoria...</option>
+                  <option v-for="cat in categoriasDisponiveis" :key="cat" :value="cat">
+                    {{ cat }}
+                  </option>
+                  <option value="outra">Outra (especificar)</option>
+                </select>
+              </div>
+              <div v-if="novaReceita.categoria === 'outra'">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Informe a {{ novaReceita.tipo === 'receita' ? 'categoria' : 'origem' }}</label>
+                <input v-model="outraCategoria" type="text" :placeholder="novaReceita.tipo === 'receita' ? 'Ex: Marketplace X' : 'Ex: Fornecedor Y'" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+              </div>
+              <button @click="salvarReceita" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
+                💾 Salvar
+              </button>
+            </div>
+          </div>
+
+          <!-- NOTAS FISCAIS - Upload e Processamento -->
+          <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">📄 Processar Notas Fiscais</h3>
+
+            <!-- Upload Drag-and-Drop -->
+            <div class="mb-6">
+              <div
+                @drop.prevent="handleDropFiles"
+                @dragover.prevent="isDraggingFiles = true"
+                @dragleave="isDraggingFiles = false"
+                :class="['border-2 border-dashed rounded-lg p-8 text-center transition-all',
+                  isDraggingFiles ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50']">
+                <input
+                  type="file"
+                  multiple
+                  accept=".xml,.pdf"
+                  @change="handleSelectFiles"
+                  ref="fileInput"
+                  class="hidden"
+                  id="notasFiscaisInput">
+                <label for="notasFiscaisInput" class="cursor-pointer">
+                  <div class="text-4xl mb-2">📦</div>
+                  <p class="text-gray-700 font-semibold">Arraste arquivos aqui ou clique para selecionar</p>
+                  <p class="text-gray-500 text-sm mt-1">Aceita arquivos XML e PDF</p>
+                </label>
+              </div>
+              <button
+                @click="$refs.fileInput.click()"
+                class="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                📁 Selecionar Arquivos
+              </button>
+            </div>
+
+            <!-- Status de Upload -->
+            <div v-if="notasEmProcessamento.length > 0" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm text-blue-700">⏳ Processando {{ notasEmProcessamento.length }} arquivo(s)...</p>
+            </div>
+
+            <!-- Notas Pendentes para Processar -->
+            <div class="mb-4">
+              <h4 class="font-semibold text-gray-800 mb-3">📋 Notas Pendentes ({{ notasPendentes.length }})</h4>
+              <div v-if="notasPendentes.length === 0" class="text-center py-4 text-gray-500">
+                Nenhuma nota pendente
+              </div>
+              <div v-else class="space-y-2 max-h-60 overflow-y-auto">
+                <div v-for="nota in notasPendentes" :key="nota.id" class="border rounded-lg p-3 hover:bg-gray-50">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <p class="font-semibold text-gray-800">{{ nota.numero_nf }}</p>
+                      <p class="text-sm text-gray-600">{{ nota.fornecedor_nome }}</p>
+                      <p class="text-sm text-gray-500">{{ nota.descricao }}</p>
+                      <div class="flex gap-2 mt-2">
+                        <span class="text-xs bg-gray-200 px-2 py-1 rounded">💰 R$ {{ nota.valor_total.toFixed(2) }}</span>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{{ nota.classificacao_sugerida }}</span>
+                      </div>
+                    </div>
+                    <select
+                      v-model="notasCategoria[nota.id]"
+                      class="px-2 py-1 border border-gray-300 rounded text-sm">
+                      <option value="">Selecionar...</option>
+                      <option v-for="tipo in tiposDespesaPlano" :key="tipo.id" :value="tipo.id">
+                        {{ tipo.subcategoria }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="flex gap-2 mt-2">
+                    <button
+                      @click="processarNota(nota.id)"
+                      :disabled="!notasCategoria[nota.id]"
+                      class="flex-1 px-2 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                      ✅ Processar
+                    </button>
+                    <button
+                      @click="deletarNota(nota.id)"
+                      class="flex-1 px-2 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700">
+                      🗑️ Deletar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Estatísticas de Notas -->
+            <div v-if="notasStats" class="grid grid-cols-3 gap-2 mt-4 p-3 bg-gray-50 rounded-lg">
+              <div class="text-center">
+                <p class="text-2xl font-bold text-blue-600">{{ notasStats.total || 0 }}</p>
+                <p class="text-xs text-gray-600">Total</p>
+              </div>
+              <div class="text-center">
+                <p class="text-2xl font-bold text-yellow-600">{{ notasStats.pendentes || 0 }}</p>
+                <p class="text-xs text-gray-600">Pendentes</p>
+              </div>
+              <div class="text-center">
+                <p class="text-2xl font-bold text-green-600">{{ notasStats.processadas || 0 }}</p>
+                <p class="text-xs text-gray-600">Processadas</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabela -->
+          <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Histórico</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-gray-100 border-b">
+                  <tr>
+                    <th class="px-4 py-2 text-left">Data</th>
+                    <th class="px-4 py-2 text-left">Tipo</th>
+                    <th class="px-4 py-2 text-left">Categoria</th>
+                    <th class="px-4 py-2 text-right">Total</th>
+                    <th class="px-4 py-2 text-center">Status</th>
+                    <th class="px-4 py-2 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="receitas.length === 0">
+                    <td colspan="6" class="px-4 py-4 text-center text-gray-500">Nenhum faturamento</td>
+                  </tr>
+                  <tr v-for="r in receitas" :key="r.id" class="border-b hover:bg-gray-50" :class="{'bg-green-50': r.tipo === 'receita', 'bg-red-50': r.tipo === 'despesa'}">
+                    <td class="px-4 py-2">{{ formatarData(r.data) }}</td>
+                    <td class="px-4 py-2">
+                      <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{'bg-green-200 text-green-800': r.tipo === 'receita', 'bg-red-200 text-red-800': r.tipo === 'despesa'}">
+                        {{ r.tipo === 'receita' ? '💰 Receita' : '💸 Despesa' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2">
+                      <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
+                        'bg-blue-100 text-blue-800': r.categoria === 'Salão',
+                        'bg-red-100 text-red-800': r.categoria === 'iFood',
+                        'bg-yellow-100 text-yellow-800': r.categoria === '99Food',
+                        'bg-green-100 text-green-800': r.categoria === 'Keepa',
+                        'bg-purple-100 text-purple-800': r.categoria !== 'Salão' && r.categoria !== 'iFood' && r.categoria !== '99Food' && r.categoria !== 'Keepa'
+                      }">
+                        {{ r.categoria }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2 text-right font-semibold" :class="{'text-green-600': r.tipo === 'receita', 'text-red-600': r.tipo === 'despesa'}">R$ {{ formatarValor(r.total) }}</td>
+                    <td class="px-4 py-2 text-center">
+                      <span v-if="r.status" class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">✅ Enviado</span>
+                      <span v-else class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded">⏳ Pendente</span>
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                      <button @click="deletarReceita(r.id)" class="text-red-600 hover:text-red-800 text-xs">🗑️</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Modal: Adicionar Nova Categoria -->
+    <div v-if="mostrarModalNovaCategoria" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">➕ Adicionar Nova Categoria</h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Classificação</label>
+            <select v-model="novaCategoria.classificacao" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Selecione classificação...</option>
+              <option value="CMV">🔴 CMV (Custo de Mercadoria)</option>
+              <option value="Operacional">⚪ Operacional</option>
+              <option value="Administrativa">🟡 Administrativa</option>
+              <option value="Financeira">🟣 Financeira</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Categoria</label>
+            <input
+              v-model="novaCategoria.subcategoria"
+              type="text"
+              placeholder="Ex: Fornecedor XYZ, Transporte, etc"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Descrição (opcional)</label>
+            <input
+              v-model="novaCategoria.descricao"
+              type="text"
+              placeholder="Ex: Descrição adicional"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <button
+              @click="criarNovaCategoria"
+              class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
+              ✅ Criar
+            </button>
+            <button
+              @click="fecharModalNovaCategoria"
+              class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 font-medium">
+              ❌ Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Sugestão de Data para Processamento de Nota -->
+    <div v-if="mostrarSugestaoData" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-8 w-96">
+        <!-- COM SUGESTÃO (hoje ou futura) -->
+        <template v-if="sugestaoData.temSugestao">
+          <h3 class="text-lg font-bold text-gray-900 mb-2">📅 Quando processar esta nota?</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
+
+          <div class="bg-blue-50 p-3 rounded-lg mb-6">
+            <p class="text-xs text-gray-600">💡 Sugestão automática:</p>
+            <p class="font-semibold text-blue-700">{{ sugestaoData.sugestao === 'agora' ? '🟢 Lançar AGORA' : '🟠 Lançar FUTURO' }}</p>
+            <p class="text-sm text-gray-700 mt-1">{{ sugestaoData.sugestao === 'agora' ? sugestaoData.opcoes.agora.descricao : sugestaoData.opcoes.futuro.descricao }}</p>
+          </div>
+
+          <div class="space-y-3">
+            <!-- Opção 1: Agora -->
+            <button
+              @click="processarComData(sugestaoData.opcoes.agora.data)"
+              :class="[
+                'w-full p-4 rounded-lg border-2 text-left font-semibold transition-all',
+                sugestaoData.sugestao === 'agora'
+                  ? 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
+                  : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
+              ]">
+              <p>✅ Lançar AGORA</p>
+              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.agora.data }}</p>
+              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.agora.descricao }}</p>
+            </button>
+
+            <!-- Opção 2: Futuro (apenas se existe) -->
+            <button
+              v-if="sugestaoData.opcoes.futuro"
+              @click="processarComData(sugestaoData.opcoes.futuro.data)"
+              :class="[
+                'w-full p-4 rounded-lg border-2 text-left font-semibold transition-all',
+                sugestaoData.sugestao === 'futuro'
+                  ? 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100'
+                  : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
+              ]">
+              <p>📅 Lançar FUTURO</p>
+              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.futuro.data }}</p>
+              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.futuro.descricao }}</p>
+            </button>
+
+            <!-- Opção 3: Customizar Data -->
+            <div class="pt-2">
+              <label class="block text-xs font-medium text-gray-700 mb-2">📍 Ou escolha outra data:</label>
+              <input
+                v-model="dataCustomizada"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+          </div>
+        </template>
+
+        <!-- SEM SUGESTÃO (data passada) -->
+        <template v-else>
+          <h3 class="text-lg font-bold text-gray-900 mb-2">⚠️ Data Vencida</h3>
+          <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
+
+          <div class="bg-yellow-50 p-4 rounded-lg mb-6 border-l-4 border-yellow-500">
+            <p class="text-sm text-yellow-800">
+              <strong>Esta nota venceu em {{ sugestaoData.data_vencimento }}</strong><br>
+              Escolha a data para registrar o lançamento.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Data do lançamento:</label>
+            <input
+              v-model="dataCustomizada"
+              type="date"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </template>
+
+        <div class="flex gap-2 pt-6">
+          <button
+            @click="processarComData(dataCustomizada)"
+            v-if="dataCustomizada"
+            class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium text-sm">
+            ✅ Processar
+          </button>
+          <button
+            @click="cancelarSugestao"
+            class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 font-medium text-sm">
+            ❌ Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/utils/api.js"></script>
+  <!-- Carregando componentes Vue -->
+  <script src="js/components/GraficoMensal.vue.js?v=2"></script>
+  <script src="js/components/GraficoTendencia.vue.js?v=2"></script>
+  <script>
+    console.log('🔄 ===== VERSÃO ATUALIZADA v3 - TESTE SEM COMPONENTES =====');
+    const { createApp, nextTick } = Vue;
+
+    // ✅ Função helper para obter data local no formato YYYY-MM-DD (sem timezone issues)
+    function getLocalDateISO(date = null) {
+      const d = date ? new Date(date) : new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // ✅ Converter data do input type="date" (vem como YYYY-MM-DD string)
+    function parseInputDate(dateString) {
+      if (!dateString || typeof dateString !== 'string') return dateString;
+      // Se já está em formato YYYY-MM-DD, retornar como está
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateString;
+      }
+      return dateString;
+    }
+
+    const app = createApp({
+      data() {
+        return {
+          periodo: {
+            dataInicio: this.obterDataInicio(),
+            dataFim: this.obterDataFim()
+          },
+          stats: {
+            total: 0,
+            media: 0,
+            maior: 0,
+            menor: 0,
+            dias: 0
+          },
+          statsPorCategoria: [],
+          categoriasDisponiveis: ['Salão', 'iFood', '99Food', 'Keepa'],
+          outraCategoria: '',
+          receitas: [],
+          novaReceita: {
+            data: getLocalDateISO(),
+            total: null,
+            categoria: 'Salão',
+            tipo: 'receita',
+            classificacao: '',
+            tipoDespesaId: null
+          },
+          tiposDespesaAgrupados: {},
+          subcategoriasDisponiveis: [],
+          mostrarModalNovaCategoria: false,
+          novaCategoria: {
+            classificacao: '',
+            subcategoria: '',
+            descricao: ''
+          },
+          // Notas Fiscais
+          notasPendentes: [],
+          notasCategoria: {},
+          notasEmProcessamento: [],
+          notasStats: null,
+          isDraggingFiles: false,
+          tiposDespesaPlano: [],
+          chart: null,
+          // Sugestão de Data
+          mostrarSugestaoData: false,
+          sugestaoData: {
+            fornecedor: '',
+            sugestao: 'agora',
+            data_sugerida: '',
+            opcoes: {
+              agora: { label: '', data: '', descricao: '' },
+              futuro: { label: '', data: '', descricao: '' }
+            }
+          },
+          dataCustomizada: '',
+          notaIdAtualProcessamento: null,
+          tipoDespesaIdAtualProcessamento: null,
+          // Gráfico Mensal
+          graficoMes: String(new Date().getMonth() + 1).padStart(2, '0'),
+          graficoAno: new Date().getFullYear(),
+          graficoMensalChart: null
+        };
+      },
+
+      watch: {
+        periodo: {
+          handler(newVal, oldVal) {
+            console.log('👁️ Watcher: período mudou!');
+            console.log('  Antigo:', oldVal);
+            console.log('  Novo:', newVal);
+            this.atualizarPeriodo();
+          },
+          deep: true
+        }
+      },
+
+      methods: {
+        obterDataInicio() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return getLocalDateISO(inicio);
+        },
+
+        obterDataFim() {
+          return getLocalDateISO();
+        },
+
+        setUltimos7Dias() {
+          console.log('⏱️ Botão "Últimos 7d" clicado');
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+          this.periodo.dataInicio = getLocalDateISO(inicio);
+          this.periodo.dataFim = getLocalDateISO();
+          console.log('✅ Datas definidas:', {
+            dataInicio: this.periodo.dataInicio,
+            dataFim: this.periodo.dataFim
+          });
+          this.atualizarPeriodo();
+        },
+
+        setUltimos30Dias() {
+          console.log('⏱️ Botão "Últimos 30d" clicado');
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+          this.periodo.dataInicio = getLocalDateISO(inicio);
+          this.periodo.dataFim = getLocalDateISO();
+          console.log('✅ Datas definidas:', {
+            dataInicio: this.periodo.dataInicio,
+            dataFim: this.periodo.dataFim
+          });
+          this.atualizarPeriodo();
+        },
+
+        async atualizarPeriodo() {
+          console.log('🔄 ====== ATUALIZAR PERÍODO ======');
+          console.log('📅 Período selecionado:', {
+            dataInicio: this.periodo.dataInicio,
+            dataFim: this.periodo.dataFim,
+            tipoInicio: typeof this.periodo.dataInicio,
+            tipoFim: typeof this.periodo.dataFim,
+            comprimentoInicio: this.periodo.dataInicio.length,
+            comprimentoFim: this.periodo.dataFim.length
+          });
+          console.log('🔍 Verificando formato YYYY-MM-DD:');
+          console.log('  ✓ dataInicio match:', this.periodo.dataInicio.match(/^\d{4}-\d{2}-\d{2}$/) ? 'SIM' : 'NÃO');
+          console.log('  ✓ dataFim match:', this.periodo.dataFim.match(/^\d{4}-\d{2}-\d{2}$/) ? 'SIM' : 'NÃO');
+          console.log('🔄 Atualizando período:', {
+            dataInicio: this.periodo.dataInicio,
+            dataFim: this.periodo.dataFim
+          });
+          await this.carregarStats();
+          await this.carregarStatsPorCategoria();
+          // Gráfico agora é independente - não sincroniza ao alterar período!
+          await this.carregarReceitas();
+          console.log('✅ ====== PERÍODO ATUALIZADO ======\n');
+        },
+
+        async carregarStats() {
+          try {
+            console.log('📊 Carregando stats...');
+            console.log('  Período: de', this.periodo.dataInicio, 'até', this.periodo.dataFim);
+            const response = await api.obterStats(this.periodo.dataInicio, this.periodo.dataFim);
+            if (response.data.success) {
+              this.stats = response.data.data;
+              console.log('✅ Stats recebido:', this.stats);
+            } else {
+              console.error('❌ Erro na resposta:', response.data);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar stats:', error);
+          }
+        },
+
+        async carregarStatsPorCategoria() {
+          try {
+            console.log('📊 Carregando stats por categoria:', {
+              dataInicio: this.periodo.dataInicio,
+              dataFim: this.periodo.dataFim
+            });
+            const response = await api.obterStatsPorCategoria(this.periodo.dataInicio, this.periodo.dataFim);
+            if (response.data.success) {
+              this.statsPorCategoria = response.data.data;
+              console.log('✅ Stats por categoria recebido:', this.statsPorCategoria);
+            }
+          } catch (error) {
+            console.error('Erro ao carregar stats por categoria:', error);
+          }
+        },
+
+        async carregarReceitas() {
+          try {
+            const response = await api.listarFaturamentos(365);
+            if (response.data.success) {
+              console.log('📋 Filtrando receitas por período:', this.periodo.dataInicio, '-', this.periodo.dataFim);
+              this.receitas = response.data.data.filter(r =>
+                r.data >= this.periodo.dataInicio && r.data <= this.periodo.dataFim
+              ).sort((a, b) => new Date(b.data) - new Date(a.data));
+              console.log('✅ Receitas filtradas:', this.receitas.length);
+            }
+          } catch (error) {
+            console.error('Erro ao carregar receitas:', error);
+          }
+        },
+
+        atualizarSubcategorias() {
+          const classificacao = this.novaReceita.classificacao;
+          if (this.tiposDespesaAgrupados[classificacao]) {
+            this.subcategoriasDisponiveis = this.tiposDespesaAgrupados[classificacao];
+            this.novaReceita.tipoDespesaId = null;
+          } else {
+            this.subcategoriasDisponiveis = [];
+            this.novaReceita.tipoDespesaId = null;
+          }
+        },
+
+        abrirModalNovaCategoria() {
+          this.novaCategoria.classificacao = this.novaReceita.classificacao;
+          this.mostrarModalNovaCategoria = true;
+        },
+
+        fecharModalNovaCategoria() {
+          this.mostrarModalNovaCategoria = false;
+          this.novaCategoria = { classificacao: '', subcategoria: '', descricao: '' };
+        },
+
+        async criarNovaCategoria() {
+          if (!this.novaCategoria.classificacao || !this.novaCategoria.subcategoria) {
+            alert('Preencha Classificação e Nome da Categoria');
+            return;
+          }
+
+          try {
+            const response = await api.criarTipoDespesa(
+              this.novaCategoria.classificacao,
+              this.novaCategoria.subcategoria,
+              this.novaCategoria.descricao
+            );
+
+            if (response.data.success) {
+              // Recarregar tipos de despesa
+              await this.carregarTiposDespesa();
+              // Atualizar subcategorias
+              this.atualizarSubcategorias();
+              // Selecionar a categoria criada
+              this.novaReceita.tipoDespesaId = response.data.id;
+              // Fechar modal
+              this.fecharModalNovaCategoria();
+              alert('✅ Categoria criada com sucesso!');
+            }
+          } catch (error) {
+            alert('Erro ao criar categoria: ' + error.message);
+          }
+        },
+
+        async carregarTiposDespesa() {
+          try {
+            const response = await api.obterTiposDespesaAgrupado();
+            if (response.data.success) {
+              this.tiposDespesaAgrupados = response.data.data;
+              this.prepararTiposDespesaPlano(); // Preparar para dropdown de notas fiscais
+              console.log('✅ Tipos de despesa carregados:', this.tiposDespesaAgrupados);
+            }
+          } catch (error) {
+            console.error('Erro ao carregar tipos de despesa:', error);
+          }
+        },
+
+        async salvarReceita() {
+          if (!this.novaReceita.data || !this.novaReceita.total) {
+            alert('Preencha todos os campos');
+            return;
+          }
+
+          // Validar tipo de despesa se for despesa
+          if (this.novaReceita.tipo === 'despesa' && !this.novaReceita.tipoDespesaId) {
+            alert('Selecione a subcategoria para a despesa');
+            return;
+          }
+
+          // Validar categoria obrigatória
+          if (!this.novaReceita.categoria) {
+            alert('Selecione uma categoria');
+            return;
+          }
+
+          // Se "Outra", validar preenchimento
+          if (this.novaReceita.categoria === 'outra' && !this.outraCategoria.trim()) {
+            alert('Informe o nome da categoria');
+            return;
+          }
+
+          const categoria = this.novaReceita.categoria === 'outra'
+            ? this.outraCategoria.trim()
+            : this.novaReceita.categoria;
+
+          try {
+            await api.criarFaturamento(
+              this.novaReceita.data,
+              this.novaReceita.total,
+              categoria,
+              this.novaReceita.tipo,
+              this.novaReceita.tipoDespesaId
+            );
+            this.novaReceita.data = getLocalDateISO();
+            this.novaReceita.total = null;
+            this.novaReceita.categoria = 'Salão';
+            this.novaReceita.tipo = 'receita';
+            this.novaReceita.classificacao = '';
+            this.novaReceita.tipoDespesaId = null;
+            this.subcategoriasDisponiveis = [];
+            this.outraCategoria = '';
+            await this.atualizarPeriodo();
+          } catch (error) {
+            alert('Erro ao salvar: ' + error.message);
+          }
+        },
+
+        async deletarReceita(id) {
+          if (confirm('Deletar este faturamento?')) {
+            try {
+              await api.deletarFaturamento(id);
+              await this.atualizarPeriodo();
+            } catch (error) {
+              alert('Erro ao deletar');
+            }
+          }
+        },
+
+        formatarValor(valor) {
+          return parseFloat(valor).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+        },
+
+        formatarData(data) {
+          // ✅ Parse data LOCAL (YYYY-MM-DD) sem conversão UTC
+          const [year, month, day] = data.split('-');
+          const dataLocal = new Date(year, month - 1, day);
+          return dataLocal.toLocaleDateString('pt-BR', {
+            weekday: 'short',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+        },
+
+        // ==================== MÉTODOS DE NOTAS FISCAIS ====================
+        async carregarNotasPendentes() {
+          try {
+            const response = await api.obterNotasPendentes();
+            this.notasPendentes = response.data.data || [];
+
+            // Carregar estatísticas
+            const respStats = await api.obterNotasFiscais();
+            this.notasStats = respStats.data.stats || {};
+          } catch (error) {
+            console.error('Erro ao carregar notas pendentes:', error);
+          }
+        },
+
+        handleSelectFiles(event) {
+          const files = event.target.files;
+          this.processarArquivos(files);
+        },
+
+        handleDropFiles(event) {
+          this.isDraggingFiles = false;
+          const files = event.dataTransfer.files;
+          this.processarArquivos(files);
+        },
+
+        async processarArquivos(files) {
+          if (files.length === 0) return;
+
+          try {
+            this.notasEmProcessamento = Array.from(files).map(f => f.name);
+
+            const response = await api.enviarNotasFiscais(files);
+
+            if (response.data.success || response.data.data.length > 0) {
+              alert(`✅ ${response.data.data.length} nota(s) processada(s) com sucesso!`);
+
+              // Recarregar notas pendentes
+              await this.carregarNotasPendentes();
+
+              // Limpar input
+              this.$refs.fileInput.value = '';
+            } else if (response.data.errors && response.data.errors.length > 0) {
+              alert(`⚠️ ${response.data.errors.length} erro(s) encontrado(s).\n${response.data.errors[0].erro}`);
+            }
+          } catch (error) {
+            console.error('Erro ao enviar notas:', error);
+            alert('❌ Erro ao processar arquivos. Verifique o console.');
+          } finally {
+            this.notasEmProcessamento = [];
+          }
+        },
+
+        async processarNota(notaId) {
+          const tipoDespesaId = this.notasCategoria[notaId];
+          if (!tipoDespesaId) {
+            alert('Selecione uma categoria antes de processar');
+            return;
+          }
+
+          try {
+            // Obter sugestão de data
+            const response = await api.obterSugestaoData(notaId);
+
+            if (response.data.success) {
+              // Guardar informações para processamento posterior
+              this.notaIdAtualProcessamento = notaId;
+              this.tipoDespesaIdAtualProcessamento = tipoDespesaId;
+              this.sugestaoData = response.data.data;
+              this.dataCustomizada = response.data.data.data_sugerida || new Date().toISOString().split('T')[0];
+
+              // Mostrar modal em qualquer caso (com ou sem sugestão)
+              this.mostrarSugestaoData = true;
+            }
+          } catch (error) {
+            console.error('Erro ao obter sugestão:', error);
+            alert('❌ Erro ao processar nota. Tente novamente.');
+          }
+        },
+
+        async processarComData(dataFaturamento) {
+          if (!dataFaturamento) {
+            alert('⚠️ Selecione uma data para processar');
+            return;
+          }
+
+          try {
+            const response = await api.processarNotaFiscal(
+              this.notaIdAtualProcessamento,
+              this.tipoDespesaIdAtualProcessamento,
+              dataFaturamento
+            );
+
+            if (response.data.success) {
+              alert(`✅ Nota fiscal processada! Faturamento #${response.data.faturamento_id} criado para ${dataFaturamento}.`);
+
+              // Fechar modal
+              this.mostrarSugestaoData = false;
+              this.notaIdAtualProcessamento = null;
+              this.tipoDespesaIdAtualProcessamento = null;
+              this.dataCustomizada = '';
+
+              // Recarregar notas e faturamentos
+              await this.carregarNotasPendentes();
+              await this.atualizarPeriodo();
+            }
+          } catch (error) {
+            console.error('Erro ao processar nota:', error);
+            alert('❌ Erro ao processar nota. Tente novamente.');
+          }
+        },
+
+        cancelarSugestao() {
+          this.mostrarSugestaoData = false;
+          this.notaIdAtualProcessamento = null;
+          this.tipoDespesaIdAtualProcessamento = null;
+          this.dataCustomizada = '';
+        },
+
+        async deletarNota(notaId) {
+          if (!confirm('Tem certeza que deseja deletar esta nota? Esta ação não pode ser desfeita.')) {
+            return;
+          }
+
+          try {
+            const response = await api.deletarNotaFiscal(notaId);
+
+            if (response.data.success) {
+              alert('✅ Nota fiscal deletada com sucesso');
+              await this.carregarNotasPendentes();
+            }
+          } catch (error) {
+            console.error('Erro ao deletar nota:', error);
+            alert('❌ Erro ao deletar nota. Tente novamente.');
+          }
+        },
+
+        prepararTiposDespesaPlano() {
+          // Converter tiposDespesaAgrupados em um array plano para o select
+          this.tiposDespesaPlano = [];
+          for (const classificacao in this.tiposDespesaAgrupados) {
+            const tipos = this.tiposDespesaAgrupados[classificacao];
+            if (Array.isArray(tipos)) {
+              tipos.forEach(tipo => {
+                this.tiposDespesaPlano.push({
+                  id: tipo.id,
+                  subcategoria: tipo.subcategoria,
+                  classificacao
+                });
+              });
+            }
+          }
+        },
+
+        async renderizarGraficoMensal() {
+          try {
+            console.log('📊 Renderizando gráfico mensal:', this.graficoMes, '/', this.graficoAno);
+            const dataInicio = `${this.graficoAno}-${this.graficoMes}-01`;
+            const ultimoDia = new Date(this.graficoAno, parseInt(this.graficoMes), 0).getDate();
+            const dataFim = `${this.graficoAno}-${this.graficoMes}-${String(ultimoDia).padStart(2, '0')}`;
+
+            const response = await window.api.obterDadosGrafico(dataInicio, dataFim);
+            if (response.data.success) {
+              const dados = response.data.data;
+              const diasDoMes = [];
+              const receitas = [];
+              const despesas = [];
+
+              for (let i = 1; i <= ultimoDia; i++) {
+                diasDoMes.push(i);
+                const registro = dados.find(d => {
+                  const partes = d.data.split('-');
+                  return parseInt(partes[2]) === i;
+                });
+                receitas.push(registro ? parseFloat(registro.receita || 0) : 0);
+                despesas.push(registro ? parseFloat(registro.despesa || 0) : 0);
+              }
+
+              const canvas = document.getElementById('graficoMensalInline');
+              if (canvas && window.Chart) {
+                if (this.graficoMensalChart) this.graficoMensalChart.destroy();
+                const ctx = canvas.getContext('2d');
+                this.graficoMensalChart = new window.Chart(ctx, {
+                  type: 'line',
+                  data: {
+                    labels: diasDoMes,
+                    datasets: [{
+                      label: 'Receitas (R$)',
+                      data: receitas,
+                      borderColor: '#10b981',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      pointRadius: 4
+                    }, {
+                      label: 'Despesas (R$)',
+                      data: despesas,
+                      borderColor: '#ef4444',
+                      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      pointRadius: 4
+                    }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                      legend: { display: true, position: 'top' }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                          }
+                        }
+                      }
+                    }
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('❌ Erro ao renderizar gráfico:', error);
+          }
+        }
+      },
+
+      mounted() {
+        console.log('🚀 ====== APP CARREGADO ======');
+        console.log('📅 Período inicial:');
+        console.log('  dataInicio:', this.periodo.dataInicio);
+        console.log('  dataFim:', this.periodo.dataFim);
+
+        this.carregarTiposDespesa();
+        this.atualizarPeriodo();
+        this.renderizarGraficoMensal(); // Renderizar gráfico mensal inline
+        this.carregarNotasPendentes();
+
+        // Recarregar notas a cada 5 segundos
+        setInterval(() => {
+          this.carregarNotasPendentes();
+        }, 5000);
+      }
+    });
+
+    app.mount('#app');
+
+    // Script para o seletor do gráfico (independente) - com retry
+    let tentativas = 0;
+    const inicializarSeletor = () => {
+      tentativas++;
+      const inputInicio = document.getElementById('graficoDataInicio');
+      const inputFim = document.getElementById('graficoDataFim');
+      const grafico = window.graficoTendenciaInstance;
+
+      if (!grafico && tentativas < 20) {
+        setTimeout(inicializarSeletor, 200);
+        return;
+      }
+
+      if (!grafico) {
+        console.error('❌ Gráfico não foi inicializado');
+        return;
+      }
+
+      console.log('✅ Seletor do gráfico inicializado');
+
+      if (inputInicio && inputFim) {
+        const hoje = new Date();
+        const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        inputInicio.value = inicio.toISOString().split('T')[0];
+        inputFim.value = hoje.toISOString().split('T')[0];
+
+        // Função para atualizar gráfico
+        function atualizarGrafico() {
+          console.log('📊 Atualizando gráfico com datas:', inputInicio.value, inputFim.value);
+          grafico.periodo.dataInicio = inputInicio.value;
+          grafico.periodo.dataFim = inputFim.value;
+          grafico.carregarDadosGrafico();
+        }
+
+        inputInicio.addEventListener('change', atualizarGrafico);
+        inputFim.addEventListener('change', atualizarGrafico);
+      }
+
+      // Botões rápidos
+      const btn7d = document.getElementById('graficoBtn7d');
+      const btn30d = document.getElementById('graficoBtnMes');
+      const btnEsteMes = document.getElementById('graficoBtnEsteMes');
+
+      if (btn7d) {
+        btn7d.addEventListener('click', () => {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+          inputInicio.value = inicio.toISOString().split('T')[0];
+          inputFim.value = hoje.toISOString().split('T')[0];
+          grafico.periodo.dataInicio = inputInicio.value;
+          grafico.periodo.dataFim = inputFim.value;
+          grafico.carregarDadosGrafico();
+        });
+      }
+
+      if (btn30d) {
+        btn30d.addEventListener('click', () => {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+          inputInicio.value = inicio.toISOString().split('T')[0];
+          inputFim.value = hoje.toISOString().split('T')[0];
+          grafico.periodo.dataInicio = inputInicio.value;
+          grafico.periodo.dataFim = inputFim.value;
+          grafico.carregarDadosGrafico();
+        });
+      }
+
+      if (btnEsteMes) {
+        btnEsteMes.addEventListener('click', () => {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+          inputInicio.value = inicio.toISOString().split('T')[0];
+          inputFim.value = hoje.toISOString().split('T')[0];
+          grafico.periodo.dataInicio = inputInicio.value;
+          grafico.periodo.dataFim = inputFim.value;
+          grafico.carregarDadosGrafico();
+        });
+      }
+    };
+
+    inicializarSeletor();
+  </script>
+</body>
+</html>
