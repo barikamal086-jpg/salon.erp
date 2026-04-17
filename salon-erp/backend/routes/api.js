@@ -6,6 +6,7 @@ const Faturamento = require('../models/Faturamento');
 const TipoDespesa = require('../models/TipoDespesa');
 const NotaFiscal = require('../models/NotaFiscal');
 const NotaFiscalParser = require('../utils/NotaFiscalParser');
+const CMVAnalyzer = require('../utils/CMVAnalyzer');
 
 // Configurar multer para upload de arquivos
 const upload = multer({
@@ -356,7 +357,7 @@ router.get('/cmv-inteligente', async (req, res) => {
   }
 });
 
-// POST /api/cmv-inteligente/analisar - Análise de CMV com Claude AI
+// POST /api/cmv-inteligente/analisar - Análise Inteligente Rule-Based (sem IA)
 // Body: { from: "YYYY-MM-DD", to: "YYYY-MM-DD" }
 router.post('/cmv-inteligente/analisar', async (req, res) => {
   try {
@@ -372,72 +373,20 @@ router.post('/cmv-inteligente/analisar', async (req, res) => {
     // Obter dados de CMV
     const dados = await Faturamento.obterDadosCMV(from, to);
 
-    // Preparar dados para análise
-    const prompt = `
-Você é um analista de custos especializado em negócios de alimentação e bebidas (Bar & Cozinha).
+    // Analisar com o CMVAnalyzer rule-based
+    console.log('🔍 Analisando CMV com regras inteligentes...');
+    const analise = CMVAnalyzer.analisar(dados);
+    const relatorio = CMVAnalyzer.gerarRelatorio(dados);
 
-Analise os dados de CMV (Custo de Mercadoria Vendida) abaixo e forneça insights acionáveis:
-
-RESUMO DO PERÍODO:
-- Período: ${dados.periodo.inicio} a ${dados.periodo.fim} (${dados.periodo.dias} dias)
-- Total Receita: R$ ${dados.resumo.totalReceita.toFixed(2)}
-- Total CMV: R$ ${dados.resumo.totalCMV.toFixed(2)}
-- CMV %: ${dados.resumo.cmvPercentual.toFixed(2)}%
-- Margem Bruta: ${dados.resumo.margemBruta.toFixed(2)}%
-- Variação CMV % vs período anterior: ${dados.resumo.variacao > 0 ? '+' : ''}${dados.resumo.variacao.toFixed(2)}%
-
-TOP 5 SUBCATEGORIAS DE DESPESA:
-${dados.cmvDetalhado.slice(0, 5).map(item =>
-  `- ${item.subcategoria}: R$ ${item.total.toFixed(2)} (${item.percentualReceitaCMV.toFixed(2)}% da receita, ${item.quantidade} transações)`
-).join('\n')}
-
-Forneça:
-1. **Análise Geral**: Situação do CMV (saudável, alerta, crítica)
-2. **Principais Insights**: 3-4 pontos mais relevantes sobre os gastos
-3. **Recomendações**: 3-4 ações práticas para otimizar o CMV
-4. **Indicadores de Risco**: Qualquer área que necessite atenção imediata
-5. **Benchmark**: Comparação com padrão do setor (hospitalar é 20-35%)
-
-Seja conciso, direto e use linguagem de negócio em português.
-    `.trim();
-
-    // Chamar Claude AI (via SDK disponível no servidor)
-    let analise = null;
-    try {
-      // Tentar usar Anthropic SDK se disponível
-      const Anthropic = require('@anthropic-ai/sdk');
-      const client = new Anthropic.default({
-        apiKey: process.env.ANTHROPIC_API_KEY
-      });
-
-      const message = await client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      });
-
-      analise = message.content[0].type === 'text' ? message.content[0].text : null;
-      console.log('✅ Análise de CMV gerada com Claude AI');
-    } catch (aiError) {
-      console.warn('⚠️ Erro ao chamar Claude AI:', aiError.message);
-      // Se Claude não está disponível, retornar dados sem análise
-      return res.json({
-        success: true,
-        data: dados,
-        analise: null,
-        aviso: 'Claude AI não está disponível. Configure ANTHROPIC_API_KEY nas variáveis de ambiente.'
-      });
-    }
+    console.log('✅ Análise concluída (Rule-Based)');
 
     res.json({
       success: true,
       data: dados,
-      analise: analise
+      analise: analise,
+      relatorio: relatorio,
+      tipo: 'rule-based',
+      aviso: null
     });
   } catch (error) {
     console.error('❌ Erro ao analisar CMV:', error);

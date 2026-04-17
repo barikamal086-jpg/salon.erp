@@ -61,7 +61,20 @@
       "Bash(git commit -m ':*)",
       "Bash(grep -n \"<!-- .*-->\" \"C:\\\\\\\\Users\\\\\\\\adm\\\\\\\\Desktop\\\\\\\\Claude\\\\\\\\salon-erp\\\\\\\\frontend\\\\\\\\index.html\")",
       "Bash(grep -n \"^      </div>\" \"C:\\\\\\\\Users\\\\\\\\adm\\\\\\\\Desktop\\\\\\\\Claude\\\\\\\\salon-erp\\\\\\\\frontend\\\\\\\\index.html\")",
-      "Bash(npm list:*)"
+      "Bash(npm list:*)",
+      "Bash(timeout 5 node app.js)",
+      "Bash(curl -s \"http://localhost:5004/api/cmv-inteligente?from=2026-04-01&to=2026-04-16\")",
+      "Bash(curl -s \"http://localhost:5004/api/faturamentos?days=30\")",
+      "Bash(pkill -f \"node.*app.js\")",
+      "Bash(kill 2316)",
+      "Bash(kill -9 2316)",
+      "Bash(taskkill /PID 2316 /F)",
+      "Bash(curl -s \"http://localhost:5005/api/cmv-inteligente?from=2026-04-01&to=2026-04-16\")",
+      "Bash(curl -s -X POST http://localhost:5005/api/cmv-inteligente/analisar -H 'Content-Type: application/json' -d '{\"from\":\"2026-04-01\",\"to\":\"2026-04-16\"}')",
+      "Bash(awk '{print $2}')",
+      "Bash(xargs kill:*)",
+      "Bash(PORT=5005 \"/c/Program Files/nodejs/node\" app.js)",
+      "Bash(PORT=5006 \"/c/Program Files/nodejs/node\" app.js)"
     ]
   }
 }
