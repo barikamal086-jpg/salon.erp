@@ -169,6 +169,100 @@ class Faturamento {
     return await allAsync(sql, [dataInicio, dataFim]);
   }
 
+  // CMV Inteligente: Obter dados completos para análise de CMV
+  static async obterDadosCMV(dataInicio, dataFim) {
+    // Dados principais (período atual)
+    const stats = await this.obterStats(dataInicio, dataFim);
+    const cmvDetalhado = await this.obterRelatorioCMV(dataInicio, dataFim);
+    const cmvTotal = await this.obterTotalCMV(dataInicio, dataFim);
+    const dadosGrafico = await this.obterDadosGrafico(dataInicio, dataFim);
+
+    // Calcular período anterior (mesma duração) para comparação
+    const dataInStart = new Date(dataInicio);
+    const dataFimStart = new Date(dataFim);
+    const duracao = dataFimStart - dataInStart;
+
+    const dataAnteriorFim = new Date(dataInStart.getTime() - 1);
+    const dataAnteriorInicio = new Date(dataAnteriorFim.getTime() - duracao);
+
+    const dataAnteriorInicioStr = dataAnteriorInicio.toISOString().split('T')[0];
+    const dataAnteriorFimStr = dataAnteriorFim.toISOString().split('T')[0];
+
+    let statsPeriodoAnterior = null;
+    let cmvTotalAnterior = null;
+    try {
+      statsPeriodoAnterior = await this.obterStats(dataAnteriorInicioStr, dataAnteriorFimStr);
+      cmvTotalAnterior = await this.obterTotalCMV(dataAnteriorInicioStr, dataAnteriorFimStr);
+    } catch (e) {
+      console.log('ℹ️ Período anterior sem dados (esperado para períodos antigos)');
+    }
+
+    // Calcular CMV % (CMV / Receita)
+    const totalReceita = parseFloat(stats.totalReceita || 0);
+    const totalCMV = parseFloat(cmvTotal.totalCMV || 0);
+    const cmvPercentual = totalReceita > 0 ? (totalCMV / totalReceita) * 100 : 0;
+
+    // Calcular margem bruta (Receita - CMV) / Receita
+    const margem = totalReceita > 0 ? ((totalReceita - totalCMV) / totalReceita) * 100 : 0;
+
+    // Calcular variação em relação ao período anterior
+    let variacao = 0;
+    let cmvPercentualAnterior = 0;
+    if (statsPeriodoAnterior && cmvTotalAnterior) {
+      const totalReceitaAnterior = parseFloat(statsPeriodoAnterior.totalReceita || 0);
+      const totalCMVAnterior = parseFloat(cmvTotalAnterior.totalCMV || 0);
+      cmvPercentualAnterior = totalReceitaAnterior > 0 ? (totalCMVAnterior / totalReceitaAnterior) * 100 : 0;
+      variacao = cmvPercentual - cmvPercentualAnterior;
+    }
+
+    // Identificar maiores despesas de CMV
+    const maiorDespesa = cmvDetalhado.length > 0 ? cmvDetalhado[0] : null;
+    const menorDespesa = cmvDetalhado.length > 0 ? cmvDetalhado[cmvDetalhado.length - 1] : null;
+
+    return {
+      periodo: {
+        inicio: dataInicio,
+        fim: dataFim,
+        dias: stats.dias || 0
+      },
+      resumo: {
+        totalReceita: parseFloat(stats.totalReceita || 0),
+        totalCMV: parseFloat(cmvTotal.totalCMV || 0),
+        totalLiquido: parseFloat(stats.totalLiquido || 0),
+        cmvPercentual: parseFloat(cmvPercentual.toFixed(2)),
+        margemBruta: parseFloat(margem.toFixed(2)),
+        variacao: parseFloat(variacao.toFixed(2)),
+        cmvPercentualAnterior: parseFloat(cmvPercentualAnterior.toFixed(2))
+      },
+      cmvDetalhado: cmvDetalhado.map(item => ({
+        subcategoria: item.subcategoria || 'Sem categoria',
+        total: parseFloat(item.total || 0),
+        media: parseFloat(item.media || 0),
+        maior: parseFloat(item.maior || 0),
+        menor: parseFloat(item.menor || 0),
+        quantidade: item.quantidade || 0,
+        dias: item.dias || 0,
+        percentualReceitaCMV: totalReceita > 0 ? ((parseFloat(item.total || 0) / totalReceita) * 100) : 0
+      })),
+      maiorDespesa: maiorDespesa ? {
+        subcategoria: maiorDespesa.subcategoria || 'Sem categoria',
+        total: parseFloat(maiorDespesa.total || 0),
+        quantidade: maiorDespesa.quantidade || 0
+      } : null,
+      menorDespesa: menorDespesa ? {
+        subcategoria: menorDespesa.subcategoria || 'Sem categoria',
+        total: parseFloat(menorDespesa.total || 0),
+        quantidade: menorDespesa.quantidade || 0
+      } : null,
+      tendencia: dadosGrafico.map(item => ({
+        data: item.data,
+        receita: parseFloat(item.receita || 0),
+        cmv: parseFloat(item.despesa || 0),
+        margem: item.receita > 0 ? (((parseFloat(item.receita || 0) - parseFloat(item.despesa || 0)) / parseFloat(item.receita || 0)) * 100) : 0
+      }))
+    };
+  }
+
   // Obter relatório CMV separado por subcategoria
   static async obterRelatorioCMV(dataInicio, dataFim) {
     const sql = `

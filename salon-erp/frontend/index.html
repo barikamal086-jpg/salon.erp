@@ -34,8 +34,19 @@
 
       <!-- Menu -->
       <nav class="p-4 space-y-2">
-        <div class="px-4 py-2 rounded-lg bg-blue-700 text-white cursor-pointer">
+        <div
+          @click="activeView = 'dashboard'"
+          :class="activeView === 'dashboard' ? 'bg-blue-700' : 'bg-blue-800 hover:bg-blue-700'"
+          class="px-4 py-2 rounded-lg text-white cursor-pointer transition"
+        >
           <i class="fas fa-chart-line mr-2"></i> Dashboard
+        </div>
+        <div
+          @click="activeView = 'cmv-inteligente'"
+          :class="activeView === 'cmv-inteligente' ? 'bg-blue-700' : 'bg-blue-800 hover:bg-blue-700'"
+          class="px-4 py-2 rounded-lg text-white cursor-pointer transition"
+        >
+          <i class="fas fa-brain mr-2"></i> 🧠 CMV Inteligente
         </div>
       </nav>
     </aside>
@@ -45,12 +56,15 @@
       <!-- Top Bar -->
       <div class="bg-white shadow-sm border-b border-gray-200">
         <div class="px-8 py-4 flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-900">Dashboard</h2>
+          <h2 class="text-2xl font-bold text-gray-900">
+            <span v-if="activeView === 'dashboard'">Dashboard</span>
+            <span v-else-if="activeView === 'cmv-inteligente'">🧠 CMV Inteligente</span>
+          </h2>
         </div>
       </div>
 
       <!-- Content -->
-      <div class="p-8 space-y-6">
+      <div v-show="activeView === 'dashboard'" class="p-8 space-y-6">
 
         <!-- Seletor de Período -->
         <div class="bg-white rounded-lg shadow-md p-6">
@@ -641,6 +655,148 @@
         </div>
 
       </div>
+
+      <!-- CMV Inteligente Section -->
+      <div v-show="activeView === 'cmv-inteligente'" class="p-8 space-y-6">
+
+        <!-- Seletor de Período -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📅 Selecione o Período</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Início</label>
+              <input
+                v-model="cmvPeriodo.dataInicio"
+                type="date"
+                @change="carregarDadosCMV"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Fim</label>
+              <input
+                v-model="cmvPeriodo.dataFim"
+                type="date"
+                @change="carregarDadosCMV"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Atalhos</label>
+              <div class="flex gap-2">
+                <button
+                  @click="setCMVUltimos7Dias"
+                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  Últimos 7d
+                </button>
+                <button
+                  @click="setCMVUltimos30Dias"
+                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  Últimos 30d
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CMV Summary Cards -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">📊 Resumo de CMV</h3>
+          <div v-if="cmvDados" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
+              <p class="text-gray-600 text-sm font-medium">💰 Total Receita</p>
+              <p class="text-2xl font-bold text-purple-600 mt-2">R$ {{ formatarValor(cmvDados.resumo.totalReceita) }}</p>
+            </div>
+            <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <p class="text-gray-600 text-sm font-medium">📦 Total CMV</p>
+              <p class="text-2xl font-bold text-red-600 mt-2">R$ {{ formatarValor(cmvDados.resumo.totalCMV) }}</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
+              <p class="text-gray-600 text-sm font-medium">📈 CMV %</p>
+              <p class="text-2xl font-bold text-orange-600 mt-2">{{ cmvDados.resumo.cmvPercentual.toFixed(2) }}%</p>
+              <p v-if="cmvDados.resumo.variacao !== 0" class="text-xs mt-2" :class="cmvDados.resumo.variacao > 0 ? 'text-red-500' : 'text-green-500'">
+                {{ cmvDados.resumo.variacao > 0 ? '📈' : '📉' }} {{ cmvDados.resumo.variacao.toFixed(2) }}%
+              </p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <p class="text-gray-600 text-sm font-medium">💵 Margem Bruta</p>
+              <p class="text-2xl font-bold text-green-600 mt-2">{{ cmvDados.resumo.margemBruta.toFixed(2) }}%</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <p class="text-gray-600 text-sm font-medium">📅 Período</p>
+              <p class="text-lg font-bold text-blue-600 mt-2">{{ cmvDados.periodo.dias }} dias</p>
+            </div>
+          </div>
+          <div v-else class="text-gray-500 text-center py-8">
+            Carregando dados de CMV...
+          </div>
+        </div>
+
+        <!-- CMV por Subcategoria -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">🏷️ CMV por Subcategoria</h3>
+          <div v-if="cmvDados && cmvDados.cmvDetalhado.length > 0" class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-100 border-b border-gray-300">
+                <tr>
+                  <th class="px-4 py-2 text-left font-semibold">Subcategoria</th>
+                  <th class="px-4 py-2 text-right font-semibold">Total</th>
+                  <th class="px-4 py-2 text-right font-semibold">% da Receita</th>
+                  <th class="px-4 py-2 text-right font-semibold">Média</th>
+                  <th class="px-4 py-2 text-right font-semibold">Qtd</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in cmvDados.cmvDetalhado" :key="idx" class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="px-4 py-2 font-medium text-gray-900">{{ item.subcategoria }}</td>
+                  <td class="px-4 py-2 text-right text-red-600 font-semibold">R$ {{ formatarValor(item.total) }}</td>
+                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ item.percentualReceitaCMV.toFixed(2) }}%</td>
+                  <td class="px-4 py-2 text-right text-gray-600">R$ {{ formatarValor(item.media) }}</td>
+                  <td class="px-4 py-2 text-right text-gray-600">{{ item.quantidade }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="text-gray-500 text-center py-8">
+            Nenhum dado de CMV disponível para este período
+          </div>
+        </div>
+
+        <!-- Tendência de CMV (Gráfico) -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Tendência de CMV vs Receita</h3>
+          <canvas id="cmvTrendChart" height="100"></canvas>
+        </div>
+
+        <!-- AI Analysis Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-bold text-gray-900">🤖 Análise com IA (Claude)</h3>
+            <button
+              @click="analisarCMVComIA"
+              :disabled="carregandoAnaliseIA"
+              class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+            >
+              <span v-if="!carregandoAnaliseIA">🧠 Analisar com IA</span>
+              <span v-else>⏳ Analisando...</span>
+            </button>
+          </div>
+
+          <div v-if="cmvAnalise" class="space-y-4 text-sm text-gray-700 leading-relaxed bg-purple-50 rounded-lg p-4 border border-purple-200 max-h-96 overflow-y-auto">
+            <div v-html="formatarAnalise(cmvAnalise)" style="white-space: pre-wrap; word-break: break-word;"></div>
+          </div>
+          <div v-else-if="!carregandoAnaliseIA" class="text-gray-500 text-center py-8">
+            Clique em "Analisar com IA" para obter insights de custos baseados em dados da sua loja
+          </div>
+          <div v-else class="text-center py-8">
+            <div class="animate-spin inline-block">⏳</div>
+            <p class="text-gray-600 mt-2">Gerando análise com inteligência artificial...</p>
+          </div>
+        </div>
+
+      </div>
     </main>
 
     <!-- Modal: Adicionar Nova Categoria -->
@@ -817,6 +973,14 @@
     const app = createApp({
       data() {
         return {
+          activeView: 'dashboard',
+          cmvPeriodo: {
+            dataInicio: this.obterDataInicio(),
+            dataFim: this.obterDataFim()
+          },
+          cmvDados: null,
+          cmvAnalise: null,
+          carregandoAnaliseIA: false,
           periodo: {
             dataInicio: this.obterDataInicio(),
             dataFim: this.obterDataFim()
@@ -996,6 +1160,185 @@
           this.filtroHistorico.dataFim = this.obterDataFimMes();
           this.filtroHistorico.categoria = '';
           this.paginacao.paginaAtual = 1;
+        },
+
+        // CMV Inteligente Methods
+        setCMVUltimos7Dias() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+          this.cmvPeriodo.dataInicio = getLocalDateISO(inicio);
+          this.cmvPeriodo.dataFim = getLocalDateISO(hoje);
+          this.carregarDadosCMV();
+        },
+
+        setCMVUltimos30Dias() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+          this.cmvPeriodo.dataInicio = getLocalDateISO(inicio);
+          this.cmvPeriodo.dataFim = getLocalDateISO(hoje);
+          this.carregarDadosCMV();
+        },
+
+        async carregarDadosCMV() {
+          try {
+            console.log('📊 Carregando dados de CMV:', this.cmvPeriodo);
+            this.cmvDados = null;
+
+            const response = await fetch(`${window.location.origin}/api/cmv-inteligente?from=${this.cmvPeriodo.dataInicio}&to=${this.cmvPeriodo.dataFim}`);
+            const resultado = await response.json();
+
+            if (resultado.success) {
+              this.cmvDados = resultado.data;
+              console.log('✅ Dados de CMV carregados:', this.cmvDados);
+
+              // Renderizar gráfico de tendência
+              setTimeout(() => this.renderizarGraficoTendenciaCMV(), 100);
+            } else {
+              console.error('❌ Erro ao carregar dados de CMV:', resultado.error);
+              alert('Erro ao carregar dados: ' + resultado.error);
+            }
+          } catch (error) {
+            console.error('❌ Erro na requisição:', error);
+            alert('Erro ao carregar dados de CMV');
+          }
+        },
+
+        renderizarGraficoTendenciaCMV() {
+          try {
+            if (!this.cmvDados || !this.cmvDados.tendencia) return;
+
+            const canvas = document.getElementById('cmvTrendChart');
+            if (!canvas) return;
+
+            const dados = this.cmvDados.tendencia;
+            const datas = dados.map(d => d.data);
+            const receitas = dados.map(d => d.receita);
+            const cmvs = dados.map(d => d.cmv);
+            const margens = dados.map(d => d.margem);
+
+            if (window.cmvTrendChart) window.cmvTrendChart.destroy();
+
+            const ctx = canvas.getContext('2d');
+            window.cmvTrendChart = new window.Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: datas,
+                datasets: [
+                  {
+                    label: 'Receita (R$)',
+                    data: receitas,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4
+                  },
+                  {
+                    label: 'CMV (R$)',
+                    data: cmvs,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4
+                  },
+                  {
+                    label: 'Margem (%)',
+                    data: margens,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4,
+                    borderDash: [5, 5],
+                    pointRadius: 3
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                  legend: { display: true, position: 'top' }
+                },
+                scales: {
+                  y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Valor (R$)' },
+                    ticks: {
+                      callback: function(value) {
+                        return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                      }
+                    }
+                  },
+                  y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: { display: true, text: 'Margem (%)' },
+                    min: 0,
+                    max: 100,
+                    grid: { drawOnChartArea: false }
+                  }
+                }
+              }
+            });
+          } catch (error) {
+            console.error('❌ Erro ao renderizar gráfico:', error);
+          }
+        },
+
+        async analisarCMVComIA() {
+          try {
+            console.log('🤖 Solicitando análise com IA...');
+            this.carregandoAnaliseIA = true;
+
+            const response = await fetch(`${window.location.origin}/api/cmv-inteligente/analisar`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                from: this.cmvPeriodo.dataInicio,
+                to: this.cmvPeriodo.dataFim
+              })
+            });
+
+            const resultado = await response.json();
+
+            if (resultado.success && resultado.analise) {
+              this.cmvAnalise = resultado.analise;
+              console.log('✅ Análise com IA recebida');
+            } else if (resultado.aviso) {
+              alert('⚠️ ' + resultado.aviso);
+              console.warn('Aviso:', resultado.aviso);
+            } else {
+              alert('❌ Erro: ' + (resultado.error || 'Não foi possível gerar análise'));
+            }
+          } catch (error) {
+            console.error('❌ Erro ao analisar CMV:', error);
+            alert('Erro ao analisar CMV: ' + error.message);
+          } finally {
+            this.carregandoAnaliseIA = false;
+          }
+        },
+
+        formatarAnalise(texto) {
+          if (!texto) return '';
+
+          // Converter markdown-like para HTML simples
+          let html = texto
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **bold**
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')              // *italic*
+            .replace(/###(.*)/g, '<h4 class="font-bold mt-3 mb-2">$1</h4>')  // ### Título
+            .replace(/##(.*)/g, '<h3 class="font-bold text-base mt-3 mb-2">$1</h3>')  // ## Título
+            .replace(/#(.*)/g, '<h2 class="font-bold text-lg mt-3 mb-2">$1</h2>')  // # Título
+            .replace(/\n\n/g, '</p><p>')  // Parágrafos
+            .replace(/\n- /g, '<br/>• ')  // Listas
+            .replace(/\n\d+\. /g, '<br/>');  // Listas numeradas
+
+          return '<p>' + html + '</p>';
         },
 
         setUltimos7Dias() {
@@ -1623,6 +1966,7 @@
         this.atualizarPeriodo();
         this.renderizarGraficoMensal(); // Renderizar gráfico mensal inline
         this.carregarNotasPendentes();
+        this.carregarDadosCMV(); // Carregar dados de CMV ao iniciar
 
         // Recarregar notas a cada 5 segundos
         setInterval(() => {
