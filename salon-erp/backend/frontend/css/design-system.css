@@ -1,0 +1,642 @@
+/* Salon ERP - Design System v2 (Refined) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap');
+
+:root {
+  /* Primary Colors - More Sophisticated */
+  --primary: #3B82F6 !important;
+  --primary-dark: #1E40AF !important;
+  --primary-light: #DBEAFE !important;
+  --secondary: #6B7280 !important;
+  --accent: #F59E0B !important;
+
+  /* Status Colors */
+  --success: #10B981 !important;
+  --warning: #F59E0B !important;
+  --error: #EF4444 !important;
+  --info: #3B82F6 !important;
+
+  /* Restaurant Colors */
+  --salao: #10B981 !important;
+  --ifood: #EF4444 !important;
+  --keeta: #8B5CF6 !important;
+  --99food: #F59E0B !important;
+
+  /* Backgrounds */
+  --bg-primary: #FFFFFF !important;
+  --bg-secondary: #F3F8FF !important;
+  --bg-tertiary: #EFF6FF !important;
+  --bg-dark: #111827 !important;
+
+  /* Text */
+  --text-primary: #111827 !important;
+  --text-secondary: #6B7280 !important;
+  --text-light: #9CA3AF !important;
+
+  /* Borders */
+  --border: #E5E7EB !important;
+  --border-light: #F3F4F6 !important;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ============================================
+   OVERRIDE TAILWIND - GLOBAL
+   ============================================ */
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+body {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Sidebar Override */
+aside {
+  background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%) !important;
+  color: white !important;
+  box-shadow: 0 10px 30px rgba(30, 64, 175, 0.2) !important;
+  border: none !important;
+}
+
+aside > div:first-child {
+  border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+  background: transparent !important;
+}
+
+/* Main Content */
+main {
+  background: var(--bg-secondary) !important;
+}
+
+/* Cards - Refined Style */
+[class*="bg-white"] {
+  background: white !important;
+  border-radius: 12px !important;
+  border: 1px solid #E0E7FF !important;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.08) !important;
+  transition: all 0.3s ease !important;
+}
+
+[class*="bg-white"]:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-2px) !important;
+  border-color: #BFDBFE !important;
+}
+
+/* Remove Tailwind gradient classes */
+[class*="gradient"] {
+  background: var(--primary) !important;
+}
+
+/* Buttons - Refined Style */
+button {
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+}
+
+button[class*="bg-blue"],
+.btn-primary {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+button[class*="bg-blue"]:hover,
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4) !important;
+  transform: translateY(-2px) !important;
+}
+
+button[class*="bg-green"],
+.btn-success {
+  background: var(--success) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15) !important;
+}
+
+button[class*="bg-green"]:hover,
+.btn-success:hover {
+  background: #059669 !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25) !important;
+  transform: translateY(-1px) !important;
+}
+
+button[class*="bg-red"],
+.btn-danger {
+  background: var(--error) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15) !important;
+}
+
+button[class*="bg-red"]:hover,
+.btn-danger:hover {
+  background: #DC2626 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Secondary Button Style */
+.btn-secondary {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.btn-secondary:hover {
+  background: var(--border) !important;
+}
+
+/* Inputs - Modern Style */
+input,
+select,
+textarea {
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  padding: 10px 12px !important;
+  font-size: 0.95rem !important;
+  transition: all 0.2s !important;
+  background: white !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Search Bar */
+input[type="search"],
+.search-input {
+  border: 1px solid var(--border) !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+}
+
+/* Top Bar - Clean Header */
+[class*="top-bar"],
+main > div:first-child,
+header {
+  background: linear-gradient(to bottom, #FFFFFF 0%, #F0F9FF 100%) !important;
+  border-bottom: 2px solid #E0F2FE !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08) !important;
+  padding: 16px 24px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 24px !important;
+}
+
+/* Top Bar Search */
+.top-bar-search {
+  flex: 1 !important;
+  max-width: 500px !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+}
+
+h2 {
+  color: var(--primary) !important;
+}
+
+/* Tables - Modern Style */
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 0.93rem !important;
+}
+
+table thead {
+  background: linear-gradient(180deg, #1E40AF 0%, #1D4ED8 100%) !important;
+  color: white !important;
+}
+
+table th {
+  padding: 14px 12px !important;
+  font-weight: 600 !important;
+  color: white !important;
+  text-align: left !important;
+  user-select: none !important;
+}
+
+table tbody tr {
+  transition: background-color 0.2s ease !important;
+  border-bottom: 1px solid #E8EFFE !important;
+}
+
+table tbody tr:nth-child(even) {
+  background: #F9FAFB !important;
+}
+
+table td {
+  padding: 14px 12px !important;
+  color: var(--text-primary) !important;
+}
+
+table tbody tr:hover {
+  background: #EFF6FF !important;
+}
+
+table tbody tr:last-child {
+  border-bottom: none !important;
+}
+
+/* Table Values - Better Emphasis */
+.table-value-positive {
+  color: var(--success) !important;
+  font-weight: 600 !important;
+}
+
+.table-value-negative {
+  color: var(--error) !important;
+  font-weight: 600 !important;
+}
+
+/* Badges - Modern Style */
+[class*="badge"] {
+  display: inline-block !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  text-transform: capitalize !important;
+}
+
+.badge-success,
+[class*="badge"][class*="success"] {
+  background: #D1FAE5 !important;
+  color: #065F46 !important;
+}
+
+.badge-warning,
+[class*="badge"][class*="warning"] {
+  background: #FEF3C7 !important;
+  color: #92400E !important;
+}
+
+.badge-error,
+[class*="badge"][class*="error"],
+[class*="badge"][class*="danger"] {
+  background: #FEE2E2 !important;
+  color: #7F1D1D !important;
+}
+
+.badge-info {
+  background: #DBEAFE !important;
+  color: #1E40AF !important;
+}
+
+.badge-novo {
+  background: #DBEAFE !important;
+  color: #1E40AF !important;
+  font-weight: 600 !important;
+}
+
+.badge-beta {
+  background: #F3E8FF !important;
+  color: #7C3AED !important;
+}
+
+/* KPI Cards */
+.kpi-card,
+[class*="kpi"] {
+  background: white !important;
+  border: 1px solid #E0E7FF !important;
+  border-radius: 12px !important;
+  padding: 24px !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1) !important;
+  transition: all 0.3s ease !important;
+  border-left: 4px solid var(--primary) !important;
+}
+
+.kpi-card:hover {
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-4px) !important;
+  border-color: #BFDBFE !important;
+}
+
+.kpi-label {
+  color: var(--text-secondary) !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 8px !important;
+}
+
+.kpi-value {
+  font-size: 2rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+}
+
+.kpi-change {
+  font-size: 0.85rem !important;
+  margin-top: 8px !important;
+}
+
+.kpi-positive {
+  color: var(--success) !important;
+}
+
+.kpi-negative {
+  color: var(--error) !important;
+}
+
+/* Cards Status */
+[class*="card-status"] {
+  display: inline-block !important;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+}
+
+[class*="card-status"][class*="success"] {
+  background: #D1FAE5 !important;
+  color: #065F46 !important;
+}
+
+/* Remove arbitrary colors from Tailwind */
+.bg-gray-100,
+.bg-gray-50,
+.bg-green-50,
+.bg-red-50,
+.bg-blue-50,
+.bg-yellow-50,
+.bg-purple-50 {
+  background: white !important;
+}
+
+/* Fix text colors */
+.text-gray-700,
+.text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.text-gray-500,
+.text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+/* Border colors */
+.border-gray-200,
+.border-gray-300 {
+  border-color: var(--border) !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary);
+}
+
+/* Focus states */
+*:focus {
+  outline: none !important;
+}
+
+/* Remove shadows from Tailwind */
+.shadow-md,
+.shadow-lg,
+.shadow-sm {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+/* Menu Items - Sidebar */
+aside nav {
+  padding: 12px 0 !important;
+}
+
+aside nav div,
+aside a {
+  display: flex !important;
+  align-items: center !important;
+  padding: 12px 20px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+aside nav div:hover,
+aside a:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  padding-left: 24px !important;
+}
+
+aside nav div.active,
+aside a.active {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+  border-left: 3px solid white !important;
+  padding-left: 17px !important;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out !important;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-in-out !important;
+}
+
+/* Logo Text - Force White */
+aside h1,
+aside h1 * {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+}
+
+aside p,
+aside p * {
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+}
+
+/* Menu items in sidebar */
+aside nav div {
+  transition: all 0.2s !important;
+  color: rgba(255,255,255,0.9) !important;
+  font-weight: 600 !important;
+}
+
+aside nav div:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: white !important;
+}
+
+/* Restaurant selector buttons */
+[class*="restaurant-btn"] {
+  padding: 12px 20px !important;
+  border: 2px solid var(--border) !important;
+  background: white !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  color: var(--text-primary) !important;
+}
+
+[class*="restaurant-btn"]:hover {
+  border-color: var(--primary) !important;
+  background: #DBEAFE !important;
+}
+
+[class*="restaurant-btn"][class*="active"] {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: white !important;
+}
+
+/* Responsive - Mobile First */
+@media (max-width: 768px) {
+  aside {
+    width: 100% !important;
+    position: relative !important;
+    height: auto !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding: 16px !important;
+  }
+
+  header,
+  [class*="top-bar"] {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .top-bar-search {
+    max-width: 100% !important;
+  }
+
+  table {
+    font-size: 0.85rem !important;
+  }
+
+  table th,
+  table td {
+    padding: 10px 8px !important;
+  }
+
+  .kpi-card {
+    padding: 16px !important;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  aside {
+    width: 220px !important;
+  }
+
+  .kpi-card {
+    padding: 20px !important;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+  aside {
+    width: 260px !important;
+  }
+
+  main {
+    margin-left: 260px !important;
+  }
+}
+
+/* Print Styles */
+@media print {
+  aside {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+  }
+
+  button,
+  .no-print {
+    display: none !important;
+  }
+}

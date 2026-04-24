@@ -1,0 +1,233 @@
+const { createApp } = Vue;
+
+const app = createApp({
+  data() {
+    const hoje = new Date();
+    const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return {
+      receitas: [],
+      filtroStatus: '',
+      diaSelecionado: null,
+      periodo: {
+        dataInicio: this.obterDataInicio(),
+        dataFim: this.obterDataFim()
+      },
+      graficoDataInicio: inicio.toISOString().split('T')[0],
+      graficoDataFim: hoje.toISOString().split('T')[0],
+      edicaoAtiva: false,
+      edicaoId: null,
+      novoTotal: null,
+      erroEdicao: ''
+    };
+  },
+
+  computed: {
+    dataInicioFormatada() {
+      return this.periodo.dataInicio;
+    },
+    dataFimFormatada() {
+      return this.periodo.dataFim;
+    }
+  },
+  methods: {
+    async carregarDados() {
+      try {
+        let url = 30;
+        let status = this.filtroStatus || null;
+
+        // Se houver dia selecionado, buscar apenas daquele dia
+        if (this.diaSelecionado) {
+          const response = await api.listarFaturamentos(365, status);
+          if (response.data.success) {
+            this.receitas = response.data.data.filter(r => r.data === this.diaSelecionado);
+          }
+        } else {
+          const response = await api.listarFaturamentos(url, status);
+          if (response.data.success) {
+            this.receitas = response.data.data;
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar faturamentos:', error);
+      }
+    },
+
+    filtrarPorDia(data) {
+      this.diaSelecionado = data;
+      this.carregarDados();
+    },
+
+    editarReceita(id) {
+      const receita = this.receitas.find(r => r.id === id);
+      if (receita) {
+        this.edicaoId = id;
+        this.novoTotal = receita.total;
+        this.edicaoAtiva = true;
+        this.erroEdicao = '';
+      }
+    },
+
+    async confirmarEdicao() {
+      if (!this.novoTotal || this.novoTotal <= 0) {
+        this.erroEdicao = 'Total deve ser maior que zero';
+        return;
+      }
+
+      try {
+        const response = await api.atualizarFaturamento(this.edicaoId, this.novoTotal);
+        if (response.data.success) {
+          this.cancelarEdicao();
+          await this.carregarDados();
+        }
+      } catch (error) {
+        this.erroEdicao = error.response?.data?.error || 'Erro ao atualizar';
+      }
+    },
+
+    cancelarEdicao() {
+      this.edicaoAtiva = false;
+      this.edicaoId = null;
+      this.novoTotal = null;
+      this.erroEdicao = '';
+    },
+
+    async deletarReceita(id) {
+      if (!confirm('⚠️ Tem certeza que deseja deletar este faturamento?')) {
+        return;
+      }
+
+      try {
+        const response = await api.deletarFaturamento(id);
+        if (response.data.success) {
+          await this.carregarDados();
+        }
+      } catch (error) {
+        alert('Erro ao deletar faturamento: ' + (error.response?.data?.error || error.message));
+      }
+    },
+
+    async enviarContaAzul(id) {
+      if (!confirm('📤 Enviar este faturamento ao Conta Azul?')) {
+        return;
+      }
+
+      try {
+        const response = await api.enviarContaAzul(id);
+        if (response.data.success) {
+          alert('✅ Faturamento marcado como enviado!');
+          await this.carregarDados();
+        }
+      } catch (error) {
+        alert('Erro ao enviar: ' + (error.response?.data?.error || error.message));
+      }
+    },
+
+    alterarFiltro(status) {
+      this.filtroStatus = status;
+      this.carregarDados();
+    },
+
+    obterDataInicio() {
+      const hoje = new Date();
+      const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+      return inicio.toISOString().split('T')[0];
+    },
+
+    obterDataFim() {
+      const hoje = new Date();
+      return hoje.toISOString().split('T')[0];
+    },
+
+    alterarPeriodo(novoPeriodo) {
+      this.periodo = novoPeriodo;
+      this.atualizarKPIsEGrafico();
+    },
+
+    atualizarKPIsEGrafico() {
+      if (this.$refs.kpisComponent) {
+        this.$refs.kpisComponent.periodo = {
+          dataInicio: this.periodo.dataInicio,
+          dataFim: this.periodo.dataFim
+        };
+        this.$refs.kpisComponent.carregarStats();
+      }
+      // Gráfico agora é independente - não sincroniza mais!
+    },
+
+    atualizarGrafico(periodo) {
+      if (this.$refs.graficoComponent) {
+        this.$refs.graficoComponent.atualizarGrafico(periodo);
+      }
+    },
+
+    atualizarGraficoManual() {
+      console.log('📊 Atualizando gráfico com datas:', this.graficoDataInicio, this.graficoDataFim);
+      // Atualizar período temporariamente para o gráfico
+      const periodoAnterior = { ...this.periodo };
+      this.periodo.dataInicio = this.graficoDataInicio;
+      this.periodo.dataFim = this.graficoDataFim;
+      // this.carregarGrafico(); // Comentado - usando GraficoMensal agora
+      // Restaurar período anterior (KPIs não mudam)
+      setTimeout(() => {
+        this.periodo = periodoAnterior;
+      }, 100);
+    },
+
+    setGraficoUltimos7Dias() {
+      const hoje = new Date();
+      const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+      this.graficoDataInicio = inicio.toISOString().split('T')[0];
+      this.graficoDataFim = hoje.toISOString().split('T')[0];
+      this.atualizarGraficoManual();
+    },
+
+    setGraficoUltimos30Dias() {
+      const hoje = new Date();
+      const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+      this.graficoDataInicio = inicio.toISOString().split('T')[0];
+      this.graficoDataFim = hoje.toISOString().split('T')[0];
+      this.atualizarGraficoManual();
+    },
+
+    setGraficoEsteMes() {
+      const hoje = new Date();
+      const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      this.graficoDataInicio = inicio.toISOString().split('T')[0];
+      this.graficoDataFim = hoje.toISOString().split('T')[0];
+      this.atualizarGraficoManual();
+    },
+
+    setGraficoUltimos7Dias() {
+      const hoje = new Date();
+      const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+      document.getElementById('graficoDataInicio').value = inicio.toISOString().split('T')[0];
+      document.getElementById('graficoDataFim').value = hoje.toISOString().split('T')[0];
+      this.atualizarGraficoFromHTML();
+    },
+
+    setGraficoUltimos30Dias() {
+      const hoje = new Date();
+      const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+      document.getElementById('graficoDataInicio').value = inicio.toISOString().split('T')[0];
+      document.getElementById('graficoDataFim').value = hoje.toISOString().split('T')[0];
+      this.atualizarGraficoFromHTML();
+    },
+
+  },
+
+  mounted() {
+    this.carregarDados();
+  }
+});
+
+// Registrar componentes
+app.component('FormLancamento', FormLancamento);
+app.component('TabelaHistorico', TabelaHistorico);
+app.component('KPIs', KPIs);
+app.component('GraficoTendencia', GraficoTendencia);
+app.component('GraficoMensal', GraficoMensal);
+app.component('CalendarioSidebar', CalendarioSidebar);
+app.component('SeletorPeriodo', SeletorPeriodo);
+
+// Montar app
+app.mount('#app');
