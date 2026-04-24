@@ -15,14 +15,20 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir frontend estático
-app.use(express.static(path.join(__dirname, '../frontend')));
+const frontendPath = path.resolve(__dirname, '../frontend');
+app.use(express.static(frontendPath));
 
 // Rotas API
 app.use('/api', apiRoutes);
 
 // Rota raiz (serve index.html)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// Fallback para SPA - serve index.html para rotas não encontradas no static
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 // Tratamento de erros 404
