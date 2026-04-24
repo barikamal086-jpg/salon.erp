@@ -1,0 +1,10 @@
+salon-erp/backend/package.json
+backend/package.json
+.git
+.gitignore
+node_modules/
+*.log
+*.md
+frontend/
+DESIGN_SYSTEM.html
+importador.py
