@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "node app.js"
+    "dev": "node app.js",
+    "postinstall": "node -e \"const fs = require('fs'); const path = require('path'); const src = path.join(__dirname, '../frontend'); const dst = path.join(__dirname, 'frontend'); if (fs.existsSync(src)) { const copy = (src, dst) => { if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true }); fs.readdirSync(src).forEach(f => { const srcf = path.join(src, f); const dstf = path.join(dst, f); fs.statSync(srcf).isDirectory() ? copy(srcf, dstf) : fs.copyFileSync(srcf, dstf); }); }; copy(src, dst); console.log('Frontend copied to backend'); }\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
