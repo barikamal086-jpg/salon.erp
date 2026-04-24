@@ -15,7 +15,8 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir frontend estático
-const frontendPath = path.resolve(__dirname, '../frontend');
+const frontendPath = path.join(__dirname, '../frontend');
+console.log(`Frontend path: ${frontendPath}`);
 app.use(express.static(frontendPath));
 
 // Rotas API
@@ -23,7 +24,9 @@ app.use('/api', apiRoutes);
 
 // Rota raiz (serve index.html)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  const indexPath = path.join(frontendPath, 'index.html');
+  console.log(`Serving index from: ${indexPath}`);
+  res.sendFile(indexPath);
 });
 
 // Fallback para SPA - serve index.html para rotas não encontradas no static
