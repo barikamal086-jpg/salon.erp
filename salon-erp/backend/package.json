@@ -4,9 +4,8 @@
   "description": "Salon ERP Backend - Revenue Management API",
   "main": "app.js",
   "scripts": {
-    "start": "node setup.js && node app.js",
-    "dev": "node app.js",
-    "postinstall": "node setup.js"
+    "start": "node app.js",
+    "dev": "node app.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
