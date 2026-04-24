@@ -3,7 +3,7 @@ FROM node:22
 WORKDIR /app
 
 # Copiar apenas os arquivos essenciais
-COPY package.json package-lock.json ./
+COPY package.json ./
 COPY backend/package.json backend/package-lock.json ./backend/
 
 # Instalar dependências do backend
