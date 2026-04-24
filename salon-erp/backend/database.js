@@ -13,6 +13,25 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 function initializeDatabase() {
+  // Tabela restaurantes (para suportar múltiplos restaurantes/canais)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS restaurantes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome VARCHAR(255) NOT NULL UNIQUE,
+      canal VARCHAR(50) NOT NULL,
+      ativa BOOLEAN DEFAULT 1,
+      cliente_id INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Erro ao criar tabela restaurantes:', err.message);
+    } else {
+      console.log('✅ Tabela restaurantes criada/verificada');
+      insertDefaultRestaurantes();
+    }
+  });
+
   // Tabela tipo_despesa (classificação de despesas)
   db.run(`
     CREATE TABLE IF NOT EXISTS tipo_despesa (
@@ -277,6 +296,29 @@ function runMigrations() {
       }
     });
   }, 500);
+}
+
+// Inserir restaurantes padrão (canais KAIA)
+function insertDefaultRestaurantes() {
+  const restaurantes = [
+    { nome: 'KAIA - Salão', canal: 'Salão' },
+    { nome: 'KAIA - iFood', canal: 'iFood' },
+    { nome: 'KAIA - Keeta', canal: 'Keeta' },
+    { nome: 'KAIA - 99Food', canal: '99Food' }
+  ];
+
+  restaurantes.forEach(rest => {
+    db.run(
+      `INSERT OR IGNORE INTO restaurantes (nome, canal, ativa)
+       VALUES (?, ?, 1)`,
+      [rest.nome, rest.canal],
+      (err) => {
+        if (err) {
+          console.error(`Erro ao inserir restaurante ${rest.nome}:`, err.message);
+        }
+      }
+    );
+  });
 }
 
 // Inserir tipos de despesa padrão

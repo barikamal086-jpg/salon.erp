@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salon ERP - Design System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #F8FAFC;
+            color: #1E293B;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
+            color: white;
+            padding: 60px 20px;
+            margin: -40px -20px 40px -20px;
+            border-radius: 0 0 16px 16px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        section {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            border: 1px solid #E2E8F0;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #2563EB;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #2563EB;
+            padding-bottom: 15px;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            color: #1E293B;
+            margin: 25px 0 15px 0;
+            margin-top: 30px;
+        }
+
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .color-card {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .color-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .color-sample {
+            width: 100%;
+            height: 120px;
+        }
+
+        .color-info {
+            padding: 15px;
+            background: #F8FAFC;
+        }
+
+        .color-name {
+            font-weight: 600;
+            color: #1E293B;
+            margin-bottom: 5px;
+        }
+
+        .color-code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #64748B;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .component {
+            padding: 20px;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            background: #F8FAFC;
+        }
+
+        .component-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #2563EB;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1D4ED8;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-secondary {
+            background: #64748B;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        .btn-success {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: #F59E0B;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #D97706;
+        }
+
+        .btn-error {
+            background: #EF4444;
+            color: white;
+        }
+
+        .btn-error:hover {
+            background: #DC2626;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1E293B;
+        }
+
+        .card-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2563EB;
+        }
+
+        .card-label {
+            font-size: 0.85rem;
+            color: #64748B;
+        }
+
+        .card-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .card-status.success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .card-status.warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .card-status.error {
+            background: #FEE2E2;
+            color: #7F1D1D;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        thead {
+            background: #2563EB;
+            color: white;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #E2E8F0;
+        }
+
+        tbody tr:hover {
+            background: #F8FAFC;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .badge-salao {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .badge-ifood {
+            background: #FEE2E2;
+            color: #7F1D1D;
+        }
+
+        .badge-keeta {
+            background: #EDE9FE;
+            color: #5B21B6;
+        }
+
+        .badge-99food {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* Inputs */
+        input[type="text"],
+        input[type="email"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            margin-bottom: 15px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #D1FAE5;
+            border-color: #10B981;
+            color: #065F46;
+        }
+
+        .alert-warning {
+            background: #FEF3C7;
+            border-color: #F59E0B;
+            color: #92400E;
+        }
+
+        .alert-error {
+            background: #FEE2E2;
+            border-color: #EF4444;
+            color: #7F1D1D;
+        }
+
+        .alert-info {
+            background: #DBEAFE;
+            border-color: #3B82F6;
+            color: #1E40AF;
+        }
+
+        /* Typography Showcase */
+        .typography-example {
+            padding: 15px;
+            background: #F8FAFC;
+            border-radius: 6px;
+            margin: 15px 0;
+            border-left: 4px solid #2563EB;
+        }
+
+        .typography-example.h1 { font-size: 2rem; font-weight: 700; }
+        .typography-example.h2 { font-size: 1.5rem; font-weight: 700; }
+        .typography-example.h3 { font-size: 1.25rem; font-weight: 600; }
+        .typography-example.body { font-size: 1rem; font-weight: 400; }
+        .typography-example.small { font-size: 0.875rem; font-weight: 400; color: #64748B; }
+
+        /* Restaurant Selector Example */
+        .restaurant-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .restaurant-btn {
+            padding: 12px 20px;
+            border: 2px solid #E2E8F0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .restaurant-btn:hover {
+            border-color: #2563EB;
+            background: #DBEAFE;
+        }
+
+        .restaurant-btn.active {
+            border-color: #2563EB;
+            background: #2563EB;
+            color: white;
+        }
+
+        .restaurant-btn.salao {
+            color: #065F46;
+        }
+
+        .restaurant-btn.ifood {
+            color: #7F1D1D;
+        }
+
+        .restaurant-btn.keeta {
+            color: #5B21B6;
+        }
+
+        .restaurant-btn.99food {
+            color: #92400E;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-box {
+            background: white;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563EB;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #64748B;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #64748B;
+            border-top: 1px solid #E2E8F0;
+            margin-top: 60px;
+        }
+
+        .code-block {
+            background: #1E293B;
+            color: #E2E8F0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin: 15px 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🍽️ Salon ERP</h1>
+            <p>Design System v1.0 - Paleta Profissional</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- COLORS -->
+        <section>
+            <h2>🎨 Paleta de Cores</h2>
+
+            <h3>Core Colors (Primárias)</h3>
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-sample" style="background: #2563EB;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Primary Blue</div>
+                        <div class="color-code">#2563EB</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #64748B;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Secondary Gray</div>
+                        <div class="color-code">#64748B</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #F59E0B;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Accent Orange</div>
+                        <div class="color-code">#F59E0B</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Status Colors (Significado)</h3>
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-sample" style="background: #10B981;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Success (Tudo bem)</div>
+                        <div class="color-code">#10B981</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #F59E0B;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Warning (Atenção)</div>
+                        <div class="color-code">#F59E0B</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #EF4444;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Error (Problema)</div>
+                        <div class="color-code">#EF4444</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #3B82F6;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Info (Informação)</div>
+                        <div class="color-code">#3B82F6</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Restaurant Badge Colors (Sutis)</h3>
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-sample" style="background: #10B981;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Salão</div>
+                        <div class="color-code">#10B981 (Verde)</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #EF4444;"></div>
+                    <div class="color-info">
+                        <div class="color-name">iFood</div>
+                        <div class="color-code">#EF4444 (Vermelho)</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #8B5CF6;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Keeta</div>
+                        <div class="color-code">#8B5CF6 (Roxo)</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #F59E0B;"></div>
+                    <div class="color-info">
+                        <div class="color-name">99Food</div>
+                        <div class="color-code">#F59E0B (Laranja)</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Backgrounds</h3>
+            <div class="color-grid">
+                <div class="color-card">
+                    <div class="color-sample" style="background: #FFFFFF; border: 1px solid #E2E8F0;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Primary BG</div>
+                        <div class="color-code">#FFFFFF</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #F8FAFC;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Secondary BG</div>
+                        <div class="color-code">#F8FAFC</div>
+                    </div>
+                </div>
+                <div class="color-card">
+                    <div class="color-sample" style="background: #1E293B;"></div>
+                    <div class="color-info">
+                        <div class="color-name">Dark Mode</div>
+                        <div class="color-code">#1E293B</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TYPOGRAPHY -->
+        <section>
+            <h2>✍️ Tipografia</h2>
+
+            <div class="typography-example h1">Heading 1 (2rem, Bold 700)</div>
+            <div class="typography-example h2">Heading 2 (1.5rem, Bold 700)</div>
+            <div class="typography-example h3">Heading 3 (1.25rem, Semibold 600)</div>
+            <div class="typography-example body">Body Text (1rem, Regular 400) - Usado para descrições e conteúdo principal</div>
+            <div class="typography-example small">Small Text (0.875rem, Regular 400) - Usado para labels e textos secundários</div>
+
+            <h3>Font Stack</h3>
+            <div class="code-block">
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            </div>
+
+            <h3>Line Height</h3>
+            <p>Padrão: 1.6 (24px de espaço com base 16px)</p>
+        </section>
+
+        <!-- BUTTONS -->
+        <section>
+            <h2>🔘 Botões</h2>
+
+            <h3>Variações</h3>
+            <div class="component">
+                <div class="component-label">Primary Button</div>
+                <button class="btn btn-primary">Primary Action</button>
+                <button class="btn btn-primary" style="opacity: 0.6;">Disabled</button>
+            </div>
+
+            <div class="component">
+                <div class="component-label">Secondary Button</div>
+                <button class="btn btn-secondary">Secondary Action</button>
+            </div>
+
+            <div class="component">
+                <div class="component-label">Success Button</div>
+                <button class="btn btn-success">Sucesso ✓</button>
+            </div>
+
+            <div class="component">
+                <div class="component-label">Warning Button</div>
+                <button class="btn btn-warning">Atenção!</button>
+            </div>
+
+            <div class="component">
+                <div class="component-label">Error Button</div>
+                <button class="btn btn-error">Deletar</button>
+            </div>
+
+            <h3>Especificações</h3>
+            <div class="code-block">
+Padding: 10px 20px
+Border Radius: 6px
+Font Size: 0.95rem
+Font Weight: 500
+Transition: all 0.2s
+            </div>
+        </section>
+
+        <!-- CARDS & KPI -->
+        <section>
+            <h2>📊 Cards & KPI</h2>
+
+            <h3>Dashboard Cards</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value">R$ 247.230</div>
+                    <div class="stat-label">Receita Total</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">R$ 39.557</div>
+                    <div class="stat-label">CMV Total</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">16,02%</div>
+                    <div class="stat-label">CMV %</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">83,98%</div>
+                    <div class="stat-label">Margem Bruta</div>
+                </div>
+            </div>
+
+            <h3>Card Detalhado</h3>
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Salão - Receita</div>
+                        <div class="card-label">Período: 01/04 - 20/04</div>
+                    </div>
+                    <div class="card-status success">Excelente</div>
+                </div>
+                <div class="card-value">R$ 77.731,55</div>
+                <div class="card-label">40% do total</div>
+            </div>
+        </section>
+
+        <!-- RESTAURANT SELECTOR -->
+        <section>
+            <h2>🏪 Restaurant Selector</h2>
+
+            <h3>Button Group</h3>
+            <div class="restaurant-buttons">
+                <button class="restaurant-btn active">✨ Todos</button>
+                <button class="restaurant-btn salao">🍽️ Salão</button>
+                <button class="restaurant-btn ifood">🍔 iFood</button>
+                <button class="restaurant-btn keeta">🥘 Keeta</button>
+                <button class="restaurant-btn 99food">🚗 99Food</button>
+            </div>
+
+            <h3>Badges</h3>
+            <div style="margin: 20px 0;">
+                <span class="badge badge-salao">🍽️ Salão</span>
+                <span class="badge badge-ifood">🍔 iFood</span>
+                <span class="badge badge-keeta">🥘 Keeta</span>
+                <span class="badge badge-99food">🚗 99Food</span>
+            </div>
+        </section>
+
+        <!-- TABLES -->
+        <section>
+            <h2>📋 Tabelas</h2>
+
+            <h3>Exemplo: CMV por Canal</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Canal</th>
+                        <th>Receita</th>
+                        <th>%</th>
+                        <th>CMV</th>
+                        <th>CMV %</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-salao">Salão</span></td>
+                        <td>R$ 77.731,55</td>
+                        <td>40%</td>
+                        <td>R$ 12.454,24</td>
+                        <td>16,02%</td>
+                        <td><span class="card-status success">Bom</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-ifood">iFood</span></td>
+                        <td>R$ 58.098,66</td>
+                        <td>30%</td>
+                        <td>R$ 9.340,68</td>
+                        <td>16,02%</td>
+                        <td><span class="card-status success">Bom</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-keeta">Keeta</span></td>
+                        <td>R$ 38.799,10</td>
+                        <td>20%</td>
+                        <td>R$ 6.227,12</td>
+                        <td>16,02%</td>
+                        <td><span class="card-status warning">Atenção</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-99food">99Food</span></td>
+                        <td>R$ 19.699,56</td>
+                        <td>10%</td>
+                        <td>R$ 3.113,56</td>
+                        <td>16,02%</td>
+                        <td><span class="card-status error">Alto</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- FORMS -->
+        <section>
+            <h2>📝 Formulários</h2>
+
+            <h3>Inputs</h3>
+            <div style="max-width: 400px;">
+                <input type="text" placeholder="Nome do restaurante">
+                <input type="email" placeholder="Email">
+                <input type="date">
+                <select>
+                    <option>Selecione um canal</option>
+                    <option>Salão</option>
+                    <option>iFood</option>
+                    <option>Keeta</option>
+                    <option>99Food</option>
+                </select>
+                <textarea placeholder="Descrição..." rows="4"></textarea>
+            </div>
+        </section>
+
+        <!-- ALERTS -->
+        <section>
+            <h2>⚠️ Alertas</h2>
+
+            <div class="alert alert-success">
+                ✓ <strong>Sucesso!</strong> A despesa foi registrada corretamente.
+            </div>
+
+            <div class="alert alert-warning">
+                ⚠️ <strong>Atenção!</strong> O CMV está acima do esperado (18% vs 16%).
+            </div>
+
+            <div class="alert alert-error">
+                ✗ <strong>Erro!</strong> Não foi possível salvar a nota fiscal.
+            </div>
+
+            <div class="alert alert-info">
+                ℹ️ <strong>Informação:</strong> Novo período iniciado. Configure os dados do mês.
+            </div>
+        </section>
+
+        <!-- SPACING & SIZING -->
+        <section>
+            <h2>📏 Espaçamento & Dimensões</h2>
+
+            <h3>Padding & Margin Scale</h3>
+            <div class="code-block">
+Base Unit: 4px
+
+4px    - xs
+8px    - sm
+12px   - md
+16px   - lg
+20px   - xl
+24px   - 2xl
+32px   - 3xl
+40px   - 4xl
+            </div>
+
+            <h3>Border Radius</h3>
+            <div class="code-block">
+4px    - Pequeno (inputs, small components)
+6px    - Médio (buttons, cards)
+8px    - Grande (containers, large cards)
+12px   - Extra grande (sections)
+16px   - Muito grande (header, footers)
+            </div>
+
+            <h3>Shadows</h3>
+            <div class="code-block">
+Pequeno:  0 2px 8px rgba(0,0,0,0.1)
+Médio:    0 4px 12px rgba(0,0,0,0.15)
+Grande:   0 12px 24px rgba(0,0,0,0.2)
+            </div>
+        </section>
+
+        <!-- CSS VARIABLES -->
+        <section>
+            <h2>🎨 CSS Variables (Recomendado)</h2>
+
+            <h3>Para implementar no seu projeto:</h3>
+            <div class="code-block">
+:root {
+  /* Colors */
+  --primary: #2563EB;
+  --primary-dark: #1D4ED8;
+  --secondary: #64748B;
+  --accent: #F59E0B;
+
+  /* Status */
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
+
+  /* Restaurants */
+  --salao: #10B981;
+  --ifood: #EF4444;
+  --keeta: #8B5CF6;
+  --99food: #F59E0B;
+
+  /* Backgrounds */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-dark: #1E293B;
+
+  /* Text */
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+
+  /* Borders */
+  --border: #E2E8F0;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 40px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+  --shadow-lg: 0 12px 24px rgba(0,0,0,0.2);
+}
+            </div>
+        </section>
+
+        <!-- IMPLEMENTATION GUIDE -->
+        <section>
+            <h2>🚀 Guia de Implementação</h2>
+
+            <h3>Passo 1: Copiar CSS Variables</h3>
+            <p>Adicione as CSS variables no início do seu index.html (dentro de &lt;style&gt; ou em um arquivo css separado).</p>
+
+            <h3>Passo 2: Substituir Cores Hardcoded</h3>
+            <p>No seu index.html, troque cores hardcoded por variáveis:</p>
+            <div class="code-block">
+/* Antes */
+background: #2563EB;
+
+/* Depois */
+background: var(--primary);
+            </div>
+
+            <h3>Passo 3: Atualizar Componentes</h3>
+            <p>Copie as classes CSS dos botões, cards, etc. do DESIGN_SYSTEM.html para seu index.html</p>
+
+            <h3>Passo 4: Testes</h3>
+            <div class="alert alert-success">
+                ✓ Abra este arquivo (DESIGN_SYSTEM.html) no navegador para ver todos os componentes
+                <br>✓ Use como referência enquanto implementa no seu ERP
+                <br>✓ Mantenha este arquivo atualizado quando fizer mudanças
+            </div>
+        </section>
+
+        <footer>
+            <p>🎨 Salon ERP Design System v1.0 | Criado em 2026-04-22</p>
+            <p>Abra este arquivo no navegador: file:///.../salon-erp/DESIGN_SYSTEM.html</p>
+        </footer>
+    </div>
+</body>
+</html>

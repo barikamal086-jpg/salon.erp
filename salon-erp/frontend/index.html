@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaia ERP - Dashboard de Faturamento</title>
+  <title>Caixa360 - Dashboard de Faturamento</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -21,32 +21,163 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <link rel="stylesheet" href="css/style.css">
+  <!-- Design System Override (deve vir DEPOIS do Tailwind para ter prioridade) -->
+  <link rel="stylesheet" href="css/design-system.css">
+
+  <style>
+    :root {
+      /* Primary Colors */
+      --primary: #2563EB;
+      --primary-dark: #1D4ED8;
+      --secondary: #64748B;
+      --accent: #F59E0B;
+
+      /* Status Colors */
+      --success: #10B981;
+      --warning: #F59E0B;
+      --error: #EF4444;
+      --info: #3B82F6;
+
+      /* Restaurant Colors */
+      --salao: #10B981;
+      --ifood: #EF4444;
+      --keeta: #8B5CF6;
+      --99food: #F59E0B;
+
+      /* Backgrounds */
+      --bg-primary: #FFFFFF;
+      --bg-secondary: #F8FAFC;
+      --bg-dark: #1E293B;
+
+      /* Text */
+      --text-primary: #1E293B;
+      --text-secondary: #64748B;
+
+      /* Borders */
+      --border: #E2E8F0;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary);
+    }
+
+    body {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+  </style>
 </head>
-<body class="bg-gray-100">
+<body>
   <div id="app" class="flex h-screen">
+    <!-- LOGIN SCREEN -->
+    <div v-if="!isAuthenticated" class="w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+      <div class="bg-white rounded-lg shadow-2xl p-8 w-96">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <svg width="80" height="40" viewBox="0 0 120 60" style="margin: 0 auto 16px; display: block;">
+            <g>
+              <path d="M 20 30 Q 25 20 35 20 Q 45 20 50 30 Q 45 40 35 40 Q 25 40 20 30" fill="none" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+              <path d="M 50 30 Q 55 20 65 20 Q 75 20 80 30 Q 75 40 65 40 Q 55 40 50 30" fill="none" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+              <g transform="translate(68, 22)"><polygon points="0,0 5,8 10,0 7,4 12,4 12,2 7,2" fill="#F59E0B"/></g>
+            </g>
+          </svg>
+          <h1 style="font-size: 28px; font-weight: 700; color: #111827; margin: 0;">Caixa360</h1>
+          <p style="color: #6B7280; margin-top: 4px;">Bem-vindo de volta!</p>
+        </div>
+
+        <form @submit.prevent="fazerLogin">
+          <div class="mb-4">
+            <label style="display: block; font-weight: 600; color: #1F2937; margin-bottom: 8px;">Email</label>
+            <input v-model="loginForm.email" type="email" placeholder="seu@email.com"
+              style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px;">
+          </div>
+
+          <div class="mb-6">
+            <label style="display: block; font-weight: 600; color: #1F2937; margin-bottom: 8px;">Senha</label>
+            <input v-model="loginForm.senha" type="password" placeholder="••••••••"
+              style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px;">
+          </div>
+
+          <button type="submit" :disabled="loginLoading"
+            style="width: 100%; padding: 12px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+            {{ loginLoading ? '⏳ Entrando...' : '🔓 Entrar' }}
+          </button>
+
+          <div v-if="loginError" style="margin-top: 12px; padding: 12px; background: #FEE2E2; color: #7F1D1D; border-radius: 6px; font-size: 14px;">
+            ❌ {{ loginError }}
+          </div>
+        </form>
+
+        <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #E5E7EB;">
+          <p style="color: #6B7280; font-size: 13px; text-align: center; margin: 0;">
+            <strong>Demo - Credenciais dos Sócios:</strong><br>
+            younes@kaia.com / younes123<br>
+            bruno@kaia.com / bruno123<br>
+            kamal@kaia.com / kamal123
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP MAIN -->
+    <template v-else>
     <!-- Sidebar -->
-    <aside class="w-64 bg-gradient-to-b from-blue-600 to-blue-800 text-white shadow-lg fixed h-screen overflow-y-auto">
+    <aside class="w-64" style="background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); position: fixed; height: 100vh; overflow-y: auto;">
       <!-- Logo -->
-      <div class="p-6 border-b border-blue-700">
-        <h1 class="text-2xl font-bold">🍽️ Kaia ERP</h1>
-        <p class="text-blue-200 text-xs mt-1">Bar & Cozinha</p>
+      <div style="padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center;">
+        <svg width="120" height="60" viewBox="0 0 120 60" style="margin: 0 auto 12px; display: block;">
+          <!-- Infinito com seta -->
+          <g>
+            <!-- Curva esquerda do infinito -->
+            <path d="M 20 30 Q 25 20 35 20 Q 45 20 50 30 Q 45 40 35 40 Q 25 40 20 30" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+            <!-- Curva direita do infinito -->
+            <path d="M 50 30 Q 55 20 65 20 Q 75 20 80 30 Q 75 40 65 40 Q 55 40 50 30" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+            <!-- Seta laranja -->
+            <g transform="translate(68, 22)">
+              <polygon points="0,0 5,8 10,0 7,4 12,4 12,2 7,2" fill="#F59E0B"/>
+            </g>
+          </g>
+        </svg>
+        <h1 style="font-size: 1.3rem; font-weight: 700; color: #FFFFFF; margin: 0; letter-spacing: 0.5px;">Caixa360</h1>
+        <p style="color: #FFFFFF; font-size: 0.65rem; margin-top: 4px; letter-spacing: 0.3px; font-weight: 600;">ERP GESTÃO RESTAURANTE & DELIVERY</p>
       </div>
 
       <!-- Menu -->
-      <nav class="p-4 space-y-2">
+      <nav style="padding: 16px; space: 8px;">
         <div
           @click="activeView = 'dashboard'"
-          :class="activeView === 'dashboard' ? 'bg-blue-700' : 'bg-blue-800 hover:bg-blue-700'"
-          class="px-4 py-2 rounded-lg text-white cursor-pointer transition"
+          :class="activeView === 'dashboard' ? '' : 'opacity-80 hover:opacity-100'"
+          style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
+          :style="activeView === 'dashboard' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
         >
           <i class="fas fa-chart-line mr-2"></i> Dashboard
         </div>
         <div
           @click="activeView = 'cmv-inteligente'"
-          :class="activeView === 'cmv-inteligente' ? 'bg-blue-700' : 'bg-blue-800 hover:bg-blue-700'"
-          class="px-4 py-2 rounded-lg text-white cursor-pointer transition"
+          :class="activeView === 'cmv-inteligente' ? '' : 'opacity-80 hover:opacity-100'"
+          style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
+          :style="activeView === 'cmv-inteligente' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
         >
           <i class="fas fa-brain mr-2"></i> 🧠 CMV Inteligente
+        </div>
+        <div
+          @click="activeView = 'auditoria-cmv'"
+          :class="activeView === 'auditoria-cmv' ? '' : 'opacity-80 hover:opacity-100'"
+          style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s;"
+          :style="activeView === 'auditoria-cmv' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
+        >
+          <i class="fas fa-clipboard-list mr-2"></i> 📋 Auditoria CMV
         </div>
       </nav>
     </aside>
@@ -54,12 +185,19 @@
     <!-- Main Content -->
     <main class="flex-1 ml-64 overflow-auto">
       <!-- Top Bar -->
-      <div class="bg-white shadow-sm border-b border-gray-200">
-        <div class="px-8 py-4 flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-900">
+      <div style="background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-bottom: 1px solid var(--border);">
+        <div style="padding: 32px 16px; display: flex; justify-content: space-between; align-items: center;">
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
             <span v-if="activeView === 'dashboard'">Dashboard</span>
             <span v-else-if="activeView === 'cmv-inteligente'">🧠 CMV Inteligente</span>
+            <span v-else-if="activeView === 'auditoria-cmv'">📋 Auditoria de CMV</span>
           </h2>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <span style="color: var(--text-secondary); font-weight: 500;">👤 {{ usuario?.nome }}</span>
+            <button @click="fazerLogout" style="padding: 8px 16px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+              🚪 Sair
+            </button>
+          </div>
         </div>
       </div>
 
@@ -67,39 +205,43 @@
       <div v-show="activeView === 'dashboard'" class="p-8 space-y-6">
 
         <!-- Seletor de Período -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">📅 Selecione o Período</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📅 Selecione o Período</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Início</label>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Data Início</label>
               <input
                 v-model="periodo.dataInicio"
                 type="date"
                 @change="atualizarPeriodo"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
               >
             </div>
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Fim</label>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Data Fim</label>
               <input
                 v-model="periodo.dataFim"
                 type="date"
                 @change="atualizarPeriodo"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
               >
             </div>
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Atalhos</label>
-              <div class="flex gap-2">
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Atalhos</label>
+              <div style="display: flex; gap: 8px;">
                 <button
                   @click="setUltimos7Dias"
-                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                  style="flex: 1; padding: 10px 12px; background: var(--primary); color: white; font-size: 0.9rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;"
+                  @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
+                  @mouseleave="$event.target.style.background = 'var(--primary)'"
                 >
                   Últimos 7d
                 </button>
                 <button
                   @click="setUltimos30Dias"
-                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                  style="flex: 1; padding: 10px 12px; background: var(--primary); color: white; font-size: 0.9rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;"
+                  @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
+                  @mouseleave="$event.target.style.background = 'var(--primary)'"
                 >
                   Últimos 30d
                 </button>
@@ -109,95 +251,122 @@
         </div>
 
         <!-- KPIs Gerais -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-6">📊 Indicadores de Performance</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-              <p class="text-gray-600 text-sm font-medium">💰 Total Receita</p>
-              <p class="text-2xl font-bold text-green-600 mt-2">R$ {{ formatarValor(stats.totalReceita) }}</p>
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 24px;">📊 Indicadores de Performance</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+            <!-- Receita -->
+            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">💰 Total Receita</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.totalReceita) }}</p>
             </div>
-            <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
-              <p class="text-gray-600 text-sm font-medium">💸 Total Despesa</p>
-              <p class="text-2xl font-bold text-red-600 mt-2">R$ {{ formatarValor(stats.totalDespesa) }}</p>
+            <!-- Despesa -->
+            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">💸 Total Despesa</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.totalDespesa) }}</p>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-              <p class="text-gray-600 text-sm font-medium">📈 Total Líquido</p>
-              <p class="text-2xl font-bold text-blue-600 mt-2">R$ {{ formatarValor(stats.totalLiquido) }}</p>
+            <!-- Líquido -->
+            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📈 Total Líquido</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">R$ {{ formatarValor(stats.totalLiquido) }}</p>
             </div>
-            <div class="bg-green-100 rounded-lg p-4 border-l-4 border-green-600">
-              <p class="text-gray-600 text-sm font-medium">📊 Média Receita</p>
-              <p class="text-2xl font-bold text-green-700 mt-2">R$ {{ formatarValor(stats.mediaReceita) }}</p>
+            <!-- Média Receita -->
+            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Receita</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.mediaReceita) }}</p>
             </div>
-            <div class="bg-red-100 rounded-lg p-4 border-l-4 border-red-600">
-              <p class="text-gray-600 text-sm font-medium">📊 Média Despesa</p>
-              <p class="text-2xl font-bold text-red-700 mt-2">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
+            <!-- Média Despesa -->
+            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Despesa</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
             </div>
-            <div class="bg-purple-50 rounded-lg p-4 border-l-4 border-purple-500">
-              <p class="text-gray-600 text-sm font-medium">📅 Dias</p>
-              <p class="text-2xl font-bold text-purple-600 mt-2">{{ stats.dias }}</p>
+            <!-- Dias -->
+            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📅 Dias</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">{{ stats.dias }}</p>
             </div>
           </div>
         </div>
 
         <!-- KPIs por Categoria -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-6">🏷️ Performance por Categoria</h3>
-          <div v-if="statsPorCategoria.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0;">🏷️ Performance por Categoria</h3>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Filtrar:</label>
+              <select v-model="filtroCategoria" @change="atualizarFiltroCategoria" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; min-width: 150px;">
+                <option value="">✨ Todas</option>
+                <option value="Salão">🍽️ Salão</option>
+                <option value="iFood">🍔 iFood</option>
+                <option value="Keeta">🥘 Keeta</option>
+                <option value="99Food">🚗 99Food</option>
+              </select>
+            </div>
+          </div>
+          <div v-if="categoriasFiltradas.length > 0" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
             <div
-              v-for="cat in statsPorCategoria"
+              v-for="cat in categoriasFiltradas"
               :key="cat.categoria"
-              class="bg-white rounded-lg p-6 border-l-4 shadow-sm"
-              :class="{
-                'border-blue-500': cat.categoria === 'Salão',
-                'border-red-500': cat.categoria === 'iFood',
-                'border-yellow-500': cat.categoria === '99Food',
-                'border-green-500': cat.categoria === 'Keepa',
-                'border-purple-500': cat.categoria !== 'Salão' && cat.categoria !== 'iFood' && cat.categoria !== '99Food' && cat.categoria !== 'Keepa'
+              style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid; transition: all 0.2s;"
+              :style="{
+                'border-left-color': cat.categoria === 'Salão' ? 'var(--salao)' :
+                                   cat.categoria === 'iFood' ? 'var(--ifood)' :
+                                   cat.categoria === '99Food' ? 'var(--99food)' :
+                                   cat.categoria === 'Keeta' ? 'var(--keeta)' : 'var(--primary)'
               }"
+              @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'"
+              @mouseleave="$event.currentTarget.style.boxShadow = 'none'"
             >
-              <div class="text-sm font-medium mb-2" :class="{
-                'text-blue-600': cat.categoria === 'Salão',
-                'text-red-600': cat.categoria === 'iFood',
-                'text-yellow-600': cat.categoria === '99Food',
-                'text-green-600': cat.categoria === 'Keepa',
-                'text-purple-600': cat.categoria !== 'Salão' && cat.categoria !== 'iFood' && cat.categoria !== '99Food' && cat.categoria !== 'Keepa'
-              }">
+              <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">
                 {{ cat.categoria }}
               </div>
-              <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs text-green-600">💰 Receita:</span>
-                  <span class="text-sm font-semibold text-green-700">R$ {{ formatarValor(cat.totalReceita) }}</span>
+              <div style="space-y: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 0.85rem; color: var(--success);">💰 Receita:</span>
+                  <span style="font-size: 0.9rem; font-weight: 600; color: var(--success);">R$ {{ formatarValor(cat.totalReceita) }}</span>
                 </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-xs text-red-600">💸 Despesa:</span>
-                  <span class="text-sm font-semibold text-red-700">R$ {{ formatarValor(cat.totalDespesa) }}</span>
-                </div>
-                <div class="border-t pt-2 flex justify-between items-center">
-                  <span class="text-xs font-medium text-blue-600">📈 Líquido:</span>
-                  <span class="text-sm font-bold text-blue-700">R$ {{ formatarValor(cat.totalLiquido) }}</span>
+                <!-- Para iFood, Keeta, 99Food: mostrar Taxas e Despesas Alocadas -->
+                <template v-if="cat.categoria !== 'Salão' && (cat.totalTaxas > 0 || cat.totalDespesasAlocadas > 0)">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem;">
+                    <span style="color: var(--error);">🏷️ Taxas:</span>
+                    <span style="font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalTaxas) }}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.8rem;">
+                    <span style="color: var(--error);">📊 Despesas:</span>
+                    <span style="font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesasAlocadas) }}</span>
+                  </div>
+                </template>
+                <!-- Para Salão: mostrar apenas Despesa Total -->
+                <template v-else>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 0.85rem; color: var(--error);">💸 Despesa:</span>
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesa) }}</span>
+                  </div>
+                </template>
+                <div style="border-top: 1px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">📈 Líquido:</span>
+                  <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">R$ {{ formatarValor(cat.totalLiquido) }}</span>
                 </div>
               </div>
-              <div class="text-xs text-gray-500 mt-3 pt-3 border-t">
+              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
                 <div>{{ cat.dias }} {{ cat.dias === 1 ? 'dia' : 'dias' }}</div>
                 <div v-if="cat.mediaReceita > 0">Média Receita: R$ {{ formatarValor(cat.mediaReceita) }}</div>
                 <div v-if="cat.mediaDespesa > 0">Média Despesa: R$ {{ formatarValor(cat.mediaDespesa) }}</div>
               </div>
             </div>
           </div>
-          <div v-else class="text-gray-500 text-center py-8">
+          <div v-else style="color: var(--text-secondary); text-align: center; padding: 32px 0;">
             Nenhuma receita/despesa neste período
           </div>
         </div>
 
         <!-- Gráfico Mensal - INLINE -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Receitas vs Despesas por Dia</h3>
-          <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📊 Receitas vs Despesas por Dia</h3>
+          <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Mês</label>
-                <select v-model="graficoMes" @change="renderizarGraficoMensal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Mês</label>
+                <select v-model="graficoMes" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
                   <option value="01">Janeiro</option>
                   <option value="02">Fevereiro</option>
                   <option value="03">Março</option>
@@ -213,8 +382,8 @@
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Ano</label>
-                <input v-model.number="graficoAno" type="number" @change="renderizarGraficoMensal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Ano</label>
+                <input v-model.number="graficoAno" type="number" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
               </div>
             </div>
           </div>
@@ -226,8 +395,8 @@
         <!-- Formulário + Tabela -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <!-- Formulário -->
-          <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">📝 Lançar Receita/Despesa</h3>
+          <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📝 Lançar Receita/Despesa</h3>
             <div class="space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
@@ -289,7 +458,9 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Informe a {{ novaReceita.tipo === 'receita' ? 'categoria' : 'origem' }}</label>
                 <input v-model="outraCategoria" type="text" :placeholder="novaReceita.tipo === 'receita' ? 'Ex: Marketplace X' : 'Ex: Fornecedor Y'" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
               </div>
-              <button @click="salvarReceita" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
+              <button @click="salvarReceita" style="width: 100%; background: var(--primary); color: white; padding: 12px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+                @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
+                @mouseleave="$event.target.style.background = 'var(--primary)'">
                 💾 Salvar
               </button>
             </div>
@@ -348,7 +519,15 @@
                       <p class="text-sm text-gray-500">{{ nota.descricao }}</p>
                       <div class="flex gap-2 mt-2">
                         <span class="text-xs bg-gray-200 px-2 py-1 rounded">💰 R$ {{ nota.valor_total.toFixed(2) }}</span>
-                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{{ nota.classificacao_sugerida }}</span>
+                        <span
+                          v-if="notasCategoria[nota.id]"
+                          :class="['text-xs px-2 py-1 rounded font-semibold',
+                            obterClassificacao(notasCategoria[nota.id]) === 'CMV'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-orange-100 text-orange-700']">
+                          {{ obterClassificacao(notasCategoria[nota.id]) }}
+                        </span>
+                        <span v-else class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{{ nota.classificacao_sugerida }}</span>
                       </div>
                     </div>
                     <select
@@ -396,7 +575,7 @@
 
           <!-- DESPESAS POR IMAGEM - Upload e Processamento com Claude AI -->
           <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">🤖 Despesas por Imagem (Claude AI)</h3>
+            <h3 class="text-lg font-bold text-gray-900 mb-4">📷 Despesas por foto (IA)</h3>
 
             <!-- Upload Drag-and-Drop -->
             <div class="mb-6">
@@ -404,6 +583,8 @@
                 @drop.prevent="handleDropDespesaImagem"
                 @dragover.prevent="isDraggingDespesa = true"
                 @dragleave="isDraggingDespesa = false"
+                @paste.prevent="handlePasteDespesaImagem"
+                tabindex="0"
                 :class="['border-2 border-dashed rounded-lg p-8 text-center transition-all',
                   isDraggingDespesa ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50']">
                 <input
@@ -415,7 +596,7 @@
                   id="despesaImagemInput">
                 <label for="despesaImagemInput" class="cursor-pointer">
                   <div class="text-4xl mb-2">📸</div>
-                  <p class="text-gray-700 font-semibold">Arraste foto de recibo aqui ou clique para selecionar</p>
+                  <p class="text-gray-700 font-semibold">Arraste foto de recibo aqui, clique para selecionar ou cole (Ctrl+V)</p>
                   <p class="text-gray-500 text-sm mt-1">Aceita: JPG, PNG, WebP</p>
                 </label>
               </div>
@@ -573,13 +754,12 @@
                     <th class="px-4 py-2 text-left">Tipo</th>
                     <th class="px-4 py-2 text-left">Categoria</th>
                     <th class="px-4 py-2 text-right">Total</th>
-                    <th class="px-4 py-2 text-center">Status</th>
                     <th class="px-4 py-2 text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="receitas.length === 0">
-                    <td colspan="6" class="px-4 py-4 text-center text-gray-500">Nenhum faturamento</td>
+                    <td colspan="5" class="px-4 py-4 text-center text-gray-500">Nenhum faturamento</td>
                   </tr>
                   <tr v-for="r in receitasPaginadas" :key="r.id" class="border-b hover:bg-gray-50" :class="{'bg-green-50': r.tipo === 'receita', 'bg-red-50': r.tipo === 'despesa'}">
                     <td class="px-4 py-2">{{ formatarData(r.data) }}</td>
@@ -593,19 +773,25 @@
                         'bg-blue-100 text-blue-800': r.categoria === 'Salão',
                         'bg-red-100 text-red-800': r.categoria === 'iFood',
                         'bg-yellow-100 text-yellow-800': r.categoria === '99Food',
-                        'bg-green-100 text-green-800': r.categoria === 'Keepa',
-                        'bg-purple-100 text-purple-800': r.categoria !== 'Salão' && r.categoria !== 'iFood' && r.categoria !== '99Food' && r.categoria !== 'Keepa'
+                        'bg-green-100 text-green-800': r.categoria === 'Keeta',
+                        'bg-purple-100 text-purple-800': r.categoria !== 'Salão' && r.categoria !== 'iFood' && r.categoria !== '99Food' && r.categoria !== 'Keeta'
                       }">
                         {{ r.categoria }}
                       </span>
                     </td>
                     <td class="px-4 py-2 text-right font-semibold" :class="{'text-green-600': r.tipo === 'receita', 'text-red-600': r.tipo === 'despesa'}">R$ {{ formatarValor(r.total) }}</td>
-                    <td class="px-4 py-2 text-center">
-                      <span v-if="r.status" class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded">✅ Enviado</span>
-                      <span v-else class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded">⏳ Pendente</span>
-                    </td>
-                    <td class="px-4 py-2 text-center">
-                      <button @click="deletarReceita(r.id)" class="text-red-600 hover:text-red-800 text-xs">🗑️</button>
+                    <td class="px-4 py-2 text-center relative">
+                      <button @click="toggleMenuAcoes(r.id)" class="px-3 py-1 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 bg-white">
+                        Ações ▼
+                      </button>
+                      <div v-if="menuAcoesAberto === r.id" class="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                        <button @click="abrirEdicao(r)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b">
+                          ✏️ Editar lançamento
+                        </button>
+                        <button @click="deletarReceita(r.id)" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                          🗑️ Deletar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 </tbody>
@@ -658,6 +844,78 @@
 
       <!-- CMV Inteligente Section -->
       <div v-show="activeView === 'cmv-inteligente'" class="p-8 space-y-6">
+
+        <!-- Seletor de Restaurante -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">🏪 Selecione o Restaurante/Canal</h3>
+          <div class="flex flex-wrap gap-4 items-center">
+            <!-- Todos (Consolidado) -->
+            <button
+              @click="selecionarRestaurante(null)"
+              :class="{
+                'ring-4 ring-blue-500 shadow-lg': cmvRestauranteSelecionado === null,
+                'shadow-md': cmvRestauranteSelecionado !== null
+              }"
+              class="flex flex-col items-center p-3 rounded-lg hover:shadow-lg transition duration-200 bg-gradient-to-br from-blue-50 to-blue-100"
+            >
+              <span class="text-2xl mb-1">✨</span>
+              <span class="text-xs font-semibold text-gray-900">Todos</span>
+              <span class="text-xs text-gray-600">(Consolidado)</span>
+            </button>
+
+            <!-- Salão (KAIA - Verde) -->
+            <button
+              @click="selecionarRestaurante('Salão')"
+              :class="{
+                'ring-4 ring-blue-500 shadow-lg': cmvRestauranteSelecionado === 'Salão',
+                'shadow-md': cmvRestauranteSelecionado !== 'Salão'
+              }"
+              class="flex flex-col items-center p-4 rounded-lg hover:shadow-lg transition duration-200 bg-gradient-to-br from-green-600 to-green-800"
+            >
+              <span class="text-lg font-bold text-white mb-1">🍽️</span>
+              <span class="text-xs font-semibold text-white">Salão</span>
+            </button>
+
+            <!-- iFood (Vermelho) -->
+            <button
+              @click="selecionarRestaurante('iFood')"
+              :class="{
+                'ring-4 ring-blue-500 shadow-lg': cmvRestauranteSelecionado === 'iFood',
+                'shadow-md': cmvRestauranteSelecionado !== 'iFood'
+              }"
+              class="flex flex-col items-center p-4 rounded-lg hover:shadow-lg transition duration-200 bg-gradient-to-br from-red-500 to-red-700"
+            >
+              <span class="text-lg font-bold text-white mb-1">🍔</span>
+              <span class="text-xs font-semibold text-white">iFood</span>
+            </button>
+
+            <!-- Keeta (Amarelo + Verde) -->
+            <button
+              @click="selecionarRestaurante('Keeta')"
+              :class="{
+                'ring-4 ring-blue-500 shadow-lg': cmvRestauranteSelecionado === 'Keeta',
+                'shadow-md': cmvRestauranteSelecionado !== 'Keeta'
+              }"
+              class="flex flex-col items-center p-4 rounded-lg hover:shadow-lg transition duration-200 bg-gradient-to-br from-yellow-400 to-teal-500"
+            >
+              <span class="text-lg font-bold text-gray-900 mb-1">🥘</span>
+              <span class="text-xs font-semibold text-gray-900">Keeta</span>
+            </button>
+
+            <!-- 99Food (Amarelo) -->
+            <button
+              @click="selecionarRestaurante('99Food')"
+              :class="{
+                'ring-4 ring-blue-500 shadow-lg': cmvRestauranteSelecionado === '99Food',
+                'shadow-md': cmvRestauranteSelecionado !== '99Food'
+              }"
+              class="flex flex-col items-center p-4 rounded-lg hover:shadow-lg transition duration-200 bg-gradient-to-br from-yellow-300 to-yellow-500"
+            >
+              <span class="text-lg font-bold text-gray-900 mb-1">🚗</span>
+              <span class="text-xs font-semibold text-gray-900">99Food</span>
+            </button>
+          </div>
+        </div>
 
         <!-- Seletor de Período -->
         <div class="bg-white rounded-lg shadow-md p-6">
@@ -920,6 +1178,137 @@
         </div>
 
       </div>
+
+      <!-- Auditoria de CMV Section -->
+      <div v-show="activeView === 'auditoria-cmv'" class="p-8 space-y-6">
+
+        <!-- Período Filter -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📅 Selecione o Período</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Início</label>
+              <input
+                v-model="auditoriaPeriodo.dataInicio"
+                type="date"
+                @change="carregarAuditoriaCMV"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Data Fim</label>
+              <input
+                v-model="auditoriaPeriodo.dataFim"
+                type="date"
+                @change="carregarAuditoriaCMV"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Atalhos</label>
+              <div class="flex gap-2">
+                <button
+                  @click="setAuditoria7Dias"
+                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  7d
+                </button>
+                <button
+                  @click="setAuditoria30Dias"
+                  class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                  30d
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumo -->
+        <div v-if="auditoriaDados" class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Resumo da Auditoria</h3>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
+              <p class="text-gray-600 text-sm font-medium">💰 Total CMV</p>
+              <p class="text-2xl font-bold text-red-600 mt-2">R$ {{ formatarValor(auditoriaDados.resumo.totalCMV) }}</p>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
+              <p class="text-gray-600 text-sm font-medium">📝 Total Despesas</p>
+              <p class="text-2xl font-bold text-orange-600 mt-2">{{ auditoriaDados.resumo.quantidadeDespesas }}</p>
+            </div>
+            <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <p class="text-gray-600 text-sm font-medium">🏷️ Subcategorias</p>
+              <p class="text-2xl font-bold text-blue-600 mt-2">{{ auditoriaDados.resumo.subcategorias }}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
+              <p class="text-gray-600 text-sm font-medium">📊 Média por Despesa</p>
+              <p class="text-2xl font-bold text-green-600 mt-2">R$ {{ formatarValor(auditoriaDados.resumo.totalCMV / Math.max(auditoriaDados.resumo.quantidadeDespesas, 1)) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Por Subcategoria -->
+        <div v-if="auditoriaDados && auditoriaDados.porSubcategoria.length > 0" class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">🏷️ CMV por Subcategoria</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-100 border-b border-gray-300">
+                <tr>
+                  <th class="px-4 py-2 text-left font-semibold">Subcategoria</th>
+                  <th class="px-4 py-2 text-right font-semibold">Total</th>
+                  <th class="px-4 py-2 text-right font-semibold">Qtd</th>
+                  <th class="px-4 py-2 text-right font-semibold">Média</th>
+                  <th class="px-4 py-2 text-right font-semibold">% Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in auditoriaDados.porSubcategoria" :key="idx" class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="px-4 py-2 font-medium text-gray-900">{{ item.subcategoria }}</td>
+                  <td class="px-4 py-2 text-right text-red-600 font-semibold">R$ {{ formatarValor(item.total) }}</td>
+                  <td class="px-4 py-2 text-right text-gray-600">{{ item.quantidade }}</td>
+                  <td class="px-4 py-2 text-right text-gray-600">R$ {{ formatarValor(item.media) }}</td>
+                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ ((item.total / auditoriaDados.resumo.totalCMV) * 100).toFixed(1) }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Despesas Detalhadas -->
+        <div v-if="auditoriaDados && auditoriaDados.despesasDetalhadas.length > 0" class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">📋 Todas as Despesas de CMV</h3>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-100 border-b border-gray-300">
+                <tr>
+                  <th class="px-4 py-2 text-left font-semibold">Data</th>
+                  <th class="px-4 py-2 text-left font-semibold">Subcategoria</th>
+                  <th class="px-4 py-2 text-left font-semibold">Fornecedor</th>
+                  <th class="px-4 py-2 text-left font-semibold">NF</th>
+                  <th class="px-4 py-2 text-right font-semibold">Valor</th>
+                  <th class="px-4 py-2 text-left font-semibold">Canal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="despesa in auditoriaDados.despesasDetalhadas" :key="despesa.id" class="border-b border-gray-200 hover:bg-gray-50">
+                  <td class="px-4 py-2 text-gray-600">{{ despesa.data }}</td>
+                  <td class="px-4 py-2 font-medium text-gray-900">{{ despesa.subcategoria || '-' }}</td>
+                  <td class="px-4 py-2 text-gray-600">{{ despesa.fornecedor_nome || 'N/A' }}</td>
+                  <td class="px-4 py-2 text-gray-600 font-mono text-xs">{{ despesa.numero_nf || 'N/A' }}</td>
+                  <td class="px-4 py-2 text-right text-red-600 font-semibold">R$ {{ formatarValor(despesa.total) }}</td>
+                  <td class="px-4 py-2 text-gray-600">{{ despesa.categoria }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-gray-500 mt-4">Total: {{ auditoriaDados.despesasDetalhadas.length }} despesas</p>
+        </div>
+
+        <div v-else-if="!auditoriaDados" class="bg-white rounded-lg shadow-md p-8 text-center">
+          <p class="text-gray-600">Carregando auditoria...</p>
+        </div>
+
+      </div>
     </main>
 
     <!-- Modal: Adicionar Nova Categoria -->
@@ -1064,6 +1453,66 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal: Editar Lançamento -->
+    <div v-if="mostrarModalEdicao && receitaEmEdicao" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">✏️ Editar Lançamento</h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Data</label>
+            <input
+              v-model="receitaEmEdicao.data"
+              type="date"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">💰 Valor</label>
+            <input
+              v-model.number="receitaEmEdicao.total"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">🏷️ Categoria</label>
+            <select v-model="receitaEmEdicao.categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="Todos (Grupo)">📊 Todos (Grupo)</option>
+              <option value="Salão">🍽️ Salão</option>
+              <option value="iFood">🍔 iFood</option>
+              <option value="Keeta">🥘 Keeta</option>
+              <option value="99Food">🚗 99Food</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">📊 Tipo</label>
+            <select v-model="receitaEmEdicao.tipo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="receita">💚 Receita</option>
+              <option value="despesa">❌ Despesa</option>
+            </select>
+          </div>
+
+          <div class="flex gap-2 pt-4">
+            <button
+              @click="salvarEdicao"
+              class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium">
+              ✅ Salvar
+            </button>
+            <button
+              @click="cancelarEdicao"
+              class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 font-medium">
+              ❌ Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </template>
   </div>
 
   <script src="js/utils/api.js"></script>
@@ -1096,6 +1545,18 @@
     const app = createApp({
       data() {
         return {
+          // Autenticação
+          isAuthenticated: false,
+          token: localStorage.getItem('salon-erp-token'),
+          usuario: null,
+          loginForm: {
+            email: '',
+            senha: ''
+          },
+          loginLoading: false,
+          loginError: '',
+
+          // Views
           activeView: 'dashboard',
           cmvPeriodo: {
             dataInicio: this.obterDataInicio(),
@@ -1103,7 +1564,13 @@
           },
           cmvDados: null,
           cmvAnalise: null,
+          cmvRestauranteSelecionado: null,
           carregandoAnaliseIA: false,
+          auditoriaDados: null,
+          auditoriaPeriodo: {
+            dataInicio: this.obterDataInicio(),
+            dataFim: this.obterDataFim()
+          },
           periodo: {
             dataInicio: this.obterDataInicio(),
             dataFim: this.obterDataFim()
@@ -1116,7 +1583,9 @@
             dias: 0
           },
           statsPorCategoria: [],
-          categoriasDisponiveis: ['Salão', 'iFood', '99Food', 'Keepa'],
+          filtroCategoria: '',
+          categoriasFiltradas: [],
+          categoriasDisponiveis: ['Todos (Grupo)', 'Salão', 'iFood', '99Food', 'Keeta'],
           outraCategoria: '',
           receitas: [],
           novaReceita: {
@@ -1135,6 +1604,10 @@
             subcategoria: '',
             descricao: ''
           },
+          // Menu de Ações e Edição de Lançamentos
+          menuAcoesAberto: null,
+          mostrarModalEdicao: false,
+          receitaEmEdicao: null,
           // Notas Fiscais
           notasPendentes: [],
           notasCategoria: {},
@@ -1166,10 +1639,10 @@
           processandoDespesaImagem: false,
           dadosDespesaExtraidos: null,
           despesaImagemSalva: false,
-          tiposDespesaSimples: ['Salão', 'iFood', '99Food', 'Keepa'],
+          tiposDespesaSimples: ['Salão', 'iFood', '99Food', 'Keeta'],
           novaCategoria: '',
           novaClassificacao: 'Operacional',
-          categoriaIdMap: { 'Salão': null, 'iFood': null, '99Food': null, 'Keepa': null }, // Mapa de categoria -> ID
+          categoriaIdMap: { 'Salão': null, 'iFood': null, '99Food': null, 'Keeta': null }, // Mapa de categoria -> ID
           // Histórico: Filtros e Paginação
           filtroHistorico: {
             dataInicio: this.obterDataInicioDomesMes(),
@@ -1253,6 +1726,59 @@
       },
 
       methods: {
+        async fazerLogin() {
+          try {
+            this.loginError = '';
+            this.loginLoading = true;
+
+            const response = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: this.loginForm.email,
+                senha: this.loginForm.senha
+              })
+            });
+
+            const resultado = await response.json();
+
+            if (!resultado.success) {
+              this.loginError = resultado.error || 'Erro ao fazer login';
+              return;
+            }
+
+            // Salvar token e usuário
+            this.token = resultado.token;
+            this.usuario = resultado.usuario;
+            this.isAuthenticated = true;
+            localStorage.setItem('salon-erp-token', resultado.token);
+            localStorage.setItem('salon-erp-usuario', JSON.stringify(resultado.usuario));
+
+            // Limpar formulário
+            this.loginForm.email = '';
+            this.loginForm.senha = '';
+
+            // Carregar dados
+            this.carregarTiposDespesa();
+            this.atualizarPeriodo();
+            this.carregarNotasPendentes();
+          } catch (error) {
+            this.loginError = 'Erro ao conectar ao servidor: ' + error.message;
+          } finally {
+            this.loginLoading = false;
+          }
+        },
+
+        fazerLogout() {
+          this.isAuthenticated = false;
+          this.token = null;
+          this.usuario = null;
+          localStorage.removeItem('salon-erp-token');
+          localStorage.removeItem('salon-erp-usuario');
+          this.loginForm.email = '';
+          this.loginForm.senha = '';
+        },
+
         obterDataInicio() {
           const hoje = new Date();
           const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -1304,10 +1830,15 @@
 
         async carregarDadosCMV() {
           try {
-            console.log('📊 Carregando dados de CMV:', this.cmvPeriodo);
+            console.log('📊 Carregando dados de CMV:', this.cmvPeriodo, 'Restaurante:', this.cmvRestauranteSelecionado);
             this.cmvDados = null;
 
-            const response = await fetch(`${window.location.origin}/api/cmv-inteligente?from=${this.cmvPeriodo.dataInicio}&to=${this.cmvPeriodo.dataFim}`);
+            let url = `${window.location.origin}/api/cmv-inteligente?from=${this.cmvPeriodo.dataInicio}&to=${this.cmvPeriodo.dataFim}`;
+            if (this.cmvRestauranteSelecionado) {
+              url += `&restaurante=${this.cmvRestauranteSelecionado}`;
+            }
+
+            const response = await fetch(url);
             const resultado = await response.json();
 
             if (resultado.success) {
@@ -1323,6 +1854,51 @@
           } catch (error) {
             console.error('❌ Erro na requisição:', error);
             alert('Erro ao carregar dados de CMV');
+          }
+        },
+
+        selecionarRestaurante(restaurante) {
+          console.log('🏪 Selecionando restaurante:', restaurante);
+          this.cmvRestauranteSelecionado = restaurante;
+          this.cmvDados = null;
+          this.cmvAnalise = null;
+          this.carregarDadosCMV();
+        },
+
+        setAuditoria7Dias() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+          this.auditoriaPeriodo.dataInicio = getLocalDateISO(inicio);
+          this.auditoriaPeriodo.dataFim = getLocalDateISO(hoje);
+          this.carregarAuditoriaCMV();
+        },
+
+        setAuditoria30Dias() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+          this.auditoriaPeriodo.dataInicio = getLocalDateISO(inicio);
+          this.auditoriaPeriodo.dataFim = getLocalDateISO(hoje);
+          this.carregarAuditoriaCMV();
+        },
+
+        async carregarAuditoriaCMV() {
+          try {
+            console.log('📋 Carregando auditoria de CMV:', this.auditoriaPeriodo);
+            this.auditoriaDados = null;
+
+            const response = await fetch(`${window.location.origin}/api/cmv/auditoria?from=${this.auditoriaPeriodo.dataInicio}&to=${this.auditoriaPeriodo.dataFim}`);
+            const resultado = await response.json();
+
+            if (resultado.success) {
+              this.auditoriaDados = resultado.data;
+              console.log('✅ Auditoria de CMV carregada:', this.auditoriaDados);
+            } else {
+              console.error('❌ Erro ao carregar auditoria:', resultado.error);
+              alert('Erro ao carregar auditoria: ' + resultado.error);
+            }
+          } catch (error) {
+            console.error('❌ Erro na requisição:', error);
+            alert('Erro ao carregar auditoria de CMV');
           }
         },
 
@@ -1416,24 +1992,71 @@
 
         async analisarCMVInteligente() {
           try {
-            console.log('🔍 Gerando análise inteligente dos dados...');
+            console.log('🔍 Gerando análise inteligente CMVAnalyzerV2...');
             this.carregandoAnaliseIA = true;
 
-            const response = await fetch(`${window.location.origin}/api/cmv-inteligente/analisar`, {
+            if (!this.cmvDados) {
+              alert('❌ Carregue os dados de CMV primeiro');
+              return;
+            }
+
+            // Extrair período em formato YYYY-MM
+            const dataInicio = new Date(this.cmvPeriodo.dataInicio);
+            const mes = dataInicio.toISOString().slice(0, 7); // "2026-04"
+
+            // Construir input para CMVAnalyzerV2
+            const resumo = this.cmvDados.resumo;
+            const cmvPorCategoria = {};
+
+            // Montar cmvPorCategoria a partir de cmvDetalhado
+            if (this.cmvDados.cmvDetalhado) {
+              this.cmvDados.cmvDetalhado.forEach(item => {
+                cmvPorCategoria[item.subcategoria] = item.total;
+              });
+            }
+
+            // Taxas reais da categoria selecionada
+            const taxasReais = resumo.totalTaxasReais || 0;
+            const receitaLiquida = resumo.totalReceita - taxasReais;
+
+            const payloadV2 = {
+              mes: mes,
+              restaurante: this.cmvRestauranteSelecionado ? `KAIA - ${this.cmvRestauranteSelecionado}` : 'KAIA - Consolidado',
+              receita: {
+                bruta: resumo.totalReceita,
+                taxas: taxasReais,
+                liquida: receitaLiquida
+              },
+              cmv: {
+                sistema: resumo.totalCMV,
+                cartaoItau: 0,
+                cartaoBradesco: 0,
+                total: resumo.totalCMV
+              },
+              cmvPorCategoria: cmvPorCategoria,
+              benchmarks: {
+                CMV_META: 22,
+                CMV_ALERTA: 25,
+                CMV_CRITICO: 30
+              }
+            };
+
+            console.log('📤 Enviando dados para CMVAnalyzerV2:', payloadV2);
+
+            const response = await fetch(`${window.location.origin}/api/cmv-v2/analisar`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                from: this.cmvPeriodo.dataInicio,
-                to: this.cmvPeriodo.dataFim
-              })
+              body: JSON.stringify(payloadV2)
             });
 
             const resultado = await response.json();
 
             if (resultado.success && resultado.analise) {
-              this.cmvAnalise = resultado.analise;
-              console.log('✅ Análise rule-based recebida:', resultado.analise);
-              console.log('📋 Tipo:', resultado.tipo);
+              // Transformar resposta CMVAnalyzerV2 para formato frontend
+              const analiseV2 = resultado.analise;
+              this.cmvAnalise = this.transformarAnaliseCMVAnalyzerV2(analiseV2, this.cmvDados);
+              console.log('✅ Análise CMVAnalyzerV2 recebida:', this.cmvAnalise);
+              console.log('📋 Versão:', resultado.versao);
             } else {
               alert('❌ Erro: ' + (resultado.error || 'Não foi possível gerar análise'));
             }
@@ -1443,6 +2066,120 @@
           } finally {
             this.carregandoAnaliseIA = false;
           }
+        },
+
+        transformarAnaliseCMVAnalyzerV2(analiseV2, cmvDados) {
+          // Transformar estrutura CMVAnalyzerV2 para estrutura esperada pelo frontend
+          const situacao = analiseV2.situacao;
+          const problemas = analiseV2.problemas || [];
+          const recomendacoes = analiseV2.recomendacoes || [];
+          const porCategoria = analiseV2.porCategoria || {};
+
+          // Mapear tipo de problema para emoji
+          const emojiProblema = {
+            'CMV_ACIMA_META': '📈',
+            'DUPLICIDADE_DETECTADA': '🔄',
+            'TAXA_PLATAFORMA_ALTA': '💸',
+            'ANOMALIA_DADOS': '⚠️'
+          };
+
+          // Mapear prioridade de recomendação para emoji
+          const emojiRecomendacao = {
+            'ALTA': '🔴',
+            'MÉDIA': '🟡',
+            'BAIXA': '🟢'
+          };
+
+          // Converter problemas
+          const problemasFormatados = problemas.map(p => ({
+            emoji: emojiProblema[p.tipo] || '⚠️',
+            tipo: p.tipo,
+            descricao: p.descricao,
+            impacto: p.impacto,
+            severidade: p.severidade
+          }));
+
+          // Converter recomendações
+          const recomendacoesFormatadas = recomendacoes.map(r => ({
+            emoji: emojiRecomendacao[r.prioridade] || '💡',
+            acao: r.acao,
+            detalhes: r.detalhes,
+            prioridade: r.prioridade,
+            impacto: r.impacto || ''
+          }));
+
+          // Converter porCategoria em subcategoriaAnalise (top 5)
+          const subcategoriaAnalise = Object.entries(porCategoria)
+            .map(([cat, dados], idx) => ({
+              posicao: idx + 1,
+              subcategoria: cat,
+              total: dados.valor,
+              percentualReceita: dados.percentualRL,
+              recomendacao: 'Monitorar e buscar otimizações'
+            }))
+            .slice(0, 5);
+
+          // Calcular variação e status da tendência
+          const variacao = parseFloat(analiseV2.cmv.variacao || 0);
+          const tendenciaStatus = variacao < 0 ? '📉 Melhorando' : variacao > 0 ? '📈 Piorando' : '➡️ Estável';
+
+          // Calcular impacto financeiro mensal
+          const receitaLiquida = analiseV2.receita.liquida;
+          const cmvAtual = parseFloat(analiseV2.cmv.percentualRL);
+          const cmvIdeal = analiseV2.cmv.meta;
+          const diferencaPercentual = cmvAtual - cmvIdeal;
+          const impactoFinanceiro = (receitaLiquida * diferencaPercentual) / 100;
+
+          return {
+            situacao: {
+              cor: situacao.cor,
+              descricao: situacao.descricao,
+              cmvPercentual: parseFloat(analiseV2.cmv.percentualRL),
+              margemBruta: 100 - parseFloat(analiseV2.cmv.percentualRL),
+              status: situacao.status,
+              meta: analiseV2.cmv.meta
+            },
+            tendencias: {
+              emoji: variacao < 0 ? '📉' : '📈',
+              descricao: `CMV variou ${Math.abs(variacao).toFixed(2)}% em relação ao período anterior`,
+              status: tendenciaStatus,
+              variacao: variacao.toFixed(2)
+            },
+            comparacao: {
+              avaliacao: `CMV está em ${cmvAtual.toFixed(2)}%, meta é ${cmvIdeal}%`,
+              cmvAtual: cmvAtual.toFixed(2),
+              cmvIdeal: cmvIdeal,
+              impactoMensal: {
+                diferenca: impactoFinanceiro.toLocaleString('pt-BR', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                })
+              }
+            },
+            problemas: problemasFormatados,
+            recomendacoes: recomendacoesFormatadas,
+            subcategoriaAnalise: subcategoriaAnalise,
+            relatorio: this.gerarRelatorioCMVAnalyzer(analiseV2)
+          };
+        },
+
+        gerarRelatorioCMVAnalyzer(analise) {
+          return `=== ANÁLISE DE CMV — ${analise.mes} ===
+
+📊 SITUAÇÃO: ${analise.situacao.status}
+${analise.situacao.descricao}
+
+💰 RECEITA LÍQUIDA: R$ ${analise.receita.liquida.toFixed(2)}
+   (Bruta: R$ ${analise.receita.bruta.toFixed(2)} - Taxas: R$ ${analise.receita.taxas.toFixed(2)})
+
+🎯 CMV: R$ ${analise.cmv.total} = ${analise.cmv.percentualRL}% (meta: ${analise.cmv.meta}%)
+   Variação: ${analise.cmv.variacao > 0 ? '+' : ''}${analise.cmv.variacao}%
+
+⚠️ PROBLEMAS: ${analise.problemas.length}
+${analise.problemas.map(p => `   • ${p.tipo}: ${p.descricao}`).join('\n')}
+
+💡 RECOMENDAÇÕES: ${analise.recomendacoes.length}
+${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalhes}`).join('\n')}`;
         },
 
         setUltimos7Dias() {
@@ -1517,14 +2254,54 @@
               dataInicio: this.periodo.dataInicio,
               dataFim: this.periodo.dataFim
             });
+
+            // Carregar stats originais
             const response = await api.obterStatsPorCategoria(this.periodo.dataInicio, this.periodo.dataFim);
-            if (response.data.success) {
-              this.statsPorCategoria = response.data.data;
-              console.log('✅ Stats por categoria recebido:', this.statsPorCategoria);
+            // Carregar despesas alocadas
+            const despesasResponse = await api.obterDespesasAlocadas(this.periodo.dataInicio, this.periodo.dataFim);
+
+            if (response.data.success && despesasResponse.data.success) {
+              const stats = response.data.data;
+              const despesasAlocadas = despesasResponse.data.data;
+
+              // Criar mapa de despesas alocadas por categoria
+              const despesasMap = {};
+              despesasAlocadas.forEach(d => {
+                despesasMap[d.categoria] = d;
+              });
+
+              // Mesclar dados: separar taxas e despesas alocadas
+              this.statsPorCategoria = stats.map(stat => {
+                const despesa = despesasMap[stat.categoria];
+                if (despesa) {
+                  return {
+                    ...stat,
+                    totalTaxas: despesa.totalTaxas || 0,
+                    totalDespesasAlocadas: despesa.totalDespesasAlocadas || 0,
+                    totalDespesa: despesa.totalDespesa,
+                    totalLiquido: despesa.totalLiquido,
+                    mediaDespesa: despesa.totalDespesa / (stat.dias || 1) // Recalcular média com despesa total
+                  };
+                }
+                return stat;
+              });
+
+              console.log('✅ Stats com despesas alocadas:', this.statsPorCategoria);
+              this.atualizarFiltroCategoria();
             }
           } catch (error) {
             console.error('Erro ao carregar stats por categoria:', error);
           }
+        },
+
+        atualizarFiltroCategoria() {
+          if (this.filtroCategoria === '') {
+            this.categoriasFiltradas = [...this.statsPorCategoria];
+          } else {
+            this.categoriasFiltradas = this.statsPorCategoria.filter(cat => cat.categoria === this.filtroCategoria);
+          }
+          console.log('🔍 Categorias filtradas:', this.categoriasFiltradas);
+          this.$forceUpdate();
         },
 
         async carregarReceitas() {
@@ -1660,10 +2437,58 @@
             try {
               await api.deletarFaturamento(id);
               await this.atualizarPeriodo();
+              this.menuAcoesAberto = null;
             } catch (error) {
               alert('Erro ao deletar');
             }
           }
+        },
+
+        toggleMenuAcoes(id) {
+          this.menuAcoesAberto = this.menuAcoesAberto === id ? null : id;
+        },
+
+        abrirEdicao(receita) {
+          this.receitaEmEdicao = {
+            id: receita.id,
+            data: receita.data,
+            total: receita.total,
+            categoria: receita.categoria,
+            tipo: receita.tipo,
+            tipo_despesa_id: receita.tipo_despesa_id
+          };
+          this.mostrarModalEdicao = true;
+          this.menuAcoesAberto = null;
+        },
+
+        async salvarEdicao() {
+          try {
+            if (!this.receitaEmEdicao.data || !this.receitaEmEdicao.total) {
+              alert('Data e Total são obrigatórios');
+              return;
+            }
+
+            await api.atualizarFaturamento(
+              this.receitaEmEdicao.id,
+              this.receitaEmEdicao.data,
+              this.receitaEmEdicao.total,
+              this.receitaEmEdicao.categoria,
+              this.receitaEmEdicao.tipo,
+              this.receitaEmEdicao.tipo_despesa_id
+            );
+
+            this.mostrarModalEdicao = false;
+            this.receitaEmEdicao = null;
+            await this.atualizarPeriodo();
+            alert('✅ Lançamento atualizado com sucesso!');
+          } catch (error) {
+            alert('Erro ao atualizar: ' + error.message);
+          }
+        },
+
+        cancelarEdicao() {
+          this.mostrarModalEdicao = false;
+          this.receitaEmEdicao = null;
         },
 
         formatarValor(valor) {
@@ -1735,6 +2560,19 @@
           } finally {
             this.notasEmProcessamento = [];
           }
+        },
+
+        obterClassificacao(tipoDespesaId) {
+          // Buscar o tipo de despesa selecionado e retornar sua classificação
+          if (!tipoDespesaId) return 'N/A';
+
+          // Procurar em tiposDespesaPlano
+          const tipo = this.tiposDespesaPlano.find(t => t.id == tipoDespesaId);
+          if (tipo) {
+            return tipo.classificacao || 'Operacional';
+          }
+
+          return 'Operacional';
         },
 
         async processarNota(notaId) {
@@ -1850,6 +2688,17 @@
           const files = event.target.files;
           if (files.length > 0) {
             this.processarDespesaImagem(files[0]);
+          }
+        },
+
+        handlePasteDespesaImagem(event) {
+          const items = event.clipboardData.items;
+          for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+              const file = item.getAsFile();
+              this.processarDespesaImagem(file);
+              return;
+            }
           }
         },
 
@@ -2061,6 +2910,20 @@
       },
 
       mounted() {
+        // Verificar se já há token armazenado
+        if (this.token) {
+          const usuarioSalvo = localStorage.getItem('salon-erp-usuario');
+          this.usuario = usuarioSalvo ? JSON.parse(usuarioSalvo) : null;
+          this.isAuthenticated = true;
+          console.log('✅ Sessão restaurada:', this.usuario?.nome);
+        }
+
+        // Se não estiver autenticado, interromper aqui
+        if (!this.isAuthenticated) {
+          console.log('🔐 Aguardando login...');
+          return;
+        }
+
         console.log('🚀 ====== APP CARREGADO ======');
         console.log('📅 Período inicial:');
         console.log('  dataInicio:', this.periodo.dataInicio);

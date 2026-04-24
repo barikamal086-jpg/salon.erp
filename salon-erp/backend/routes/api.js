@@ -7,6 +7,9 @@ const TipoDespesa = require('../models/TipoDespesa');
 const NotaFiscal = require('../models/NotaFiscal');
 const NotaFiscalParser = require('../utils/NotaFiscalParser');
 const CMVAnalyzer = require('../utils/CMVAnalyzer');
+const CMVAnalyzerV2 = require('../utils/CMVAnalyzerV2');
+const logger = require('../utils/logger');
+const { gerarToken, verificarSenha, buscarUsuarioPorEmail, middlewareAutenticacao } = require('../auth');
 
 // Configurar multer para upload de arquivos
 const upload = multer({
@@ -24,15 +27,83 @@ const upload = multer({
   }
 });
 
+// ============================================
+// AUTENTICAÇÃO
+// ============================================
+
+// POST /api/auth/login
+router.post('/auth/login', (req, res) => {
+  try {
+    const { email, senha } = req.body;
+
+    if (!email || !senha) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email e senha são obrigatórios'
+      });
+    }
+
+    const usuario = buscarUsuarioPorEmail(email);
+
+    if (!usuario) {
+      logger.warning(`Tentativa de login com email não registrado: ${email}`);
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou senha inválidos'
+      });
+    }
+
+    if (!verificarSenha(senha, usuario.senha_hash)) {
+      logger.warning(`Tentativa de login com senha incorreta: ${email}`);
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou senha inválidos'
+      });
+    }
+
+    const token = gerarToken(usuario);
+    logger.success(`Login bem-sucedido: ${usuario.nome} (${usuario.email})`);
+
+    res.json({
+      success: true,
+      token,
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        role: usuario.role
+      }
+    });
+  } catch (error) {
+    logger.error(`Erro ao fazer login: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao fazer login'
+    });
+  }
+});
+
+// GET /api/auth/me - Obter dados do usuário logado
+router.get('/auth/me', middlewareAutenticacao, (req, res) => {
+  res.json({
+    success: true,
+    usuario: req.usuario
+  });
+});
+
+// ============================================
+// FATURAMENTOS
+// ============================================
+
 // GET /api/faturamentos - Listar faturamentos
 // ?days=30 (padrão)
-// ?status=pending/sent
+// ?restaurante=Salão|iFood|Keeta|99Food (opcional)
 router.get('/faturamentos', async (req, res) => {
   try {
     const days = req.query.days || 30;
-    const status = req.query.status || null;
+    const restaurante = req.query.restaurante || null;
 
-    const faturamentos = await Faturamento.listar(parseInt(days), status);
+    const faturamentos = await Faturamento.listar(parseInt(days), null, restaurante);
     res.json({
       success: true,
       data: faturamentos
@@ -95,16 +166,23 @@ router.post('/faturamentos', async (req, res) => {
 });
 
 // PUT /api/faturamentos/:id - Atualizar faturamento
-// Body: { total: 1234.56 }
+// Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
 router.put('/faturamentos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { total } = req.body;
+    const { data, total, categoria, tipo, tipo_despesa_id } = req.body;
 
-    if (!total) {
+    if (!total || !data || !categoria) {
       return res.status(400).json({
         success: false,
-        error: 'Total é obrigatório'
+        error: 'Data, Total e Categoria são obrigatórios'
+      });
+    }
+
+    if (tipo && !['receita', 'despesa'].includes(tipo)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tipo deve ser "receita" ou "despesa"'
       });
     }
 
@@ -117,7 +195,7 @@ router.put('/faturamentos/:id', async (req, res) => {
       });
     }
 
-    await Faturamento.atualizar(id, total);
+    await Faturamento.atualizarCompleto(id, data, total, categoria, tipo, tipo_despesa_id);
 
     res.json({
       success: true,
@@ -160,10 +238,10 @@ router.delete('/faturamentos/:id', async (req, res) => {
 });
 
 // GET /api/faturamentos/stats - Obter estatísticas (KPIs) com receita/despesa separadas
-// ?from=YYYY-MM-DD&to=YYYY-MM-DD
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD&restaurante=Salão|iFood|Keeta|99Food (opcional)
 router.get('/faturamentos/stats', async (req, res) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, restaurante } = req.query;
 
     if (!from || !to) {
       return res.status(400).json({
@@ -172,7 +250,7 @@ router.get('/faturamentos/stats', async (req, res) => {
       });
     }
 
-    const stats = await Faturamento.obterStats(from, to);
+    const stats = await Faturamento.obterStats(from, to, restaurante || null);
 
     res.json({
       success: true,
@@ -263,6 +341,40 @@ router.get('/faturamentos/stats-categoria', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/despesas-alocadas - Obter despesas alocadas proporcionalmente por categoria
+router.get('/faturamentos/despesas-alocadas', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    const despesasAlocadas = await Faturamento.obterDespesasAlocadas(from, to);
+
+    res.json({
+      success: true,
+      data: despesasAlocadas.map(d => ({
+        categoria: d.categoria,
+        totalReceita: parseFloat(d.totalReceita || 0),
+        totalTaxas: parseFloat(d.totalTaxas || 0),
+        totalDespesasAlocadas: parseFloat(d.totalDespesasAlocadas || 0),
+        totalDespesa: parseFloat(d.totalDespesa || 0),
+        totalLiquido: parseFloat(d.totalLiquido || 0),
+        proporcao: parseFloat(d.proporcao || 0)
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {
@@ -331,10 +443,10 @@ router.get('/faturamentos/cmv/detalhado', async (req, res) => {
 });
 
 // GET /api/cmv-inteligente - Dados completos para análise de CMV com IA
-// ?from=YYYY-MM-DD&to=YYYY-MM-DD
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD&restaurante=Salão|iFood|Keeta|99Food (opcional)
 router.get('/cmv-inteligente', async (req, res) => {
   try {
-    const { from, to } = req.query;
+    const { from, to, restaurante } = req.query;
 
     if (!from || !to) {
       return res.status(400).json({
@@ -343,7 +455,7 @@ router.get('/cmv-inteligente', async (req, res) => {
       });
     }
 
-    const dados = await Faturamento.obterDadosCMV(from, to);
+    const dados = await Faturamento.obterDadosCMV(from, to, restaurante || null);
 
     res.json({
       success: true,
@@ -357,11 +469,39 @@ router.get('/cmv-inteligente', async (req, res) => {
   }
 });
 
-// POST /api/cmv-inteligente/analisar - Análise Inteligente Rule-Based (sem IA)
-// Body: { from: "YYYY-MM-DD", to: "YYYY-MM-DD" }
+// GET /api/cmv/auditoria - Auditoria detalhada de todas as despesas de CMV
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/cmv/auditoria', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    const auditoria = await Faturamento.obterDespesasCMVDetalhadas(from, to);
+
+    res.json({
+      success: true,
+      data: auditoria
+    });
+  } catch (error) {
+    logger.error(`Erro ao obter auditoria CMV: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// POST /api/cmv-inteligente/analisar - Análise Inteligente Rule-Based V1 (legado)
+// Body: { from: "YYYY-MM-DD", to: "YYYY-MM-DD", restaurante: "Salão|iFood|Keeta|99Food" (opcional) }
 router.post('/cmv-inteligente/analisar', async (req, res) => {
   try {
-    const { from, to } = req.body;
+    const { from, to, restaurante } = req.body;
 
     if (!from || !to) {
       return res.status(400).json({
@@ -371,28 +511,89 @@ router.post('/cmv-inteligente/analisar', async (req, res) => {
     }
 
     // Obter dados de CMV
-    const dados = await Faturamento.obterDadosCMV(from, to);
+    const dados = await Faturamento.obterDadosCMV(from, to, restaurante || null);
 
     // Analisar com o CMVAnalyzer rule-based
-    console.log('🔍 Analisando CMV com regras inteligentes...');
+    logger.info('Analisando CMV com regras inteligentes (V1)...');
     const analise = CMVAnalyzer.analisar(dados);
     const relatorio = CMVAnalyzer.gerarRelatorio(dados);
 
-    console.log('✅ Análise concluída (Rule-Based)');
+    logger.success('Análise concluída (Rule-Based V1)');
 
     res.json({
       success: true,
       data: dados,
       analise: analise,
       relatorio: relatorio,
-      tipo: 'rule-based',
+      tipo: 'rule-based-v1',
       aviso: null
     });
   } catch (error) {
-    console.error('❌ Erro ao analisar CMV:', error);
+    logger.error(`Erro ao analisar CMV: ${error.message}`);
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+// POST /api/cmv-v2/analisar - Análise Inteligente CMVAnalyzerV2 (NOVO - GENÉRICO)
+// Body: {
+//   mes: "2026-02",
+//   restaurante: "KAIA",
+//   receita: { bruta, taxas, liquida },
+//   cmv: { sistema, cartaoItau, cartaoBradesco, total },
+//   cmvPorCategoria: { Carnes, Bebidas, ... },
+//   compras: [...],
+//   benchmarks: { CMV_META, CMV_ALERTA, ... }
+// }
+router.post('/cmv-v2/analisar', async (req, res) => {
+  try {
+    const { mes, restaurante, receita, cmv, cmvPorCategoria, compras, benchmarks } = req.body;
+
+    // Validar entrada mínima
+    if (!receita || !cmv) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "receita" e "cmv" são obrigatórios'
+      });
+    }
+
+    logger.info(`Analisando CMV V2 para ${restaurante || 'restaurante'} (${mes})...`);
+
+    // Montar dados estruturados
+    const dados = {
+      mesReferencia: mes || new Date().toISOString().slice(0, 7),
+      restaurante: restaurante || 'Não informado',
+      receita: receita || { bruta: 0, taxas: 0, liquida: 0 },
+      cmv: cmv || { sistema: 0, cartaoItau: 0, cartaoBradesco: 0, total: 0 },
+      cmvPorCategoria: cmvPorCategoria || {},
+      compras: compras || [],
+    };
+
+    // Configurar benchmarks (padrão + custom)
+    const configBenchmarks = benchmarks || {};
+
+    // Executar análise V2
+    const analise = CMVAnalyzerV2.analisar(dados, configBenchmarks);
+    const relatorio = CMVAnalyzerV2.gerarRelatorio(analise);
+
+    logger.success(`Análise CMV V2 concluída (${analise.situacao.status})`);
+
+    res.json({
+      success: true,
+      analise: analise,
+      relatorio: relatorio,
+      tipo: 'cmv-v2-generico',
+      versao: '2.0',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`Erro ao analisar CMV V2: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -411,13 +612,12 @@ router.post('/faturamentos/:id/enviar-conta-azul', async (req, res) => {
       });
     }
 
-    // Marcar como enviado (depois integraremos com skill lancar-receitas)
-    // Por enquanto, apenas marca como enviado
-    await Faturamento.marcarEnviado(id);
+    // Enviar ao Conta Azul (integração com skill lancar-receitas)
+    // Status de "pendente" não é mais rastreado
 
     res.json({
       success: true,
-      message: 'Faturamento marcado como enviado ao Conta Azul'
+      message: 'Faturamento enviado ao Conta Azul'
     });
   } catch (error) {
     res.status(400).json({
@@ -612,7 +812,7 @@ router.get('/notas-fiscais/:id/sugestao-data', async (req, res) => {
       data_sugerida = null;
     }
 
-    console.log(`🔥 SUGESTAO-DATA: nota=${nota.id}, temSugestao=${temSugestao}, venc=${nota.data_vencimento}, hoje=${hoje}`);
+    logger.debug(`SUGESTAO-DATA: nota=${nota.id}, temSugestao=${temSugestao}, venc=${nota.data_vencimento}, hoje=${hoje}`);
 
     res.json({
       success: true,
@@ -761,6 +961,18 @@ router.post('/notas-fiscais/:id/processar', async (req, res) => {
     // Usar data fornecida ou data de emissão por padrão
     const dataFaturamento = data_faturamento || nota.data_emissao;
 
+    // Obter tipo de despesa para determinar classificação (CMV vs Operacional)
+    const tipoDespesa = await TipoDespesa.obter(tipo_despesa_id);
+    if (!tipoDespesa) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tipo de despesa não encontrado'
+      });
+    }
+
+    const classificacao = tipoDespesa.classificacao; // 'CMV' ou 'Operacional'
+    logger.info(`Tipo de Despesa: ${tipoDespesa.subcategoria} | Classificação: ${classificacao}`);
+
     // Criar faturamento (despesa)
     const resultado = await Faturamento.criar(
       dataFaturamento,
@@ -778,7 +990,9 @@ router.post('/notas-fiscais/:id/processar', async (req, res) => {
       message: 'Nota fiscal processada e faturamento criado com sucesso',
       faturamento_id: resultado.id,
       nota_fiscal_id: id,
-      data_lançamento: dataFaturamento
+      data_lançamento: dataFaturamento,
+      tipo_despesa: tipoDespesa.subcategoria,
+      classificacao: classificacao
     });
   } catch (error) {
     res.status(400).json({
@@ -842,7 +1056,7 @@ function classificarDespesa(texto) {
   if (textoLower.includes('folha') || textoLower.includes('salário')) return 'Salário';
   if (textoLower.includes('ifood') || textoLower.includes('rappi') || textoLower.includes('uber eats')) return 'iFood';
   if (textoLower.includes('99food') || textoLower.includes('99')) return '99Food';
-  if (textoLower.includes('keepa')) return 'Keepa';
+  if (textoLower.includes('keeta')) return 'Keeta';
   if (textoLower.includes('cabelo') || textoLower.includes('corte') || textoLower.includes('salão') || textoLower.includes('beleza')) return 'Salão';
   return 'Outro';
 }
@@ -854,12 +1068,12 @@ function extrairValor(texto) {
   const regex = /R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
   const matches = texto.match(regex);
 
-  console.log('🔍 Matches encontrados:', matches);
+  logger.debug('Matches encontrados: ' + JSON.stringify(matches));
 
   if (matches && matches.length > 0) {
     // Pegar o último valor encontrado (geralmente é o total)
     const ultimoValor = matches[matches.length - 1];
-    console.log('💰 Último valor encontrado:', ultimoValor);
+    logger.debug('Último valor encontrado: ' + ultimoValor);
 
     // Converter: "R$ 8.832,00" -> "8832.00"
     const valorLimpo = ultimoValor
@@ -867,14 +1081,14 @@ function extrairValor(texto) {
       .replace(/\./g, '')  // Remove ponto de milhares
       .replace(',', '.');  // Converte vírgula em ponto decimal
 
-    console.log('💵 Valor limpo:', valorLimpo);
+    logger.debug('Valor limpo: ' + valorLimpo);
     const valorNumerico = parseFloat(valorLimpo);
-    console.log('🎯 Valor numérico final:', valorNumerico);
+    logger.debug('Valor numérico final: ' + valorNumerico);
 
     return valorNumerico > 0 ? valorNumerico : 0;
   }
 
-  console.log('❌ Nenhum valor encontrado');
+  logger.warning('Nenhum valor encontrado');
   return 0;
 }
 
@@ -940,19 +1154,19 @@ router.post('/processar-despesa-imagem', async (req, res) => {
       });
     }
 
-    console.log('📸 Processando imagem com Tesseract OCR...');
+    logger.info('Processando imagem com Tesseract OCR...');
 
     // Fazer OCR da imagem
     const resultado = await Tesseract.recognize(
       `data:image/png;base64,${image}`,
       'por',
       {
-        logger: m => console.log('🔍 OCR Progress:', m.status, m.progress)
+        logger: m => logger.debug(`OCR Progress: ${m.status} ${Math.round(m.progress * 100)}%`)
       }
     );
 
     const textoExtraido = resultado.data.text;
-    console.log('📝 Texto extraído:', textoExtraido.substring(0, 300) + '...');
+    logger.debug('Texto extraído: ' + textoExtraido.substring(0, 100) + '...');
 
     // Extrair listas (para documentos com múltiplos itens)
     const detalhes = extrairLista(textoExtraido);
@@ -980,14 +1194,14 @@ router.post('/processar-despesa-imagem', async (req, res) => {
       detalhes: detalhes.length > 0 ? detalhes : undefined // Incluir detalhes se houver lista
     };
 
-    console.log('✅ Dados extraídos:', JSON.stringify(dados, null, 2));
+    logger.success('Dados extraídos com sucesso');
 
     res.json({
       success: true,
       dados: dados
     });
   } catch (error) {
-    console.error('❌ Erro ao processar imagem:', error);
+    logger.error(`Erro ao processar imagem: ${error.message}`);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1056,13 +1270,13 @@ router.post('/criar-categoria-simples', async (req, res) => {
       });
     }
 
-    console.log('📝 Verificando se categoria já existe:', nome, '—', classificacao);
+    logger.debug(`Verificando se categoria já existe: ${nome} (${classificacao})`);
 
     try {
       // Verificar se já existe
       const existente = await TipoDespesa.obterPorSubcategoria(classificacao, nome);
       if (existente) {
-        console.log('⚠️ Categoria já existe:', existente.id);
+        logger.warning(`Categoria já existe: ${existente.id}`);
         return res.json({
           success: true,
           message: 'Categoria já existe',
@@ -1075,15 +1289,15 @@ router.post('/criar-categoria-simples', async (req, res) => {
         });
       }
     } catch (checkError) {
-      console.log('ℹ️ Verificação de existência retornou erro (pode ser normal):', checkError.message);
+      logger.debug(`Verificação de existência retornou erro (pode ser normal): ${checkError.message}`);
     }
 
-    console.log('📝 Criando nova categoria:', nome, '—', classificacao);
+    logger.info(`Criando nova categoria: ${nome} (${classificacao})`);
 
     // Criar nova categoria
     const result = await TipoDespesa.criar(classificacao, nome, '');
 
-    console.log('✅ Categoria criada:', result.id);
+    logger.success(`Categoria criada: ${result.id}`);
 
     res.json({
       success: true,
@@ -1096,7 +1310,7 @@ router.post('/criar-categoria-simples', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Erro ao criar categoria:', error.message);
+    logger.error(`Erro ao criar categoria: ${error.message}`);
 
     // Se for erro de constraint (duplicata), retornar mensagem amigável
     if (error.message && error.message.includes('UNIQUE constraint')) {

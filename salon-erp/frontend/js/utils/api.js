@@ -1,13 +1,11 @@
 // API Helper para comunicar com backend
-const API_BASE = 'http://localhost:5004/api';
+// Use dynamic API base from window location to support any port
+const API_BASE = window.location.origin + '/api';
 
 const api = {
   // GET /api/faturamentos
-  listarFaturamentos(days = 30, status = null) {
+  listarFaturamentos(days = 30) {
     let url = `${API_BASE}/faturamentos?days=${days}`;
-    if (status) {
-      url += `&status=${status}`;
-    }
     return axios.get(url);
   },
 
@@ -41,6 +39,17 @@ const api = {
     return axios.put(`${API_BASE}/faturamentos/${id}`, { total });
   },
 
+  // PUT /api/faturamentos/:id - Atualizar faturamento
+  atualizarFaturamento(id, data, total, categoria, tipo, tipoDespesaId = null) {
+    return axios.put(`${API_BASE}/faturamentos/${id}`, {
+      data,
+      total,
+      categoria,
+      tipo,
+      tipo_despesa_id: tipoDespesaId
+    });
+  },
+
   // DELETE /api/faturamentos/:id
   deletarFaturamento(id) {
     return axios.delete(`${API_BASE}/faturamentos/${id}`);
@@ -64,6 +73,11 @@ const api = {
   // GET /api/faturamentos/stats-categoria
   obterStatsPorCategoria(from, to) {
     return axios.get(`${API_BASE}/faturamentos/stats-categoria?from=${from}&to=${to}`);
+  },
+
+  // GET /api/faturamentos/despesas-alocadas
+  obterDespesasAlocadas(from, to) {
+    return axios.get(`${API_BASE}/faturamentos/despesas-alocadas?from=${from}&to=${to}`);
   },
 
   // ==================== NOTAS FISCAIS ====================

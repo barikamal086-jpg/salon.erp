@@ -44,7 +44,7 @@ Deve retornar `"receita"` e `"despesa"` separados
 ---
 
 ### 3️⃣ Performance por Categoria
-**Esperado:** Apenas 4 categorias (Salão, iFood, 99Food, Keepa)
+**Esperado:** Apenas 4 categorias (Salão, iFood, 99Food, Keeta)
 
 - [ ] Período: **01/04/2026 a 30/04/2026**
 - [ ] Carrega 4 cards com categoria

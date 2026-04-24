@@ -7,7 +7,7 @@ require('./database'); // Inicializa o banco de dados
 const apiRoutes = require('./routes/api');
 
 const app = express();
-const PORT = process.env.PORT || 5004;
+const PORT = process.env.PORT || 5006;
 
 // Middleware
 app.use(cors());
