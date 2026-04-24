@@ -1,0 +1,14 @@
+{
+  "name": "caixa360-erp",
+  "version": "1.0.0",
+  "description": "Caixa360 ERP - Revenue Management System",
+  "main": "backend/app.js",
+  "scripts": {
+    "start": "cd backend && npm install && node app.js",
+    "install": "cd backend && npm install",
+    "dev": "cd backend && node app.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
