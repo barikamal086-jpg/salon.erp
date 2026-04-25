@@ -10,8 +10,8 @@ const api = {
   },
 
   // POST /api/faturamentos
-  criarFaturamento(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null) {
-    return axios.post(`${API_BASE}/faturamentos`, { data, total, categoria, tipo, tipo_despesa_id: tipoDespesaId });
+  criarFaturamento(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null, categoriaProduto = 'Comida') {
+    return axios.post(`${API_BASE}/faturamentos`, { data, total, categoria, tipo, tipo_despesa_id: tipoDespesaId, categoria_produto: categoriaProduto });
   },
 
   // GET /api/tipo-despesa

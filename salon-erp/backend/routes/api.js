@@ -120,7 +120,7 @@ router.get('/faturamentos', async (req, res) => {
 // Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
 router.post('/faturamentos', async (req, res) => {
   try {
-    const { data, total, categoria, tipo = 'receita', tipo_despesa_id } = req.body;
+    const { data, total, categoria, tipo = 'receita', tipo_despesa_id, categoria_produto = 'Comida' } = req.body;
 
     if (!data || !total) {
       return res.status(400).json({
@@ -150,7 +150,7 @@ router.post('/faturamentos', async (req, res) => {
       });
     }
 
-    const result = await Faturamento.criar(data, total, categoria, tipo, tipo_despesa_id);
+    const result = await Faturamento.criar(data, total, categoria, tipo, tipo_despesa_id, categoria_produto);
 
     res.status(201).json({
       success: true,

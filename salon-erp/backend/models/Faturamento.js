@@ -26,7 +26,7 @@ class Faturamento {
   }
 
   // Criar novo faturamento (receita ou despesa)
-  static async criar(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null) {
+  static async criar(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null, categoriaProduto = 'Comida') {
     // Validar total > 0
     if (total <= 0) {
       throw new Error('Total deve ser maior que zero');
@@ -48,10 +48,10 @@ class Faturamento {
     }
 
     const sql = `
-      INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 0, datetime('now'), datetime('now'))
+      INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'), datetime('now'))
     `;
-    return await runAsync(sql, [data, parseFloat(total), categoria.trim(), tipo, tipoDespesaId]);
+    return await runAsync(sql, [data, parseFloat(total), categoria.trim(), tipo, tipoDespesaId, categoriaProduto]);
   }
 
   // Atualizar faturamento (apenas total)
