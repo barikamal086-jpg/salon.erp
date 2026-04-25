@@ -497,6 +497,34 @@ router.get('/cmv/auditoria', async (req, res) => {
   }
 });
 
+// GET /api/cmv-por-categoria-produto - CMV separado por Categoria de Produto (Comida, Bebida, Outros)
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/cmv-por-categoria-produto', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    const cmvPorCategoria = await Faturamento.obterCMVPorCategoriaProduto(from, to);
+
+    res.json({
+      success: true,
+      data: cmvPorCategoria
+    });
+  } catch (error) {
+    logger.error(`Erro ao obter CMV por categoria de produto: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // POST /api/cmv-inteligente/analisar - Análise Inteligente Rule-Based V1 (legado)
 // Body: { from: "YYYY-MM-DD", to: "YYYY-MM-DD", restaurante: "Salão|iFood|Keeta|99Food" (opcional) }
 router.post('/cmv-inteligente/analisar', async (req, res) => {

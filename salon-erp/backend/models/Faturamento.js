@@ -600,6 +600,102 @@ class Faturamento {
       }))
     };
   }
+
+  // Obter CMV por Categoria de Produto (Comida, Bebida, Outros)
+  static async obterCMVPorCategoriaProduto(dataInicio, dataFim, restaurante = null) {
+    try {
+      // Query para receitas por categoria de produto
+      let sqlReceita = `
+        SELECT
+          COALESCE(categoria_produto, 'Comida') as categoria_produto,
+          SUM(CASE WHEN categoria = 'Salão' THEN total ELSE 0 END) as salao_receita,
+          SUM(CASE WHEN categoria IN ('iFood', 'Keeta', '99Food') THEN total ELSE 0 END) as delivery_receita,
+          SUM(total) as total_receita
+        FROM faturamento
+        WHERE tipo = 'receita' AND data BETWEEN ? AND ? AND categoria_produto IS NOT NULL
+        GROUP BY categoria_produto
+      `;
+
+      const params = [dataInicio, dataFim];
+      const receitas = await allAsync(sqlReceita, params);
+
+      // Query para despesas (CMV) por categoria de produto
+      let sqlCMV = `
+        SELECT
+          COALESCE(f.categoria_produto, 'Comida') as categoria_produto,
+          SUM(f.total) as cmv_total,
+          COUNT(*) as quantidade
+        FROM faturamento f
+        WHERE f.tipo = 'despesa' AND f.data BETWEEN ? AND ? AND f.categoria_produto IS NOT NULL
+        GROUP BY f.categoria_produto
+      `;
+
+      const cmvs = await allAsync(sqlCMV, [dataInicio, dataFim]);
+
+      // Combinar receitas e CMV
+      const categoriasProduto = {};
+
+      // Processar receitas
+      receitas.forEach(r => {
+        if (!categoriasProduto[r.categoria_produto]) {
+          categoriasProduto[r.categoria_produto] = {
+            categoria: r.categoria_produto,
+            totalReceita: 0,
+            salaoReceita: 0,
+            deliveryReceita: 0,
+            totalCMV: 0,
+            cmvPercentual: 0,
+            margem: 0,
+            quantidade: 0
+          };
+        }
+        categoriasProduto[r.categoria_produto].totalReceita = parseFloat(r.total_receita || 0);
+        categoriasProduto[r.categoria_produto].salaoReceita = parseFloat(r.salao_receita || 0);
+        categoriasProduto[r.categoria_produto].deliveryReceita = parseFloat(r.delivery_receita || 0);
+      });
+
+      // Processar CMV
+      cmvs.forEach(c => {
+        if (!categoriasProduto[c.categoria_produto]) {
+          categoriasProduto[c.categoria_produto] = {
+            categoria: c.categoria_produto,
+            totalReceita: 0,
+            salaoReceita: 0,
+            deliveryReceita: 0,
+            totalCMV: 0,
+            cmvPercentual: 0,
+            margem: 0,
+            quantidade: 0
+          };
+        }
+        categoriasProduto[c.categoria_produto].totalCMV = parseFloat(c.cmv_total || 0);
+        categoriasProduto[c.categoria_produto].quantidade = parseInt(c.quantidade || 0);
+      });
+
+      // Calcular percentuais
+      Object.values(categoriasProduto).forEach(cat => {
+        if (cat.totalReceita > 0) {
+          cat.cmvPercentual = (cat.totalCMV / cat.totalReceita) * 100;
+          cat.margem = 100 - cat.cmvPercentual;
+        }
+      });
+
+      return {
+        periodo: { dataInicio, dataFim },
+        porCategoriaProduto: Object.values(categoriasProduto).sort((a, b) =>
+          parseFloat(b.totalReceita) - parseFloat(a.totalReceita)
+        ),
+        resumo: {
+          totalReceitaGeral: Object.values(categoriasProduto).reduce((sum, c) => sum + c.totalReceita, 0),
+          totalCMVGeral: Object.values(categoriasProduto).reduce((sum, c) => sum + c.totalCMV, 0),
+          cmvPercentualGeral: 0
+        }
+      };
+    } catch (err) {
+      console.error('Erro ao obter CMV por categoria de produto:', err.message);
+      throw err;
+    }
+  }
 }
 
 module.exports = Faturamento;

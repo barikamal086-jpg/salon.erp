@@ -295,6 +295,33 @@ function runMigrations() {
         }
       }
     });
+
+    // 5. Verificar e adicionar coluna 'categoria_produto' (Comida, Bebida, Outros)
+    db.all(`PRAGMA table_info(faturamento)`, (err, columns) => {
+      if (err) {
+        console.error('Erro ao verificar schema:', err.message);
+        return;
+      }
+
+      const hasCategoriaProduto = columns && columns.some(col => col.name === 'categoria_produto');
+      if (!hasCategoriaProduto) {
+        console.log('⚠️  Coluna "categoria_produto" não existe, adicionando...');
+        db.run(`ALTER TABLE faturamento ADD COLUMN categoria_produto VARCHAR(50) DEFAULT 'Comida'`, (err) => {
+          if (err) {
+            console.error('Erro ao adicionar coluna categoria_produto:', err.message);
+          } else {
+            console.log('✅ Coluna "categoria_produto" adicionada com sucesso');
+            db.run(`CREATE INDEX IF NOT EXISTS idx_categoria_produto ON faturamento(categoria_produto)`);
+          }
+        });
+      } else {
+        db.run(`CREATE INDEX IF NOT EXISTS idx_categoria_produto ON faturamento(categoria_produto)`, (err) => {
+          if (err) {
+            console.error('Erro ao criar índice categoria_produto:', err.message);
+          }
+        });
+      }
+    });
   }, 500);
 }
 
