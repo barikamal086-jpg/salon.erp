@@ -1030,6 +1030,56 @@
           </div>
         </div>
 
+        <!-- CMV por Tipo de Produto (Comida, Bebida, Outros) -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-6">🍔 CMV por Tipo de Produto</h3>
+          <button
+            @click="carregarCMVPorCategoriaProduto"
+            class="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            📊 Carregar Análise
+          </button>
+
+          <div v-if="cmvPorCategoriaProduto" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div v-for="cat in cmvPorCategoriaProduto.porCategoriaProduto" :key="cat.categoria"
+              class="bg-gradient-to-br rounded-lg p-4 text-white"
+              :class="cat.categoria === 'Comida' ? 'from-green-500 to-green-700' : cat.categoria === 'Bebida' ? 'from-blue-500 to-blue-700' : 'from-gray-500 to-gray-700'"
+            >
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-lg font-bold">
+                  <span v-if="cat.categoria === 'Comida'">🍽️</span>
+                  <span v-else-if="cat.categoria === 'Bebida'">🍹</span>
+                  <span v-else>📦</span>
+                  {{ cat.categoria }}
+                </h4>
+              </div>
+
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span>Receita:</span>
+                  <span class="font-semibold">R$ {{ formatarValor(cat.totalReceita) }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>CMV:</span>
+                  <span class="font-semibold">R$ {{ formatarValor(cat.totalCMV) }}</span>
+                </div>
+                <div class="flex justify-between text-lg">
+                  <span>CMV %:</span>
+                  <span class="font-bold">{{ cat.cmvPercentual.toFixed(2) }}%</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Margem:</span>
+                  <span class="font-semibold">{{ cat.margem.toFixed(2) }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-gray-500 text-center py-8">
+            Clique em "Carregar Análise" para ver CMV por tipo de produto
+          </div>
+        </div>
+
         <!-- Tendência de CMV (Gráfico) -->
         <div class="bg-white rounded-lg shadow-md p-6">
           <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Tendência de CMV vs Receita</h3>
@@ -1572,6 +1622,7 @@
           },
           cmvDados: null,
           cmvAnalise: null,
+          cmvPorCategoriaProduto: null,
           cmvRestauranteSelecionado: null,
           carregandoAnaliseIA: false,
           auditoriaDados: null,
@@ -1863,6 +1914,27 @@
           } catch (error) {
             console.error('❌ Erro na requisição:', error);
             alert('Erro ao carregar dados de CMV');
+          }
+        },
+
+        async carregarCMVPorCategoriaProduto() {
+          try {
+            console.log('📊 Carregando CMV por Categoria de Produto...');
+
+            const url = `${window.location.origin}/api/cmv-por-categoria-produto?from=${this.cmvPeriodo.dataInicio}&to=${this.cmvPeriodo.dataFim}`;
+            const response = await fetch(url);
+            const resultado = await response.json();
+
+            if (resultado.success) {
+              this.cmvPorCategoriaProduto = resultado.data;
+              console.log('✅ CMV por Categoria de Produto carregado:', this.cmvPorCategoriaProduto);
+            } else {
+              console.error('❌ Erro ao carregar CMV por categoria:', resultado.error);
+              alert('Erro ao carregar dados: ' + resultado.error);
+            }
+          } catch (error) {
+            console.error('❌ Erro na requisição:', error);
+            alert('Erro ao carregar CMV por categoria de produto');
           }
         },
 
