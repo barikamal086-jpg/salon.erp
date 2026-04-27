@@ -133,7 +133,22 @@
     <!-- APP MAIN -->
     <template v-else>
     <!-- Sidebar -->
-    <aside class="w-64" style="background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); position: fixed; height: 100vh; overflow-y: auto;">
+    <!-- Overlay para Mobile -->
+    <div v-if="menuMobileAberto" @click="menuMobileAberto = false" class="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"></div>
+
+    <!-- Hamburger Button (Mobile Only) -->
+    <button @click="menuMobileAberto = !menuMobileAberto" class="fixed top-4 left-4 z-40 md:hidden p-2 rounded-lg bg-blue-600 text-white">
+      <svg v-if="!menuMobileAberto" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+      <svg v-else class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+
+    <aside
+      :class="['w-64 transition-all duration-300', menuMobileAberto ? 'translate-x-0' : '-translate-x-full md:translate-x-0']"
+      style="background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); position: fixed; height: 100vh; overflow-y: auto; z-index: 35;">
       <!-- Logo -->
       <div style="padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center;">
         <svg width="120" height="60" viewBox="0 0 120 60" style="margin: 0 auto 12px; display: block;">
@@ -156,7 +171,7 @@
       <!-- Menu -->
       <nav style="padding: 16px; space: 8px;">
         <div
-          @click="activeView = 'dashboard'"
+          @click="activeView = 'dashboard'; menuMobileAberto = false"
           :class="activeView === 'dashboard' ? '' : 'opacity-80 hover:opacity-100'"
           style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
           :style="activeView === 'dashboard' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
@@ -164,7 +179,7 @@
           <i class="fas fa-chart-line mr-2"></i> Dashboard
         </div>
         <div
-          @click="activeView = 'cmv-inteligente'"
+          @click="activeView = 'cmv-inteligente'; menuMobileAberto = false"
           :class="activeView === 'cmv-inteligente' ? '' : 'opacity-80 hover:opacity-100'"
           style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
           :style="activeView === 'cmv-inteligente' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
@@ -172,7 +187,7 @@
           <i class="fas fa-brain mr-2"></i> 🧠 CMV Inteligente
         </div>
         <div
-          @click="activeView = 'auditoria-cmv'"
+          @click="activeView = 'auditoria-cmv'; menuMobileAberto = false"
           :class="activeView === 'auditoria-cmv' ? '' : 'opacity-80 hover:opacity-100'"
           style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s;"
           :style="activeView === 'auditoria-cmv' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
@@ -1616,6 +1631,7 @@
 
           // Views
           activeView: 'dashboard',
+          menuMobileAberto: false,
           cmvPeriodo: {
             dataInicio: this.obterDataInicio(),
             dataFim: this.obterDataFim()
