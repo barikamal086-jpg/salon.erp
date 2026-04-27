@@ -77,6 +77,28 @@
       background: var(--bg-secondary);
       color: var(--text-primary);
     }
+
+    /* Mobile-optimized touch targets (min 44x44px) */
+    @media (max-width: 768px) {
+      button, input[type="button"], input[type="submit"], input[type="reset"], a.btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 16px !important;
+        font-size: 16px !important;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="date"],
+      input[type="number"],
+      select,
+      textarea {
+        padding: 12px !important;
+        font-size: 16px !important;
+        min-height: 44px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -100,17 +122,17 @@
           <div class="mb-4">
             <label style="display: block; font-weight: 600; color: #1F2937; margin-bottom: 8px;">Email</label>
             <input v-model="loginForm.email" type="email" placeholder="seu@email.com"
-              style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px;">
+              style="width: 100%; padding: 14px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 16px; min-height: 48px; box-sizing: border-box;">
           </div>
 
           <div class="mb-6">
             <label style="display: block; font-weight: 600; color: #1F2937; margin-bottom: 8px;">Senha</label>
             <input v-model="loginForm.senha" type="password" placeholder="••••••••"
-              style="width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px;">
+              style="width: 100%; padding: 14px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 16px; min-height: 48px; box-sizing: border-box;">
           </div>
 
           <button type="submit" :disabled="loginLoading"
-            style="width: 100%; padding: 12px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">
+            style="width: 100%; padding: 16px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 18px; min-height: 52px; transition: all 0.2s;">
             {{ loginLoading ? '⏳ Entrando...' : '🔓 Entrar' }}
           </button>
 
@@ -137,7 +159,7 @@
     <div v-if="menuMobileAberto" @click="menuMobileAberto = false" class="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"></div>
 
     <!-- Hamburger Button (Mobile Only) -->
-    <button @click="menuMobileAberto = !menuMobileAberto" class="fixed top-4 left-4 z-40 md:hidden p-2 rounded-lg bg-blue-600 text-white">
+    <button @click="menuMobileAberto = !menuMobileAberto" class="fixed top-3 left-3 z-40 md:hidden p-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">
       <svg v-if="!menuMobileAberto" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
       </svg>
@@ -457,11 +479,11 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Total (R$)</label>
-                <input v-model.number="novaReceita.total" type="number" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input v-model.number="novaReceita.total" type="number" step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" style="min-height: 44px;">
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ novaReceita.tipo === 'receita' ? 'Categoria' : 'Local/Origem' }}</label>
-                <select v-model="novaReceita.categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select v-model="novaReceita.categoria" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" style="min-height: 44px;">
                   <option value="">Selecione uma categoria...</option>
                   <option v-for="cat in categoriasDisponiveis" :key="cat" :value="cat">
                     {{ cat }}
@@ -475,13 +497,13 @@
               </div>
               <div v-if="novaReceita.tipo === 'receita'">
                 <label class="block text-sm font-medium text-gray-700 mb-2">🍔 Tipo de Produto</label>
-                <select v-model="novaReceita.categoriaProduto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select v-model="novaReceita.categoriaProduto" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" style="min-height: 44px;">
                   <option value="Comida">🍽️ Comida</option>
                   <option value="Bebida">🍹 Bebida</option>
                   <option value="Outros">📦 Outros</option>
                 </select>
               </div>
-              <button @click="salvarReceita" style="width: 100%; background: var(--primary); color: white; padding: 12px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s;"
+              <button @click="salvarReceita" style="width: 100%; background: var(--primary); color: white; padding: 16px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; transition: all 0.2s; min-height: 48px; font-size: 16px;"
                 @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
                 @mouseleave="$event.target.style.background = 'var(--primary)'">
                 💾 Salvar
