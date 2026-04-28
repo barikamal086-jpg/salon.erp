@@ -2347,11 +2347,9 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           await this.carregarStats();
           await this.carregarStatsPorCategoria();
           await this.carregarReceitas();
-          // ✅ ATUALIZAR GRÁFICO QUANDO EDITAR LANÇAMENTO
-          if (this.cmvPeriodo) {
-            console.log('🔄 Refrescando gráfico após edição...');
-            await this.carregarDadosGrafico();
-          }
+          // ✅ ATUALIZAR DADOS DE CMV QUANDO EDITAR LANÇAMENTO
+          console.log('🔄 Refrescando dados de CMV após edição...');
+          await this.carregarDadosCMV();
           console.log('✅ ====== PERÍODO ATUALIZADO ======\n');
         },
 
