@@ -84,12 +84,19 @@ class Faturamento {
       throw new Error('Tipo deve ser "receita" ou "despesa"');
     }
 
+    console.log(`🔄 [Faturamento.atualizarCompleto] ID: ${id}`);
+    console.log(`   SQL: UPDATE faturamento SET data=?, total=?, categoria=?, tipo=?, tipo_despesa_id=? WHERE id=?`);
+    console.log(`   Params: [${data}, ${parseFloat(total)}, ${categoria}, ${tipo}, ${tipoDespesaId}, ${id}]`);
+
     const sql = `
       UPDATE faturamento
       SET data = ?, total = ?, categoria = ?, tipo = ?, tipo_despesa_id = ?, updated_at = datetime('now')
       WHERE id = ?
     `;
-    return await runAsync(sql, [data, parseFloat(total), categoria, tipo, tipoDespesaId, id]);
+    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipo, tipoDespesaId, id]);
+
+    console.log(`✅ UPDATE executado. Resultado:`, result);
+    return result;
   }
 
   // Deletar faturamento

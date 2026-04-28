@@ -172,6 +172,9 @@ router.put('/faturamentos/:id', async (req, res) => {
     const { id } = req.params;
     const { data, total, categoria, tipo, tipo_despesa_id } = req.body;
 
+    console.log(`📝 [PUT] Editando faturamento ID: ${id}`);
+    console.log(`   Dados recebidos:`, { data, total, categoria, tipo, tipo_despesa_id });
+
     if (!total || !data || !categoria) {
       return res.status(400).json({
         success: false,
@@ -189,19 +192,28 @@ router.put('/faturamentos/:id', async (req, res) => {
     // Verificar se existe
     const faturamento = await Faturamento.obter(id);
     if (!faturamento) {
+      console.log(`❌ Faturamento ${id} não encontrado`);
       return res.status(404).json({
         success: false,
         error: 'Faturamento não encontrado'
       });
     }
 
+    console.log(`✅ Faturamento encontrado:`, { id: faturamento.id, data_antes: faturamento.data, total_antes: faturamento.total });
+
     await Faturamento.atualizarCompleto(id, data, total, categoria, tipo, tipo_despesa_id);
+
+    console.log(`✅ Faturamento atualizado com sucesso! Nova data: ${data}, Novo total: ${total}`);
 
     res.json({
       success: true,
-      message: 'Faturamento atualizado com sucesso'
+      message: 'Faturamento atualizado com sucesso',
+      id: id,
+      dataNova: data,
+      totalNovo: total
     });
   } catch (error) {
+    console.error(`❌ Erro ao atualizar faturamento:`, error.message);
     res.status(400).json({
       success: false,
       error: error.message
