@@ -2346,8 +2346,12 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           });
           await this.carregarStats();
           await this.carregarStatsPorCategoria();
-          // Gráfico agora é independente - não sincroniza ao alterar período!
           await this.carregarReceitas();
+          // ✅ ATUALIZAR GRÁFICO QUANDO EDITAR LANÇAMENTO
+          if (this.cmvPeriodo) {
+            console.log('🔄 Refrescando gráfico após edição...');
+            await this.carregarDadosGrafico();
+          }
           console.log('✅ ====== PERÍODO ATUALIZADO ======\n');
         },
 
