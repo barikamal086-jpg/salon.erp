@@ -84,18 +84,49 @@ class Faturamento {
       throw new Error('Tipo deve ser "receita" ou "despesa"');
     }
 
-    console.log(`🔄 [Faturamento.atualizarCompleto] ID: ${id}`);
-    console.log(`   SQL: UPDATE faturamento SET data=?, total=?, categoria=?, tipo=?, tipo_despesa_id=? WHERE id=?`);
-    console.log(`   Params: [${data}, ${parseFloat(total)}, ${categoria}, ${tipo}, ${tipoDespesaId}, ${id}]`);
+    // Validar ID
+    if (!id || isNaN(parseInt(id))) {
+      throw new Error('ID inválido para atualização');
+    }
+
+    const idInt = parseInt(id);
+
+    console.log(`🔄 [Faturamento.atualizarCompleto] INICIANDO UPDATE`);
+    console.log(`   ID: ${idInt} (tipo: ${typeof idInt})`);
+    console.log(`   Dados: data=${data}, total=${parseFloat(total)}, categoria=${categoria}, tipo=${tipo}, tipo_despesa_id=${tipoDespesaId}`);
+
+    // VERIFICAR que o registro EXISTS antes de atualizar
+    const registroAntes = await getAsync('SELECT * FROM faturamento WHERE id = ?', [idInt]);
+    if (!registroAntes) {
+      throw new Error(`Faturamento ID ${idInt} não existe no banco de dados!`);
+    }
+    console.log(`   ✓ Registro encontrado antes:`, { id: registroAntes.id, data: registroAntes.data, total: registroAntes.total, categoria: registroAntes.categoria });
 
     const sql = `
       UPDATE faturamento
       SET data = ?, total = ?, categoria = ?, tipo = ?, tipo_despesa_id = ?, updated_at = datetime('now')
       WHERE id = ?
     `;
-    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipo, tipoDespesaId, id]);
 
-    console.log(`✅ UPDATE executado. Resultado:`, result);
+    console.log(`   Executando SQL:`, sql.replace(/\n/g, ' '));
+    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipo, tipoDespesaId, idInt]);
+    console.log(`   ✓ runAsync retornou:`, result);
+
+    // VERIFICAR que o registro foi atualizado
+    const registroDepois = await getAsync('SELECT * FROM faturamento WHERE id = ?', [idInt]);
+    if (!registroDepois) {
+      throw new Error(`ERRO CRÍTICO: Faturamento ID ${idInt} desapareceu após UPDATE!`);
+    }
+    console.log(`   ✓ Registro encontrado depois:`, { id: registroDepois.id, data: registroDepois.data, total: registroDepois.total, categoria: registroDepois.categoria });
+
+    if (registroDepois.data !== data || parseFloat(registroDepois.total) !== parseFloat(total)) {
+      console.error(`   ❌ ERRO: UPDATE NÃO FUNCIONOU!`);
+      console.error(`      Esperado: data=${data}, total=${parseFloat(total)}`);
+      console.error(`      Obtido: data=${registroDepois.data}, total=${registroDepois.total}`);
+      throw new Error('UPDATE falhou: dados não foram atualizados no banco');
+    }
+
+    console.log(`✅ UPDATE CONCLUÍDO COM SUCESSO`);
     return result;
   }
 
