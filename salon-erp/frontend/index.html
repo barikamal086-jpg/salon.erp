@@ -2023,10 +2023,16 @@
 
         renderizarGraficoTendenciaCMV() {
           try {
-            if (!this.cmvDados || !this.cmvDados.tendencia) return;
+            if (!this.cmvDados || !this.cmvDados.tendencia) {
+              console.log('⚠️ Campo tendencia não disponível no endpoint. Gráfico de tendência desabilitado.');
+              return;
+            }
 
             const canvas = document.getElementById('cmvTrendChart');
-            if (!canvas) return;
+            if (!canvas) {
+              console.log('⚠️ Canvas cmvTrendChart não encontrado no DOM');
+              return;
+            }
 
             const dados = this.cmvDados.tendencia;
             const datas = dados.map(d => d.data);
@@ -2034,7 +2040,9 @@
             const cmvs = dados.map(d => d.cmv);
             const margens = dados.map(d => d.margem);
 
-            if (window.cmvTrendChart) window.cmvTrendChart.destroy();
+            if (window.cmvTrendChart && typeof window.cmvTrendChart.destroy === 'function') {
+              window.cmvTrendChart.destroy();
+            }
 
             const ctx = canvas.getContext('2d');
             window.cmvTrendChart = new window.Chart(ctx, {
