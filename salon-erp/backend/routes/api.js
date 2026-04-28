@@ -456,9 +456,12 @@ router.get('/faturamentos/cmv/detalhado', async (req, res) => {
 
 // GET /api/cmv-inteligente - Dados completos para análise de CMV com IA
 // ?from=YYYY-MM-DD&to=YYYY-MM-DD&restaurante=Salão|iFood|Keeta|99Food (opcional)
+// ✅ UNIFICADO: Usa mesma lógica de Performance por Categoria
 router.get('/cmv-inteligente', async (req, res) => {
   try {
     const { from, to, restaurante } = req.query;
+
+    console.log(`📊 [CMV Inteligente] Período: ${from} a ${to}, Restaurante: ${restaurante || 'Todos'}`);
 
     if (!from || !to) {
       return res.status(400).json({
@@ -467,13 +470,74 @@ router.get('/cmv-inteligente', async (req, res) => {
       });
     }
 
-    const dados = await Faturamento.obterDadosCMV(from, to, restaurante || null);
+    // ✅ MESMA LÓGICA DE "PERFORMANCE POR CATEGORIA"
+    // Carregar stats originais por categoria
+    const statsResponse = await Faturamento.obterStatsPorCategoria(from, to, restaurante || null);
+
+    // Carregar despesas alocadas proporcionalmente
+    const despesasResponse = await Faturamento.obterDespesasAlocadas(from, to, restaurante || null);
+
+    console.log(`✅ Stats carregado:`, statsResponse.length, `registros`);
+    console.log(`✅ Despesas alocadas:`, despesasResponse.length, `registros`);
+
+    // Mesclar dados: mesma estrutura de Performance por Categoria
+    const despesasMap = {};
+    despesasResponse.forEach(d => {
+      despesasMap[d.categoria] = d;
+    });
+
+    // Construir resumo consolidado
+    let totalReceita = 0;
+    let totalTaxas = 0;
+    let totalDespesasAlocadas = 0;
+    let totalCMV = 0;
+    let diasPeriodo = 0;
+
+    const porCategoria = statsResponse.map(stat => {
+      const despesa = despesasMap[stat.categoria];
+      totalReceita += stat.totalReceita || 0;
+      totalTaxas += despesa?.totalTaxas || 0;
+      totalDespesasAlocadas += despesa?.totalDespesasAlocadas || 0;
+      totalCMV += despesa?.totalDespesasAlocadas || 0;
+      diasPeriodo = stat.dias; // Todos têm mesmo número de dias
+
+      return {
+        categoria: stat.categoria,
+        receita: stat.totalReceita || 0,
+        taxas: despesa?.totalTaxas || 0,
+        cmv: despesa?.totalDespesasAlocadas || 0,
+        despesa: despesa?.totalDespesa || 0,
+        liquido: despesa?.totalLiquido || 0
+      };
+    });
+
+    // Calcular percentuais
+    const receitaLiquida = totalReceita - totalTaxas;
+    const cmvPercentual = receitaLiquida > 0 ? (totalCMV / receitaLiquida) * 100 : 0;
+    const margemBruta = 100 - cmvPercentual;
+
+    const resumo = {
+      totalReceita,
+      totalTaxasReais: totalTaxas,
+      totalCMV,
+      receitaLiquida,
+      cmvPercentual: parseFloat(cmvPercentual.toFixed(2)),
+      margemBruta: parseFloat(margemBruta.toFixed(2)),
+      dias: diasPeriodo
+    };
+
+    console.log(`✅ CMV Inteligente resumido:`, resumo);
 
     res.json({
       success: true,
-      data: dados
+      data: {
+        resumo,
+        porCategoria,
+        cmvDetalhado: porCategoria // Para compatibilidade com frontend
+      }
     });
   } catch (error) {
+    console.error(`❌ Erro ao obter CMV Inteligente:`, error.message);
     res.status(500).json({
       success: false,
       error: error.message
