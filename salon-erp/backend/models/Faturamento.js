@@ -200,8 +200,8 @@ class Faturamento {
   }
 
   // Obter estatísticas separadas por categoria (receitas e despesas)
-  static async obterStatsPorCategoria(dataInicio, dataFim) {
-    const sql = `
+  static async obterStatsPorCategoria(dataInicio, dataFim, restaurante = null) {
+    let sql = `
       SELECT
         categoria,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
@@ -219,27 +219,51 @@ class Faturamento {
         COUNT(DISTINCT CASE WHEN tipo = 'despesa' THEN data ELSE NULL END) as diasDespesa,
         COUNT(*) as totalEntradas
       FROM faturamento
-      WHERE data >= ? AND data <= ? AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
-      GROUP BY categoria
-      ORDER BY totalLiquido DESC
+      WHERE data >= ? AND data <= ?
     `;
-    return await allAsync(sql, [dataFim, dataInicio, dataFim, dataInicio, dataFim, dataInicio, dataInicio, dataFim]);
+
+    const params = [dataFim, dataInicio, dataFim, dataInicio, dataFim, dataInicio, dataInicio, dataFim];
+
+    // Se restaurante específico foi passado, filtrar por categoria
+    if (restaurante) {
+      sql += ` AND categoria = ?`;
+      params.push(restaurante);
+    } else {
+      // Senão, mostrar apenas as 4 categorias padrão
+      sql += ` AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')`;
+    }
+
+    sql += ` GROUP BY categoria ORDER BY totalLiquido DESC`;
+
+    return await allAsync(sql, params);
   }
 
   // Obter despesas separadas em Taxas (específicas) e Despesas Alocadas (compartilhadas)
-  static async obterDespesasAlocadas(dataInicio, dataFim) {
+  static async obterDespesasAlocadas(dataInicio, dataFim, restaurante = null) {
     // 1. Obter receitas e taxas reais (específicas de cada categoria)
-    const sql = `
+    let sql = `
       SELECT
         categoria,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalTaxasReais
       FROM faturamento
-      WHERE data >= ? AND data <= ? AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
-      GROUP BY categoria
+      WHERE data >= ? AND data <= ?
     `;
 
-    const stats = await allAsync(sql, [dataInicio, dataFim]);
+    const params = [dataInicio, dataFim];
+
+    // Se restaurante específico foi passado, filtrar por categoria
+    if (restaurante) {
+      sql += ` AND categoria = ?`;
+      params.push(restaurante);
+    } else {
+      // Senão, mostrar apenas as 4 categorias padrão
+      sql += ` AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')`;
+    }
+
+    sql += ` GROUP BY categoria`;
+
+    const stats = await allAsync(sql, params);
 
     // 2. Calcular receita total
     const totalReceitaGeral = stats.reduce((sum, s) => sum + parseFloat(s.totalReceita || 0), 0);
