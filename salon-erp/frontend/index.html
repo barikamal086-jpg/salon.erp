@@ -3071,13 +3071,6 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           this.carregarNotasPendentes();
         }, 5000);
       }
-      // ✅ MÉTODO SEGURO: Evita erro de toFixed() em undefined
-      fixo(valor, casas = 2) {
-        if (valor === undefined || valor === null || isNaN(valor)) {
-          return '0.' + '0'.repeat(casas);
-        }
-        return parseFloat(valor).toFixed(casas);
-      }
     });
 
     // ✅ Método global para templates
