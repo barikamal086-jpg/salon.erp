@@ -3278,12 +3278,15 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
       }
     });
 
-    // ✅ Método global para templates
+    // ✅ Método global para templates (Formatação padrão brasileiro)
     app.config.globalProperties.$fixo = (valor, casas = 2) => {
       if (valor === undefined || valor === null || isNaN(valor)) {
-        return '0.' + '0'.repeat(casas);
+        return '0,' + '0'.repeat(casas);
       }
-      return parseFloat(valor).toFixed(casas);
+      return parseFloat(valor).toLocaleString('pt-BR', {
+        minimumFractionDigits: casas,
+        maximumFractionDigits: casas
+      });
     };
 
     app.mount('#app');
