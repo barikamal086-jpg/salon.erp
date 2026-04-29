@@ -3198,65 +3198,50 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           } catch (error) {
             console.error('❌ Erro ao renderizar gráfico:', error);
           }
-        }
-      },
+        },
 
-      // ===== CMV ALOCADO POR CANAL =====
-      async carregarCMVAlocado() {
-        try {
-          console.log(`📊 Carregando CMV Alocado: ${this.cmvAlocadoPeriodo.dataInicio} a ${this.cmvAlocadoPeriodo.dataFim}`);
-          const response = await axios.get('/api/cmv-alocado-cards', {
-            params: {
-              from: this.cmvAlocadoPeriodo.dataInicio,
-              to: this.cmvAlocadoPeriodo.dataFim
+        // CMV Alocado por Canal
+        async carregarCMVAlocado() {
+          try {
+            const response = await axios.get('/api/cmv-alocado-cards', {
+              params: {
+                from: this.cmvAlocadoPeriodo.dataInicio,
+                to: this.cmvAlocadoPeriodo.dataFim
+              }
+            });
+            if (response.data.success) {
+              this.cmvAlocado = response.data.data;
             }
-          });
-
-          if (response.data.success) {
-            this.cmvAlocado = response.data.data;
-            console.log('✅ CMV Alocado carregado:', this.cmvAlocado);
-          } else {
-            console.error('❌ Erro ao carregar CMV Alocado:', response.data.error);
+          } catch (error) {
+            console.error('Erro ao carregar CMV Alocado:', error);
           }
-        } catch (error) {
-          console.error('❌ Erro ao carregar CMV Alocado:', error);
+        },
+
+        setCMVAlocado7Dias() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+          this.cmvAlocadoPeriodo.dataInicio = inicio.toISOString().split('T')[0];
+          this.cmvAlocadoPeriodo.dataFim = hoje.toISOString().split('T')[0];
+          this.carregarCMVAlocado();
+        },
+
+        setCMVAlocado30Dias() {
+          const hoje = new Date();
+          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+          this.cmvAlocadoPeriodo.dataInicio = inicio.toISOString().split('T')[0];
+          this.cmvAlocadoPeriodo.dataFim = hoje.toISOString().split('T')[0];
+          this.carregarCMVAlocado();
+        },
+
+        getCorCanal(canal) {
+          const cores = { 'Salão': '#10B981', 'iFood': '#EF4444', 'Keeta': '#8B5CF6', '99Food': '#F59E0B' };
+          return cores[canal] || '#3B82F6';
+        },
+
+        getIconeCanal(canal) {
+          const icones = { 'Salão': '🍽️', 'iFood': '🔴', 'Keeta': '🟣', '99Food': '🟠' };
+          return icones[canal] || '📱';
         }
-      },
-
-      setCMVAlocado7Dias() {
-        const hoje = new Date();
-        const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
-        this.cmvAlocadoPeriodo.dataInicio = inicio.toISOString().split('T')[0];
-        this.cmvAlocadoPeriodo.dataFim = hoje.toISOString().split('T')[0];
-        this.carregarCMVAlocado();
-      },
-
-      setCMVAlocado30Dias() {
-        const hoje = new Date();
-        const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
-        this.cmvAlocadoPeriodo.dataInicio = inicio.toISOString().split('T')[0];
-        this.cmvAlocadoPeriodo.dataFim = hoje.toISOString().split('T')[0];
-        this.carregarCMVAlocado();
-      },
-
-      getCorCanal(canal) {
-        const cores = {
-          'Salão': '#10B981',
-          'iFood': '#EF4444',
-          'Keeta': '#8B5CF6',
-          '99Food': '#F59E0B'
-        };
-        return cores[canal] || '#3B82F6';
-      },
-
-      getIconeCanal(canal) {
-        const icones = {
-          'Salão': '🍽️',
-          'iFood': '🔴',
-          'Keeta': '🟣',
-          '99Food': '🟠'
-        };
-        return icones[canal] || '📱';
       },
 
       mounted() {
