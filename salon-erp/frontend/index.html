@@ -209,6 +209,14 @@
           <i class="fas fa-brain mr-2"></i> 🧠 CMV Inteligente
         </div>
         <div
+          @click="activeView = 'cmv-alocado'; menuMobileAberto = false"
+          :class="activeView === 'cmv-alocado' ? '' : 'opacity-80 hover:opacity-100'"
+          style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
+          :style="activeView === 'cmv-alocado' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
+        >
+          <i class="fas fa-chart-pie mr-2"></i> 📊 CMV por Canal
+        </div>
+        <div
           @click="activeView = 'auditoria-cmv'; menuMobileAberto = false"
           :class="activeView === 'auditoria-cmv' ? '' : 'opacity-80 hover:opacity-100'"
           style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s;"
@@ -227,6 +235,7 @@
           <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
             <span v-if="activeView === 'dashboard'">Dashboard</span>
             <span v-else-if="activeView === 'cmv-inteligente'">🧠 CMV Inteligente</span>
+            <span v-else-if="activeView === 'cmv-alocado'">📊 CMV por Canal</span>
             <span v-else-if="activeView === 'auditoria-cmv'">📋 Auditoria de CMV</span>
           </h2>
           <div style="display: flex; align-items: center; gap: 16px;">
@@ -1274,6 +1283,152 @@
 
       </div>
 
+      <!-- CMV Alocado por Canal Section -->
+      <div v-show="activeView === 'cmv-alocado'" class="p-8 space-y-6">
+        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 24px;">📊 CMV Alocado por Canal</h2>
+
+        <!-- Período Filter -->
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📅 Selecione o Período</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Data Início</label>
+              <input
+                v-model="cmvAlocadoPeriodo.dataInicio"
+                type="date"
+                @change="carregarCMVAlocado"
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
+              >
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Data Fim</label>
+              <input
+                v-model="cmvAlocadoPeriodo.dataFim"
+                type="date"
+                @change="carregarCMVAlocado"
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
+              >
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Atalhos</label>
+              <div style="display: flex; gap: 8px;">
+                <button
+                  @click="setCMVAlocado7Dias"
+                  style="flex: 1; padding: 10px 12px; background: var(--primary); color: white; font-size: 0.9rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;"
+                  @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
+                  @mouseleave="$event.target.style.background = 'var(--primary)'"
+                >
+                  Últimos 7d
+                </button>
+                <button
+                  @click="setCMVAlocado30Dias"
+                  style="flex: 1; padding: 10px 12px; background: var(--primary); color: white; font-size: 0.9rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;"
+                  @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
+                  @mouseleave="$event.target.style.background = 'var(--primary)'"
+                >
+                  Últimos 30d
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Cards CMV Alocado -->
+        <div v-if="cmvAlocado && cmvAlocado.cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+          <div v-for="card in cmvAlocado.cards" :key="card.canal" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border); border-top: 4px solid;" :style="`border-top-color: ${getCorCanal(card.canal)}`">
+
+            <!-- Header do Card -->
+            <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 24px; color: var(--text-primary);">
+              {{ getIconeCanal(card.canal) }} {{ card.canal }}
+            </h3>
+
+            <!-- Receita Bruta -->
+            <div style="margin-bottom: 20px;">
+              <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;">💰 Receita Bruta</p>
+              <p style="font-size: 1.5rem; font-weight: 700; color: #10B981;">R$ {{ $fixo(card.receitaBruta, 2) }}</p>
+            </div>
+
+            <!-- Taxa Plataforma -->
+            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">(-) Taxa plataforma</p>
+                <span style="font-size: 0.9rem; font-weight: 700; color: #EF4444;">{{ $fixo(card.taxa.percentual, 2) }}%</span>
+              </div>
+              <p style="font-size: 1.25rem; font-weight: 700; color: #EF4444;">R$ {{ $fixo(card.taxa.valor, 2) }}</p>
+            </div>
+
+            <!-- CMV Alocado -->
+            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">(-) CMV alocado</p>
+                <span style="font-size: 0.9rem; font-weight: 700; color: #F59E0B;">{{ $fixo(card.cmv.percentual, 2) }}%</span>
+              </div>
+              <p style="font-size: 1.25rem; font-weight: 700; color: #F59E0B;">R$ {{ $fixo(card.cmv.valor, 2) }}</p>
+            </div>
+
+            <!-- Margem Real -->
+            <div style="margin-bottom: 16px;">
+              <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;">📈 Margem Real</p>
+              <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                <p style="font-size: 1.5rem; font-weight: 700; color: #10B981;">R$ {{ $fixo(card.margem.valor, 2) }}</p>
+                <span style="font-size: 1rem; font-weight: 700; color: #10B981;">{{ $fixo(card.margem.percentual, 2) }}%</span>
+              </div>
+            </div>
+
+            <!-- Receita Líquida (info adicional) -->
+            <div style="padding-top: 12px; border-top: 1px solid var(--border); text-align: right;">
+              <p style="font-size: 0.75rem; color: var(--text-secondary);">Receita Líquida: R$ {{ $fixo(card.receitaLiquida, 2) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Totais Consolidados -->
+        <div v-if="cmvAlocado && cmvAlocado.totais" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border); border-top: 4px solid #3B82F6;">
+          <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 24px; color: var(--text-primary);">📊 Totais Consolidados</h3>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <!-- Receita Bruta Total -->
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">💰 Receita Bruta</p>
+              <p style="font-size: 1.5rem; font-weight: 700; color: #10B981;">R$ {{ $fixo(cmvAlocado.totais.receitaBruta, 2) }}</p>
+            </div>
+
+            <!-- Taxa Total -->
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">(-) Taxa plataforma <span style="color: #EF4444;">{{ $fixo(cmvAlocado.totais.taxa.percentual, 2) }}%</span></p>
+              <p style="font-size: 1.5rem; font-weight: 700; color: #EF4444;">R$ {{ $fixo(cmvAlocado.totais.taxa.valor, 2) }}</p>
+            </div>
+
+            <!-- CMV Total -->
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">(-) CMV alocado <span style="color: #F59E0B;">{{ $fixo(cmvAlocado.totais.cmv.percentual, 2) }}%</span></p>
+              <p style="font-size: 1.5rem; font-weight: 700; color: #F59E0B;">R$ {{ $fixo(cmvAlocado.totais.cmv.valor, 2) }}</p>
+            </div>
+
+            <!-- Margem Total -->
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px;">📈 Margem Real <span style="color: #10B981;">{{ $fixo(cmvAlocado.totais.margem.percentual, 2) }}%</span></p>
+              <p style="font-size: 1.5rem; font-weight: 700; color: #10B981;">R$ {{ $fixo(cmvAlocado.totais.margem.valor, 2) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Breakdown de Bebidas vs Comida (informativo) -->
+        <div v-if="cmvAlocado && cmvAlocado.cmvBreakdown" style="background: #F0F9FF; border-radius: 12px; padding: 20px; border: 1px solid #BFDBFE;">
+          <h4 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">ℹ️ Breakdown do CMV</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px;">
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;">🍻 CMV Bebidas</p>
+              <p style="font-size: 1.25rem; font-weight: 700; color: #3B82F6;">R$ {{ $fixo(cmvAlocado.cmvBreakdown.totalBebidas, 2) }}</p>
+            </div>
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;">🍽️ CMV Comida</p>
+              <p style="font-size: 1.25rem; font-weight: 700; color: #3B82F6;">R$ {{ $fixo(cmvAlocado.cmvBreakdown.totalComida, 2) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Auditoria de CMV Section -->
       <div v-show="activeView === 'auditoria-cmv'" class="p-8 space-y-6">
 
@@ -1750,6 +1905,12 @@
           paginacao: {
             paginaAtual: 1,
             porPagina: 10
+          },
+          // CMV Alocado por Canal
+          cmvAlocado: null,
+          cmvAlocadoPeriodo: {
+            dataInicio: this.obterDataInicio(),
+            dataFim: this.obterDataFim()
           }
         };
       },
@@ -3040,6 +3201,64 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         }
       },
 
+      // ===== CMV ALOCADO POR CANAL =====
+      async carregarCMVAlocado() {
+        try {
+          console.log(`📊 Carregando CMV Alocado: ${this.cmvAlocadoPeriodo.dataInicio} a ${this.cmvAlocadoPeriodo.dataFim}`);
+          const response = await axios.get('/api/cmv-alocado-cards', {
+            params: {
+              from: this.cmvAlocadoPeriodo.dataInicio,
+              to: this.cmvAlocadoPeriodo.dataFim
+            }
+          });
+
+          if (response.data.success) {
+            this.cmvAlocado = response.data.data;
+            console.log('✅ CMV Alocado carregado:', this.cmvAlocado);
+          } else {
+            console.error('❌ Erro ao carregar CMV Alocado:', response.data.error);
+          }
+        } catch (error) {
+          console.error('❌ Erro ao carregar CMV Alocado:', error);
+        }
+      },
+
+      setCMVAlocado7Dias() {
+        const hoje = new Date();
+        const inicio = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
+        this.cmvAlocadoPeriodo.dataInicio = inicio.toISOString().split('T')[0];
+        this.cmvAlocadoPeriodo.dataFim = hoje.toISOString().split('T')[0];
+        this.carregarCMVAlocado();
+      },
+
+      setCMVAlocado30Dias() {
+        const hoje = new Date();
+        const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+        this.cmvAlocadoPeriodo.dataInicio = inicio.toISOString().split('T')[0];
+        this.cmvAlocadoPeriodo.dataFim = hoje.toISOString().split('T')[0];
+        this.carregarCMVAlocado();
+      },
+
+      getCorCanal(canal) {
+        const cores = {
+          'Salão': '#10B981',
+          'iFood': '#EF4444',
+          'Keeta': '#8B5CF6',
+          '99Food': '#F59E0B'
+        };
+        return cores[canal] || '#3B82F6';
+      },
+
+      getIconeCanal(canal) {
+        const icones = {
+          'Salão': '🍽️',
+          'iFood': '🔴',
+          'Keeta': '🟣',
+          '99Food': '🟠'
+        };
+        return icones[canal] || '📱';
+      },
+
       mounted() {
         // Verificar se já há token armazenado
         if (this.token) {
@@ -3065,6 +3284,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         this.renderizarGraficoMensal(); // Renderizar gráfico mensal inline
         this.carregarNotasPendentes();
         this.carregarDadosCMV(); // Carregar dados de CMV ao iniciar
+        this.carregarCMVAlocado(); // Carregar CMV alocado por canal
 
         // Recarregar notas a cada 5 segundos
         setInterval(() => {

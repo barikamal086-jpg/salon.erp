@@ -614,6 +614,43 @@ router.get('/cmv-por-categoria-produto', async (req, res) => {
   }
 });
 
+// GET /api/cmv-alocado-cards - CMV alocado com separação de bebidas para 4 cards
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD
+// Retorna dados para cards com:
+// - Receita Bruta
+// - (-) Taxa plataforma (XX.X%)
+// - (-) CMV alocado (18.06% ou variável)
+// - (=) Margem Real (XX.X%)
+router.get('/cmv-alocado-cards', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    console.log(`📊 [CMV Alocado Cards] Período: ${from} a ${to}`);
+
+    const dados = await Faturamento.obterCMVAlocadoPorCanal(from, to);
+
+    console.log(`✅ CMV Alocado calculado:`, dados);
+
+    res.json({
+      success: true,
+      data: dados
+    });
+  } catch (error) {
+    logger.error(`Erro ao obter CMV alocado cards: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // POST /api/cmv-inteligente/analisar - Análise Inteligente Rule-Based V1 (legado)
 // Body: { from: "YYYY-MM-DD", to: "YYYY-MM-DD", restaurante: "Salão|iFood|Keeta|99Food" (opcional) }
 router.post('/cmv-inteligente/analisar', async (req, res) => {

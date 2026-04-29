@@ -192,7 +192,20 @@
       "Bash(curl -s \"http://localhost:3000/api/faturamentos\")",
       "Bash(python3 -c \" import sys, json data = json.load\\(sys.stdin\\) if data.get\\('success'\\): entries = [e for e in data['data'] if e['data'] == '2026-04-28'] print\\(f'✅ Encontrado {len\\(entries\\)} lançamentos em 28/04:'\\) for e in entries: print\\(f\\\\\" ID {e['id']}: {e['categoria']:12} | {e['tipo']:7} | R\\\\$ {e['total']:10.2f}\\\\\"\\) else: print\\('❌ Erro ao carregar dados'\\) \")",
       "Bash(node /tmp/check-categories.js)",
-      "Bash(sqlite3 \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\backend\\\\salon-erp.db\" \"SELECT DISTINCT categoria, COUNT\\(*\\) as total FROM faturamento GROUP BY categoria ORDER BY total DESC;\")"
+      "Bash(sqlite3 \"C:\\\\Users\\\\adm\\\\Desktop\\\\Claude\\\\salon-erp\\\\backend\\\\salon-erp.db\" \"SELECT DISTINCT categoria, COUNT\\(*\\) as total FROM faturamento GROUP BY categoria ORDER BY total DESC;\")",
+      "Bash(sqlite3 backend/salon-erp.db \"SELECT COUNT\\(*\\) as total, COUNT\\(tipo_despesa_id\\) as com_tipo_despesa, SUM\\(CASE WHEN tipo_despesa_id IS NULL THEN 1 ELSE 0 END\\) as sem_tipo_despesa FROM faturamento;\")",
+      "Bash(node check-cmv-tipos.js)",
+      "Bash(node check-cmv-por-canal.js)",
+      "Bash(node check-cmv-alocacao-bebidas.js)",
+      "Bash(echo \"Server started with PID $!\" sleep 3 curl -s \"http://localhost:5006/api/cmv-alocado-cards?from=2026-04-01&to=2026-04-30\")",
+      "Bash(node -c models/Faturamento.js)",
+      "Bash(xargs -r kill -9 sleep 1 echo \"✅ Cleared old processes\")",
+      "Bash(curl -s \"http://localhost:5006/api/cmv-alocado-cards?from=2026-04-01&to=2026-04-30\")",
+      "Bash(netstat -antp)",
+      "Bash(PORT=8765 node app.js)",
+      "Bash(node -c backend/routes/api.js)",
+      "Bash(node -c backend/models/Faturamento.js)",
+      "Bash(pkill -9 node sleep 2 PORT=9999 node app.js)"
     ]
   }
 }

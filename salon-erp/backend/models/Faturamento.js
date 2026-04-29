@@ -758,6 +758,193 @@ class Faturamento {
       throw err;
     }
   }
+
+  // Obter CMV alocado proporcionalmente por canal com separação de bebidas
+  // Bebidas: 100% Salão
+  // Comida: alocada proporcionalmente a receita líquida de cada canal
+  static async obterCMVAlocadoPorCanal(dataInicio, dataFim) {
+    try {
+      const canais = ['Salão', 'iFood', '99Food', 'Keeta'];
+
+      // Query 1: Receita total por canal
+      const receitas = await allAsync(`
+        SELECT categoria, SUM(total) as receita_total
+        FROM faturamento
+        WHERE tipo = 'receita'
+          AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND data BETWEEN ? AND ?
+        GROUP BY categoria
+      `, [dataInicio, dataFim]);
+
+      // Query 2: Taxas por canal (subcategoria = 'Taxas')
+      const taxas = await allAsync(`
+        SELECT f.categoria, SUM(f.total) as total_taxas
+        FROM faturamento f
+        LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+        WHERE f.tipo = 'despesa'
+          AND f.categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND td.subcategoria = 'Taxas'
+          AND f.data BETWEEN ? AND ?
+        GROUP BY f.categoria
+      `, [dataInicio, dataFim]);
+
+      // Query 3: CMV Bebidas (subcategoria = 'Bebida')
+      const bebidas = await allAsync(`
+        SELECT f.categoria, SUM(f.total) as total_cmv_bebidas, COUNT(f.id) as qtd
+        FROM faturamento f
+        LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+        WHERE f.tipo = 'despesa'
+          AND f.categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND td.classificacao = 'CMV'
+          AND td.subcategoria = 'Bebida'
+          AND f.data BETWEEN ? AND ?
+        GROUP BY f.categoria
+      `, [dataInicio, dataFim]);
+
+      // Query 4: CMV Comida (demais subcategorias)
+      const comidas = await allAsync(`
+        SELECT f.categoria, SUM(f.total) as total_cmv_comida, COUNT(f.id) as qtd
+        FROM faturamento f
+        LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+        WHERE f.tipo = 'despesa'
+          AND f.categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND td.classificacao = 'CMV'
+          AND td.subcategoria != 'Bebida'
+          AND f.data BETWEEN ? AND ?
+        GROUP BY f.categoria
+      `, [dataInicio, dataFim]);
+
+      // Montar mapas
+      const receitasMap = {};
+      receitas.forEach(r => {
+        receitasMap[r.categoria] = parseFloat(r.receita_total || 0);
+      });
+
+      const taxasMap = {};
+      taxas.forEach(t => {
+        taxasMap[t.categoria] = parseFloat(t.total_taxas || 0);
+      });
+
+      const bebidasMap = {};
+      bebidas.forEach(b => {
+        bebidasMap[b.categoria] = parseFloat(b.total_cmv_bebidas || 0);
+      });
+
+      const comidasMap = {};
+      comidas.forEach(c => {
+        comidasMap[c.categoria] = parseFloat(c.total_cmv_comida || 0);
+      });
+
+      // Calcular receita líquida e CMV total
+      const totalCMVBebidas = Object.values(bebidasMap).reduce((sum, v) => sum + v, 0);
+      const totalCMVComida = Object.values(comidasMap).reduce((sum, v) => sum + v, 0);
+      let totalReceitaLiquida = 0;
+
+      // Calcular receita líquida por canal
+      canais.forEach(canal => {
+        const receita = receitasMap[canal] || 0;
+        const taxa = taxasMap[canal] || 0;
+        totalReceitaLiquida += (receita - taxa);
+      });
+
+      // Montar resultado dos 4 cards
+      const cards = canais.map(canal => {
+        const receitaBruta = receitasMap[canal] || 0;
+        const taxaValor = taxasMap[canal] || 0;
+        const receitaLiquida = receitaBruta - taxaValor;
+
+        // Proporcionalidade
+        const proporcao = totalReceitaLiquida > 0
+          ? receitaLiquida / totalReceitaLiquida
+          : 0;
+
+        // CMV Comida alocada
+        const cmvComidaAlocada = totalCMVComida * proporcao;
+
+        // Salão recebe bebidas + comida
+        // Outros canais recebem apenas comida alocada
+        const cmvTotal = canal === 'Salão'
+          ? cmvComidaAlocada + totalCMVBebidas
+          : cmvComidaAlocada;
+
+        // Percentuais
+        const taxaPercentual = receitaBruta > 0
+          ? (taxaValor / receitaBruta) * 100
+          : 0;
+
+        const cmvPercentual = receitaBruta > 0
+          ? (cmvTotal / receitaBruta) * 100
+          : 0;
+
+        const margem = receitaBruta - taxaValor - cmvTotal;
+        const margemPercentual = receitaBruta > 0
+          ? (margem / receitaBruta) * 100
+          : 0;
+
+        return {
+          canal,
+          receitaBruta: parseFloat(receitaBruta.toFixed(2)),
+          taxa: {
+            valor: parseFloat(taxaValor.toFixed(2)),
+            percentual: parseFloat(taxaPercentual.toFixed(2))
+          },
+          cmv: {
+            valor: parseFloat(cmvTotal.toFixed(2)),
+            percentual: parseFloat(cmvPercentual.toFixed(2))
+          },
+          margem: {
+            valor: parseFloat(margem.toFixed(2)),
+            percentual: parseFloat(margemPercentual.toFixed(2))
+          },
+          receitaLiquida: parseFloat(receitaLiquida.toFixed(2))
+        };
+      });
+
+      // Calcular totais
+      const totalReceitaBruta = canais.reduce((sum, canal) => sum + (receitasMap[canal] || 0), 0);
+      const totalTaxas = canais.reduce((sum, canal) => sum + (taxasMap[canal] || 0), 0);
+      const totalCMV = canais.reduce((sum, canal) => {
+        const receitaBruta = receitasMap[canal] || 0;
+        const taxaValor = taxasMap[canal] || 0;
+        const receitaLiquida = receitaBruta - taxaValor;
+        const proporcao = totalReceitaLiquida > 0 ? receitaLiquida / totalReceitaLiquida : 0;
+        const cmvComidaAlocada = totalCMVComida * proporcao;
+        return sum + (canal === 'Salão' ? cmvComidaAlocada + totalCMVBebidas : cmvComidaAlocada);
+      }, 0);
+      const totalMargem = totalReceitaBruta - totalTaxas - totalCMV;
+      const totalMargemPercentual = totalReceitaBruta > 0
+        ? (totalMargem / totalReceitaBruta) * 100
+        : 0;
+
+      return {
+        periodo: { dataInicio, dataFim },
+        cmvBreakdown: {
+          totalBebidas: parseFloat(totalCMVBebidas.toFixed(2)),
+          totalComida: parseFloat(totalCMVComida.toFixed(2))
+        },
+        cards,
+        totais: {
+          receitaBruta: parseFloat(totalReceitaBruta.toFixed(2)),
+          taxa: {
+            valor: parseFloat(totalTaxas.toFixed(2)),
+            percentual: parseFloat(((totalTaxas / totalReceitaBruta) * 100).toFixed(2))
+          },
+          cmv: {
+            valor: parseFloat(totalCMV.toFixed(2)),
+            percentual: parseFloat(((totalCMV / totalReceitaBruta) * 100).toFixed(2))
+          },
+          margem: {
+            valor: parseFloat(totalMargem.toFixed(2)),
+            percentual: parseFloat(totalMargemPercentual.toFixed(2))
+          },
+          receitaLiquida: parseFloat(totalReceitaLiquida.toFixed(2))
+        }
+      };
+    } catch (err) {
+      console.error('Erro ao obter CMV alocado por canal:', err.message);
+      throw err;
+    }
+  }
 }
 
 module.exports = Faturamento;
