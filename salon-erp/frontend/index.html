@@ -1018,14 +1018,14 @@
             </div>
             <div class="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
               <p class="text-gray-600 text-sm font-medium">📈 CMV %</p>
-              <p class="text-2xl font-bold text-orange-600 mt-2">{{ cmvDados.resumo.cmvPercentual.toFixed(2) }}%</p>
+              <p class="text-2xl font-bold text-orange-600 mt-2">{{ $fixo(cmvDados.resumo.cmvPercentual, 2) }}%</p>
               <p v-if="cmvDados.resumo.variacao !== 0" class="text-xs mt-2" :class="cmvDados.resumo.variacao > 0 ? 'text-red-500' : 'text-green-500'">
-                {{ cmvDados.resumo.variacao > 0 ? '📈' : '📉' }} {{ cmvDados.resumo.variacao.toFixed(2) }}%
+                {{ cmvDados.resumo.variacao > 0 ? '📈' : '📉' }} {{ $fixo(cmvDados.resumo.variacao, 2) }}%
               </p>
             </div>
             <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
               <p class="text-gray-600 text-sm font-medium">💵 Margem Bruta</p>
-              <p class="text-2xl font-bold text-green-600 mt-2">{{ cmvDados.resumo.margemBruta.toFixed(2) }}%</p>
+              <p class="text-2xl font-bold text-green-600 mt-2">{{ $fixo(cmvDados.resumo.margemBruta, 2) }}%</p>
             </div>
             <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
               <p class="text-gray-600 text-sm font-medium">📅 Período</p>
@@ -1055,7 +1055,7 @@
                 <tr v-for="(item, idx) in cmvDados.cmvDetalhado" :key="idx" class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="px-4 py-2 font-medium text-gray-900">{{ item.subcategoria }}</td>
                   <td class="px-4 py-2 text-right text-red-600 font-semibold">R$ {{ formatarValor(item.total) }}</td>
-                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ item.percentualReceitaCMV.toFixed(2) }}%</td>
+                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ $fixo(item.percentualReceitaCMV, 2) }}%</td>
                   <td class="px-4 py-2 text-right text-gray-600">R$ {{ formatarValor(item.media) }}</td>
                   <td class="px-4 py-2 text-right text-gray-600">{{ item.quantidade }}</td>
                 </tr>
@@ -1102,7 +1102,7 @@
                 </div>
                 <div class="flex justify-between text-lg">
                   <span>CMV %:</span>
-                  <span class="font-bold">{{ cat.cmvPercentual.toFixed(2) }}%</span>
+                  <span class="font-bold">{{ $fixo(cat.cmvPercentual, 2) }}%</span>
                 </div>
                 <div class="flex justify-between">
                   <span>Margem:</span>
@@ -3071,7 +3071,22 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           this.carregarNotasPendentes();
         }, 5000);
       }
+      // ✅ MÉTODO SEGURO: Evita erro de toFixed() em undefined
+      fixo(valor, casas = 2) {
+        if (valor === undefined || valor === null || isNaN(valor)) {
+          return '0.' + '0'.repeat(casas);
+        }
+        return parseFloat(valor).toFixed(casas);
+      }
     });
+
+    // ✅ Método global para templates
+    app.config.globalProperties.$fixo = (valor, casas = 2) => {
+      if (valor === undefined || valor === null || isNaN(valor)) {
+        return '0.' + '0'.repeat(casas);
+      }
+      return parseFloat(valor).toFixed(casas);
+    };
 
     app.mount('#app');
 
