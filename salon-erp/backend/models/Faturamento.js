@@ -872,11 +872,13 @@ class Faturamento {
           ? (taxaValor / receitaBruta) * 100
           : 0;
 
-        const cmvPercentual = receitaBruta > 0
-          ? (cmvTotal / receitaBruta) * 100
+        // CMV% SEMPRE sobre Receita Líquida (não sobre receita bruta)
+        const cmvPercentual = receitaLiquida > 0
+          ? (cmvTotal / receitaLiquida) * 100
           : 0;
 
         const margem = receitaBruta - taxaValor - cmvTotal;
+        // Margem% sobre Receita Bruta (como o usuário solicitou)
         const margemPercentual = receitaBruta > 0
           ? (margem / receitaBruta) * 100
           : 0;
@@ -931,7 +933,7 @@ class Faturamento {
           },
           cmv: {
             valor: parseFloat(totalCMV.toFixed(2)),
-            percentual: parseFloat(((totalCMV / totalReceitaBruta) * 100).toFixed(2))
+            percentual: parseFloat((totalReceitaLiquida > 0 ? (totalCMV / totalReceitaLiquida) * 100 : 0).toFixed(2))
           },
           margem: {
             valor: parseFloat(totalMargem.toFixed(2)),

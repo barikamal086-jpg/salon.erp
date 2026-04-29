@@ -205,7 +205,11 @@
       "Bash(PORT=8765 node app.js)",
       "Bash(node -c backend/routes/api.js)",
       "Bash(node -c backend/models/Faturamento.js)",
-      "Bash(pkill -9 node sleep 2 PORT=9999 node app.js)"
+      "Bash(pkill -9 node sleep 2 PORT=9999 node app.js)",
+      "Bash(git restore:*)",
+      "Bash(node -c frontend/index.html)",
+      "Bash(node debug-cmv-diferenca.js)",
+      "Bash(xargs -r kill -9 sleep 1 PORT=7777 node app.js)"
     ]
   }
 }
