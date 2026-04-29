@@ -209,7 +209,8 @@
       "Bash(git restore:*)",
       "Bash(node -c frontend/index.html)",
       "Bash(node debug-cmv-diferenca.js)",
-      "Bash(xargs -r kill -9 sleep 1 PORT=7777 node app.js)"
+      "Bash(xargs -r kill -9 sleep 1 PORT=7777 node app.js)",
+      "Bash(xargs -r kill -9 sleep 1 PORT=8888 node backend/app.js)"
     ]
   }
 }

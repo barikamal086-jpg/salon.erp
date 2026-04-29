@@ -861,11 +861,11 @@ class Faturamento {
         // CMV Comida alocada
         const cmvComidaAlocada = totalCMVComida * proporcao;
 
-        // Salão recebe bebidas + comida
-        // Outros canais recebem apenas comida alocada
-        const cmvTotal = canal === 'Salão'
-          ? cmvComidaAlocada + totalCMVBebidas
-          : cmvComidaAlocada;
+        // CMV Bebidas alocada (proporcional também)
+        const cmvBebidasAlocada = totalCMVBebidas * proporcao;
+
+        // Todo canal recebe sua proporção de comida + bebidas
+        const cmvTotal = cmvComidaAlocada + cmvBebidasAlocada;
 
         // Percentuais
         const taxaPercentual = receitaBruta > 0
@@ -911,7 +911,8 @@ class Faturamento {
         const receitaLiquida = receitaBruta - taxaValor;
         const proporcao = totalReceitaLiquida > 0 ? receitaLiquida / totalReceitaLiquida : 0;
         const cmvComidaAlocada = totalCMVComida * proporcao;
-        return sum + (canal === 'Salão' ? cmvComidaAlocada + totalCMVBebidas : cmvComidaAlocada);
+        const cmvBebidasAlocada = totalCMVBebidas * proporcao;
+        return sum + cmvComidaAlocada + cmvBebidasAlocada;
       }, 0);
       const totalMargem = totalReceitaBruta - totalTaxas - totalCMV;
       const totalMargemPercentual = totalReceitaBruta > 0
