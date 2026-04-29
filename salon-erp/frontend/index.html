@@ -294,27 +294,27 @@
             <!-- Receita -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">💰 Total Receita</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.totalReceita) }}</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats?.totalReceita || 0) }}</p>
             </div>
             <!-- Despesa -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">💸 Total Despesa</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.totalDespesa) }}</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats?.totalDespesa || 0) }}</p>
             </div>
             <!-- Líquido -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📈 Total Líquido</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">R$ {{ formatarValor(stats.totalLiquido) }}</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--primary);">R$ {{ formatarValor(stats?.totalLiquido || 0) }}</p>
             </div>
             <!-- Média Receita -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Receita</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.mediaReceita) }}</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats?.mediaReceita || 0) }}</p>
             </div>
             <!-- Média Despesa -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Despesa</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats?.mediaDespesa || 0) }}</p>
             </div>
             <!-- Dias -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
