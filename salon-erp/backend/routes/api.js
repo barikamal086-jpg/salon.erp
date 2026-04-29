@@ -619,8 +619,9 @@ router.get('/cmv-por-categoria-produto', async (req, res) => {
 // Retorna dados para cards com:
 // - Receita Bruta
 // - (-) Taxa plataforma (XX.X%)
-// - (-) CMV alocado (18.06% ou variável)
-// - (=) Margem Real (XX.X%)
+// - (-) CMV alocado (calculado sobre Receita Líquida)
+// - (=) Margem s/ Receita Bruta (XX.X%)
+// ✅ Bug Fix: CMV% agora calculado sempre sobre Receita Líquida (não Receita Bruta)
 router.get('/cmv-alocado-cards', async (req, res) => {
   try {
     const { from, to } = req.query;
