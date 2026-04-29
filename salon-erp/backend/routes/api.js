@@ -477,8 +477,8 @@ router.get('/cmv-inteligente', async (req, res) => {
     // Carregar despesas alocadas proporcionalmente
     const despesasResponse = await Faturamento.obterDespesasAlocadas(from, to, restaurante || null);
 
-    console.log(`✅ Stats carregado:`, statsResponse.length, `registros`);
-    console.log(`✅ Despesas alocadas:`, despesasResponse.length, `registros`);
+    console.log(`✅ Stats carregado:`, statsResponse.length, `registros`, statsResponse);
+    console.log(`✅ Despesas alocadas:`, despesasResponse.length, `registros`, despesasResponse);
 
     // Mesclar dados: mesma estrutura de Performance por Categoria
     const despesasMap = {};
@@ -495,19 +495,26 @@ router.get('/cmv-inteligente', async (req, res) => {
 
     const porCategoria = statsResponse.map(stat => {
       const despesa = despesasMap[stat.categoria];
-      totalReceita += stat.totalReceita || 0;
-      totalTaxas += despesa?.totalTaxas || 0;
-      totalDespesasAlocadas += despesa?.totalDespesasAlocadas || 0;
-      totalCMV += despesa?.totalDespesasAlocadas || 0;
-      diasPeriodo = stat.dias; // Todos têm mesmo número de dias
+      const receita = parseFloat(stat.totalReceita || 0);
+      const taxas = parseFloat(despesa?.totalTaxas || 0);
+      const cmvAlocado = parseFloat(despesa?.totalDespesasAlocadas || 0);
+
+      totalReceita += receita;
+      totalTaxas += taxas;
+      totalDespesasAlocadas += cmvAlocado;
+      totalCMV += cmvAlocado;
+
+      if (!diasPeriodo || diasPeriodo === 0) {
+        diasPeriodo = stat.dias || 28; // Pega dias do primeiro stat
+      }
 
       return {
         categoria: stat.categoria,
-        receita: stat.totalReceita || 0,
-        taxas: despesa?.totalTaxas || 0,
-        cmv: despesa?.totalDespesasAlocadas || 0,
-        despesa: despesa?.totalDespesa || 0,
-        liquido: despesa?.totalLiquido || 0
+        receita: parseFloat(receita.toFixed(2)),
+        taxas: parseFloat(taxas.toFixed(2)),
+        cmv: parseFloat(cmvAlocado.toFixed(2)),
+        despesa: parseFloat((despesa?.totalDespesa || 0).toFixed(2)),
+        liquido: parseFloat((despesa?.totalLiquido || 0).toFixed(2))
       };
     });
 
@@ -516,14 +523,20 @@ router.get('/cmv-inteligente', async (req, res) => {
     const cmvPercentual = receitaLiquida > 0 ? (totalCMV / receitaLiquida) * 100 : 0;
     const margemBruta = 100 - cmvPercentual;
 
+    // Validar que diasPeriodo foi calculado
+    if (!diasPeriodo || diasPeriodo === 0) {
+      diasPeriodo = statsResponse.length > 0 ? statsResponse[0].dias : 28;
+      console.log(`⚠️ diasPeriodo recalculado: ${diasPeriodo}`);
+    }
+
     const resumo = {
-      totalReceita,
-      totalTaxasReais: totalTaxas,
-      totalCMV,
-      receitaLiquida,
+      totalReceita: parseFloat(totalReceita.toFixed(2)),
+      totalTaxasReais: parseFloat(totalTaxas.toFixed(2)),
+      totalCMV: parseFloat(totalCMV.toFixed(2)),
+      receitaLiquida: parseFloat(receitaLiquida.toFixed(2)),
       cmvPercentual: parseFloat(cmvPercentual.toFixed(2)),
       margemBruta: parseFloat(margemBruta.toFixed(2)),
-      dias: diasPeriodo
+      dias: diasPeriodo || 28
     };
 
     console.log(`✅ CMV Inteligente resumido:`, resumo);
