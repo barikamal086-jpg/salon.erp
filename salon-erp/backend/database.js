@@ -3,6 +3,13 @@ require('dotenv').config();
 
 const isDev = process.env.NODE_ENV !== 'production';
 
+// 🔍 DEBUG: Verificar se DATABASE_URL está sendo lido
+console.log('🔍 DEBUG DATABASE_URL:');
+console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('  DATABASE_URL prefix:', process.env.DATABASE_URL?.substring(0, 20) || 'UNDEFINED');
+console.log('  DATABASE_URL full:', process.env.DATABASE_URL || 'NOT FOUND');
+console.log('  NODE_ENV:', process.env.NODE_ENV);
+
 // Configuração do Pool de conexões PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
