@@ -10,9 +10,12 @@
 
 const { Pool } = require('pg');
 const path = require('path');
-require('dotenv').config();
 
-// Configurar conexão PostgreSQL com fallback
+// NÃO carregar .env aqui - deixar que app.js faça
+// require('dotenv').config();
+
+// Configurar conexão PostgreSQL com fallback para Railway
+// Se DATABASE_URL não estiver definida, usa a connection string interna do Railway
 const connectionString = process.env.DATABASE_URL ||
   'postgresql://postgres:lqyUrQLrqStykmMiGBsQPDVYPrbhwsZs@postgres.railway.internal:5432/railway';
 
