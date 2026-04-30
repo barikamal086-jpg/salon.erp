@@ -2,23 +2,153 @@
 > salon-erp-backend@1.0.0 start
 > node app.js
 
-node:events:486
-      throw er; // Unhandled 'error' event
-      ^
 
-Error: listen EADDRINUSE: address already in use 0.0.0.0:3000
-    at Server.setupListenHandle [as _listen2] (node:net:1948:16)
-    at listenInCluster (node:net:2005:12)
-    at node:net:2214:7
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1984:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
-  code: 'EADDRINUSE',
-  errno: -4091,
-  syscall: 'listen',
-  address: '0.0.0.0',
-  port: 3000
+🚀 Servidor rodando em http://0.0.0.0:5006
+
+📊 API disponível em http://0.0.0.0:5006/api/faturamentos
+
+💾 Database: salon-erp.db
+
+✅ Conectado ao SQLite: C:\Users\adm\Desktop\Claude\salon-erp\backend\salon-erp.db
+✅ Tabela restaurantes criada/verificada
+✅ Tabela tipo_despesa criada/verificada
+✅ Tabela "faturamento" pronta
+✅ Tabela "notas_fiscais" pronta
+📊 [CMV Alocado Cards] Período: 2026-04-01 a 2026-04-30
+✅ CMV Alocado calculado: {
+  periodo: { dataInicio: '2026-04-01', dataFim: '2026-04-30' },
+  cmvBreakdown: { totalBebidas: 0, totalComida: 34761.85 },
+  cards: [
+    {
+      canal: 'Salão',
+      receitaBruta: 96785.94,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 96785.94
+    },
+    {
+      canal: 'iFood',
+      receitaBruta: 56389.25,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 36665.75
+    },
+    {
+      canal: '99Food',
+      receitaBruta: 43070.09,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 30104.87
+    },
+    {
+      canal: 'Keeta',
+      receitaBruta: 59726.36,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 28890.99
+    }
+  ],
+  totais: {
+    receitaBruta: 255971.64,
+    taxa: { valor: 63524.09, percentual: 24.82 },
+    cmv: { valor: 34761.85, percentual: 18.06 },
+    margem: { valor: 157685.7, percentual: 61.6 },
+    receitaLiquida: 192447.55
+  }
 }
-
-Node.js v24.14.1
+📊 [CMV Alocado Cards] Período: 2026-04-01 a 2026-04-30
+✅ CMV Alocado calculado: {
+  periodo: { dataInicio: '2026-04-01', dataFim: '2026-04-30' },
+  cmvBreakdown: { totalBebidas: 0, totalComida: 34761.85 },
+  cards: [
+    {
+      canal: 'Salão',
+      receitaBruta: 96785.94,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 96785.94
+    },
+    {
+      canal: 'iFood',
+      receitaBruta: 56389.25,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 36665.75
+    },
+    {
+      canal: '99Food',
+      receitaBruta: 43070.09,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 30104.87
+    },
+    {
+      canal: 'Keeta',
+      receitaBruta: 59726.36,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 28890.99
+    }
+  ],
+  totais: {
+    receitaBruta: 255971.64,
+    taxa: { valor: 63524.09, percentual: 24.82 },
+    cmv: { valor: 34761.85, percentual: 18.06 },
+    margem: { valor: 157685.7, percentual: 61.6 },
+    receitaLiquida: 192447.55
+  }
+}
+📊 [CMV Alocado Cards] Período: 2026-04-01 a 2026-04-30
+✅ CMV Alocado calculado: {
+  periodo: { dataInicio: '2026-04-01', dataFim: '2026-04-30' },
+  cmvBreakdown: { totalBebidas: 0, totalComida: 34761.85 },
+  cards: [
+    {
+      canal: 'Salão',
+      receitaBruta: 96785.94,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 96785.94
+    },
+    {
+      canal: 'iFood',
+      receitaBruta: 56389.25,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 36665.75
+    },
+    {
+      canal: '99Food',
+      receitaBruta: 43070.09,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 30104.87
+    },
+    {
+      canal: 'Keeta',
+      receitaBruta: 59726.36,
+      taxa: [Object],
+      cmv: [Object],
+      margem: [Object],
+      receitaLiquida: 28890.99
+    }
+  ],
+  totais: {
+    receitaBruta: 255971.64,
+    taxa: { valor: 63524.09, percentual: 24.82 },
+    cmv: { valor: 34761.85, percentual: 18.06 },
+    margem: { valor: 157685.7, percentual: 61.6 },
+    receitaLiquida: 192447.55
+  }
+}
