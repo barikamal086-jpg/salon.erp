@@ -209,12 +209,12 @@ class Faturamento {
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) -
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalLiquido,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) /
-        NULLIF(CAST((julianday(?) - julianday(?)) AS INTEGER) + 1, 0) as mediaReceita,
+        NULLIF((? :: DATE - ? :: DATE) + 1, 0) as mediaReceita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) /
-        NULLIF(CAST((julianday(?) - julianday(?)) AS INTEGER) + 1, 0) as mediaDespesa,
+        NULLIF((? :: DATE - ? :: DATE) + 1, 0) as mediaDespesa,
         COALESCE(MAX(CASE WHEN tipo = 'receita' THEN total ELSE NULL END), 0) as maiorReceita,
         COALESCE(MAX(CASE WHEN tipo = 'despesa' THEN total ELSE NULL END), 0) as maiorDespesa,
-        CAST((julianday(?) - julianday(?)) AS INTEGER) + 1 as dias,
+        (? :: DATE - ? :: DATE) + 1 as dias,
         COUNT(DISTINCT CASE WHEN tipo = 'receita' THEN data ELSE NULL END) as diasReceita,
         COUNT(DISTINCT CASE WHEN tipo = 'despesa' THEN data ELSE NULL END) as diasDespesa,
         COUNT(*) as totalEntradas
