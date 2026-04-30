@@ -201,14 +201,6 @@
           <i class="fas fa-chart-line mr-2"></i> Dashboard
         </div>
         <div
-          @click="activeView = 'cmv-inteligente'; menuMobileAberto = false"
-          :class="activeView === 'cmv-inteligente' ? '' : 'opacity-80 hover:opacity-100'"
-          style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
-          :style="activeView === 'cmv-inteligente' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
-        >
-          <i class="fas fa-brain mr-2"></i> 🧠 CMV Inteligente
-        </div>
-        <div
           @click="activeView = 'cmv-alocado'; menuMobileAberto = false"
           :class="activeView === 'cmv-alocado' ? '' : 'opacity-80 hover:opacity-100'"
           style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
@@ -234,7 +226,6 @@
         <div style="padding: 32px 16px; display: flex; justify-content: space-between; align-items: center;">
           <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
             <span v-if="activeView === 'dashboard'">Dashboard</span>
-            <span v-else-if="activeView === 'cmv-inteligente'">🧠 CMV Inteligente</span>
             <span v-else-if="activeView === 'cmv-alocado'">📊 CMV por Canal</span>
             <span v-else-if="activeView === 'auditoria-cmv'">📋 Auditoria de CMV</span>
           </h2>
