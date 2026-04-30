@@ -264,20 +264,22 @@ router.get('/faturamentos/stats', async (req, res) => {
 
     const stats = await Faturamento.obterStats(from, to, restaurante || null);
 
+    // PostgreSQL retorna campos em lowercase
+    // Converter para camelCase para o frontend
     res.json({
       success: true,
       data: {
-        totalReceita: parseFloat(stats.totalReceita || 0),
-        totalDespesa: parseFloat(stats.totalDespesa || 0),
-        totalLiquido: parseFloat(stats.totalLiquido || 0),
-        mediaReceita: parseFloat(stats.mediaReceita || 0),
-        mediaDespesa: parseFloat(stats.mediaDespesa || 0),
-        maiorReceita: parseFloat(stats.maiorReceita || 0),
-        maiorDespesa: parseFloat(stats.maiorDespesa || 0),
-        menorReceita: parseFloat(stats.menorReceita || 0),
-        menorDespesa: parseFloat(stats.menorDespesa || 0),
-        dias: stats.dias || 0,
-        totalEntradas: stats.totalEntradas || 0
+        totalReceita: parseFloat(stats.totalreceita || stats.totalReceita || 0),
+        totalDespesa: parseFloat(stats.totaldespesa || stats.totalDespesa || 0),
+        totalLiquido: parseFloat(stats.totalliquido || stats.totalLiquido || 0),
+        mediaReceita: parseFloat(stats.mediareceita || stats.mediaReceita || 0),
+        mediaDespesa: parseFloat(stats.mediadespesa || stats.mediaDespesa || 0),
+        maiorReceita: parseFloat(stats.maiorreceita || stats.maiorReceita || 0),
+        maiorDespesa: parseFloat(stats.maiordespesa || stats.maiorDespesa || 0),
+        menorReceita: parseFloat(stats.menorreceita || stats.menorReceita || 0),
+        menorDespesa: parseFloat(stats.menordespesa || stats.menorDespesa || 0),
+        dias: parseInt(stats.dias || 0),
+        totalEntradas: parseInt(stats.totalentradas || stats.totalEntradas || 0)
       }
     });
   } catch (error) {
@@ -334,15 +336,17 @@ router.get('/faturamentos/stats-categoria', async (req, res) => {
       success: true,
       data: stats.map(s => ({
         categoria: s.categoria,
-        totalReceita: parseFloat(s.totalReceita || 0),
-        totalDespesa: parseFloat(s.totalDespesa || 0),
-        totalLiquido: parseFloat(s.totalLiquido || 0),
-        mediaReceita: parseFloat(s.mediaReceita || 0),
-        mediaDespesa: parseFloat(s.mediaDespesa || 0),
-        maiorReceita: parseFloat(s.maiorReceita || 0),
-        maiorDespesa: parseFloat(s.maiorDespesa || 0),
-        dias: s.dias || 0,
-        totalEntradas: s.totalEntradas || 0
+        totalReceita: parseFloat(s.totalreceita || s.totalReceita || 0),
+        totalDespesa: parseFloat(s.totaldespesa || s.totalDespesa || 0),
+        totalLiquido: parseFloat(s.totalliquido || s.totalLiquido || 0),
+        mediaReceita: parseFloat(s.mediareceita || s.mediaReceita || 0),
+        mediaDespesa: parseFloat(s.mediadespesa || s.mediaDespesa || 0),
+        maiorReceita: parseFloat(s.maiorreceita || s.maiorReceita || 0),
+        maiorDespesa: parseFloat(s.maiordespesa || s.maiorDespesa || 0),
+        dias: parseInt(s.dias || 0),
+        diasReceita: parseInt(s.diasreceita || s.diasReceita || 0),
+        diasDespesa: parseInt(s.diasdespesa || s.diasDespesa || 0),
+        totalEntradas: parseInt(s.totalentradas || s.totalEntradas || 0)
       }))
     });
   } catch (error) {
@@ -404,12 +408,12 @@ router.get('/faturamentos/cmv/total', async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalCMV: parseFloat(stats.totalCMV || 0),
-        mediaCMV: parseFloat(stats.mediaCMV || 0),
-        maiorCMV: parseFloat(stats.maiorCMV || 0),
-        menorCMV: parseFloat(stats.menorCMV || 0),
-        quantidadeCMV: stats.quantidadeCMV || 0,
-        diasComCMV: stats.diasComCMV || 0
+        totalCMV: parseFloat(stats.totalcmv || stats.totalCMV || 0),
+        mediaCMV: parseFloat(stats.mediacmv || stats.mediaCMV || 0),
+        maiorCMV: parseFloat(stats.maiorcmv || stats.maiorCMV || 0),
+        menorCMV: parseFloat(stats.menorcmv || stats.menorCMV || 0),
+        quantidadeCMV: parseInt(stats.quantidadecmv || stats.quantidadeCMV || 0),
+        diasComCMV: parseInt(stats.diascomcmv || stats.diasComCMV || 0)
       }
     });
   } catch (error) {
@@ -495,7 +499,8 @@ router.get('/cmv-inteligente', async (req, res) => {
 
     const porCategoria = statsResponse.map(stat => {
       const despesa = despesasMap[stat.categoria];
-      const receita = parseFloat(stat.totalReceita || 0);
+      // PostgreSQL retorna lowercase, então verificar ambos os formatos
+      const receita = parseFloat(stat.totalreceita || stat.totalReceita || 0);
       const taxas = parseFloat(despesa?.totalTaxas || 0);
       const cmvAlocado = parseFloat(despesa?.totalDespesasAlocadas || 0);
 
@@ -505,7 +510,7 @@ router.get('/cmv-inteligente', async (req, res) => {
       totalCMV += cmvAlocado;
 
       if (!diasPeriodo || diasPeriodo === 0) {
-        diasPeriodo = stat.dias || 28; // Pega dias do primeiro stat
+        diasPeriodo = parseInt(stat.dias || stat.DIAS || 28); // Pega dias do primeiro stat
       }
 
       return {
@@ -525,7 +530,7 @@ router.get('/cmv-inteligente', async (req, res) => {
 
     // Validar que diasPeriodo foi calculado
     if (!diasPeriodo || diasPeriodo === 0) {
-      diasPeriodo = statsResponse.length > 0 ? statsResponse[0].dias : 28;
+      diasPeriodo = statsResponse.length > 0 ? parseInt(statsResponse[0].dias || statsResponse[0].DIAS || 28) : 28;
       console.log(`⚠️ diasPeriodo recalculado: ${diasPeriodo}`);
     }
 
