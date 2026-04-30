@@ -195,7 +195,8 @@ async function insertDefaultTiposDespesa() {
 // Funções compatíveis com a interface anterior
 async function runAsync(sql, params = []) {
   try {
-    const result = await pool.query(sql, params);
+    const convertedSql = convertPlaceholders(sql);
+    const result = await pool.query(convertedSql, params);
     return { id: result.rows[0]?.id, changes: result.rowCount };
   } catch (err) {
     console.error('❌ Erro em runAsync:', err.message);
@@ -205,7 +206,8 @@ async function runAsync(sql, params = []) {
 
 async function getAsync(sql, params = []) {
   try {
-    const result = await pool.query(sql, params);
+    const convertedSql = convertPlaceholders(sql);
+    const result = await pool.query(convertedSql, params);
     return result.rows[0];
   } catch (err) {
     console.error('❌ Erro em getAsync:', err.message);
@@ -213,9 +215,16 @@ async function getAsync(sql, params = []) {
   }
 }
 
+// Converter placeholders SQLite (?) para PostgreSQL ($1, $2, ...)
+function convertPlaceholders(sql) {
+  let paramIndex = 1;
+  return sql.replace(/\?/g, () => `$${paramIndex++}`);
+}
+
 async function allAsync(sql, params = []) {
   try {
-    const result = await pool.query(sql, params);
+    const convertedSql = convertPlaceholders(sql);
+    const result = await pool.query(convertedSql, params);
     return result.rows;
   } catch (err) {
     console.error('❌ Erro em allAsync:', err.message);
