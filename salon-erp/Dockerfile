@@ -29,5 +29,5 @@ RUN test -f ./database.js && grep -q "Pool.*require.*pg" ./database.js || (echo 
 # Expose port
 EXPOSE 8080
 
-# Start application
-CMD ["node", "app.js"]
+# Start application with automatic migration
+CMD ["node", "start-with-migration.js"]
