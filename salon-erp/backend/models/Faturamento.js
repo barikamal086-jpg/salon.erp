@@ -3,9 +3,10 @@ const { runAsync, getAsync, allAsync } = require('../database');
 class Faturamento {
   // Listar faturamentos (últimos N dias, opcionalmente filtrar por status e/ou categoria)
   static async listar(days = 30, status = null, categoria = null) {
+    console.log(`📊 [Faturamento.listar] Buscando últimos ${days} dias, categoria: ${categoria || 'TODAS'}`);
     let sql = `
       SELECT * FROM faturamento
-      WHERE data >= date('now', '-${days} days')
+      WHERE data >= CURRENT_DATE - INTERVAL '${days} days'
     `;
     let params = [];
 
@@ -49,7 +50,7 @@ class Faturamento {
 
     const sql = `
       INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now'), datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, false, NOW(), NOW())
     `;
     return await runAsync(sql, [data, parseFloat(total), categoria.trim(), tipo, tipoDespesaId, categoriaProduto]);
   }
@@ -63,7 +64,7 @@ class Faturamento {
 
     const sql = `
       UPDATE faturamento
-      SET total = ?, updated_at = datetime('now')
+      SET total = ?, updated_at = NOW()
       WHERE id = ?
     `;
     return await runAsync(sql, [parseFloat(total), id]);
@@ -104,7 +105,7 @@ class Faturamento {
 
     const sql = `
       UPDATE faturamento
-      SET data = ?, total = ?, categoria = ?, tipo = ?, tipo_despesa_id = ?, updated_at = datetime('now')
+      SET data = ?, total = ?, categoria = ?, tipo = ?, tipo_despesa_id = ?, updated_at = NOW()
       WHERE id = ?
     `;
 
@@ -140,7 +141,7 @@ class Faturamento {
   static async marcarEnviado(id) {
     const sql = `
       UPDATE faturamento
-      SET status = 1, enviado_em = datetime('now'), updated_at = datetime('now')
+      SET status = true, enviado_em = NOW(), updated_at = NOW()
       WHERE id = ?
     `;
     return await runAsync(sql, [id]);
