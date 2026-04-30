@@ -42,8 +42,8 @@ app.use((req, res) => {
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
-  console.log(`\n📊 API disponível em http://0.0.0.0:${PORT}/api/faturamentos`);
-  console.log(`\n💾 Database: salon-erp.db\n`);
+  console.log(`📊 API disponível em http://0.0.0.0:${PORT}/api/faturamentos`);
+  console.log(`🐘 PostgreSQL pool inicializado\n`);
 });
 
 module.exports = app;
