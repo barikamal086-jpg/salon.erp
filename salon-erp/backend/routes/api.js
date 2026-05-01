@@ -1492,4 +1492,40 @@ router.post('/criar-categoria-simples', async (req, res) => {
   }
 });
 
+// DEBUG: Endpoint para diagnosticar Performance por Categoria
+router.get('/debug/stats-categoria', async (req, res) => {
+  try {
+    const { from = '2026-04-01', to = '2026-04-30' } = req.query;
+
+    console.log(`\n🔍 [DEBUG] Testando stats-categoria para: ${from} a ${to}`);
+
+    // 1. Testar obterStatsPorCategoria
+    const stats = await Faturamento.obterStatsPorCategoria(from, to);
+    console.log(`🔍 [DEBUG] obterStatsPorCategoria retornou: ${stats ? stats.length : 'NULL'} resultados`);
+
+    // 2. Testar obterDespesasAlocadas
+    const despesas = await Faturamento.obterDespesasAlocadas(from, to);
+    console.log(`🔍 [DEBUG] obterDespesasAlocadas retornou: ${despesas ? despesas.length : 'NULL'} resultados`);
+
+    res.json({
+      success: true,
+      debug: {
+        from,
+        to,
+        statsRetornados: stats ? stats.length : 0,
+        despesasRetornadas: despesas ? despesas.length : 0,
+        stats: stats || [],
+        despesas: despesas || []
+      }
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 module.exports = router;
