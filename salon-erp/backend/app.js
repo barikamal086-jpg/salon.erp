@@ -43,11 +43,15 @@ app.use((req, res) => {
   });
 });
 
-// Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
+// Iniciar servidor com timeout aumentado para uploads grandes
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
   console.log(`📊 API disponível em http://0.0.0.0:${PORT}/api/faturamentos`);
   console.log(`🐘 PostgreSQL pool inicializado\n`);
 });
+
+// Aumentar timeout para 5 minutos (300 segundos) para uploads grandes
+server.timeout = 300000;
+server.keepAliveTimeout = 310000;
 
 module.exports = app;

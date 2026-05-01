@@ -15,6 +15,10 @@ const { pool } = require('../database');
 // Configurar multer para upload de arquivos
 const upload = multer({
   storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB por arquivo
+    files: 100 // Máximo 100 arquivos por requisição
+  },
   fileFilter: (req, file, cb) => {
     const allowedMimes = ['application/xml', 'text/xml', 'application/pdf'];
     const allowedExt = ['.xml', '.pdf'];
@@ -1048,8 +1052,14 @@ router.get('/notas-fiscais/:id', async (req, res) => {
 });
 
 // POST /api/notas-fiscais/upload - Fazer upload e processar notas fiscais (XML/PDF)
-router.post('/notas-fiscais/upload', upload.array('files', 10), async (req, res) => {
+router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res) => {
   try {
+    // Aumentar timeout para esta requisição
+    req.setTimeout(300000); // 5 minutos
+    if (res.setTimeout) {
+      res.setTimeout(300000);
+    }
+
     console.log('\n📤 Upload de notas fiscais iniciado');
     console.log(`   Arquivos recebidos: ${req.files?.length || 0}`);
 
