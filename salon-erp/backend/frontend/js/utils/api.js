@@ -96,9 +96,9 @@ const api = {
     return axios.get(`${API_BASE}/notas-fiscais/pendentes`);
   },
 
-  // GET /api/notas-fiscais?status=processado - Obter histórico (notas processadas)
-  obterNotasHistorico(limit = 100, offset = 0) {
-    return axios.get(`${API_BASE}/notas-fiscais?status=processado&limit=${limit}&offset=${offset}`);
+  // GET /api/notas-fiscais/chart - Obter histórico de notas processadas
+  obterNotasHistorico(from, to) {
+    return axios.get(`${API_BASE}/notas-fiscais/chart?from=${from}&to=${to}`);
   },
 
   // GET /api/notas-fiscais/:id - Obter nota específica
