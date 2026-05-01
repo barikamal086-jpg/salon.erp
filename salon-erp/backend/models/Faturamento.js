@@ -365,8 +365,9 @@ class Faturamento {
     }
 
     // Calcular CMV % (CMV / Receita Líquida)
-    const totalReceita = parseFloat(stats.totalReceita || 0);
-    const totalCMV = parseFloat(cmvTotal.totalCMV || 0);
+    // PostgreSQL retorna lowercase, SQLite retorna camelCase - aceitar ambos
+    const totalReceita = parseFloat(stats.totalreceita || stats.totalReceita || 0);
+    const totalCMV = parseFloat(cmvTotal.totalcmv || cmvTotal.totalCMV || 0);
     const receitaLiquida = totalReceita - totalTaxasReais;
     const cmvPercentual = receitaLiquida > 0 ? (totalCMV / receitaLiquida) * 100 : 0;
 
@@ -377,8 +378,8 @@ class Faturamento {
     let variacao = 0;
     let cmvPercentualAnterior = 0;
     if (statsPeriodoAnterior && cmvTotalAnterior) {
-      const totalReceitaAnterior = parseFloat(statsPeriodoAnterior.totalReceita || 0);
-      const totalCMVAnterior = parseFloat(cmvTotalAnterior.totalCMV || 0);
+      const totalReceitaAnterior = parseFloat(statsPeriodoAnterior.totalreceita || statsPeriodoAnterior.totalReceita || 0);
+      const totalCMVAnterior = parseFloat(cmvTotalAnterior.totalcmv || cmvTotalAnterior.totalCMV || 0);
       cmvPercentualAnterior = totalReceitaAnterior > 0 ? (totalCMVAnterior / totalReceitaAnterior) * 100 : 0;
       variacao = cmvPercentual - cmvPercentualAnterior;
     }
@@ -397,8 +398,8 @@ class Faturamento {
         dias: stats.dias || 0
       },
       resumo: {
-        totalReceita: parseFloat(stats.totalReceita || 0),
-        totalCMV: parseFloat(cmvTotal.totalCMV || 0),
+        totalReceita: parseFloat(stats.totalreceita || stats.totalReceita || 0),
+        totalCMV: parseFloat(cmvTotal.totalcmv || cmvTotal.totalCMV || 0),
         totalLiquido: parseFloat(totalLiquidoCMV.toFixed(2)),
         cmvPercentual: parseFloat(cmvPercentual.toFixed(2)),
         margemBruta: parseFloat(margem.toFixed(2)),
