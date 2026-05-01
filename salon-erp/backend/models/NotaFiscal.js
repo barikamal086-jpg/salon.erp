@@ -13,16 +13,23 @@ class NotaFiscal {
   }
 
   // Obter todas as notas fiscais com paginação
+  // Se status não for especificado, retorna 'pendente' E 'processado'
   static async listar(status = null, limit = 50, offset = 0) {
     let sql = 'SELECT * FROM notas_fiscais';
     const params = [];
+    let paramIndex = 1;
 
     if (status) {
-      sql += ' WHERE status = ?';
+      // Se status específico é fornecido, filtrar por ele
+      sql += ` WHERE status = $${paramIndex}`;
       params.push(status);
+      paramIndex++;
+    } else {
+      // Se nenhum status é fornecido, mostrar AMBOS 'pendente' E 'processado'
+      sql += ` WHERE status IN ('pendente', 'processado')`;
     }
 
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     params.push(limit, offset);
 
     return await allAsync(sql, params);
