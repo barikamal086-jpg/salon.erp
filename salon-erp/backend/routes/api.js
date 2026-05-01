@@ -1659,6 +1659,23 @@ router.get('/debug/status-notas', async (req, res) => {
   }
 });
 
+// GET /api/debug/reverter-notas-pendentes - Mudar todas as notas de 'processado' para 'pendente'
+router.get('/debug/reverter-notas-pendentes', async (req, res) => {
+  try {
+    const result = await pool.query('UPDATE notas_fiscais SET status = $1 WHERE status = $2 RETURNING COUNT(*)', ['pendente', 'processado']);
+    const countResult = await pool.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['pendente']);
+    const count = parseInt(countResult.rows[0].count);
+
+    res.json({
+      success: true,
+      message: `${count} notas revertidas para pendente`,
+      count: count
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/notas-fiscais/historico - Obter histórico de notas
 router.get('/notas-fiscais/historico', async (req, res) => {
   try {
