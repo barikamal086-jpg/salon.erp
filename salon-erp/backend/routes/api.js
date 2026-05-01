@@ -1646,6 +1646,37 @@ router.get('/debug/contar-notas', async (req, res) => {
   }
 });
 
+// GET /api/notas-fiscais/historico - Obter histórico de notas
+router.get('/notas-fiscais/historico', async (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+
+    const result = await pool.query(`
+      SELECT
+        id, numero_nf, fornecedor_nome, valor_total, status,
+        created_at, processado_em, descricao
+      FROM notas_fiscais
+      ORDER BY created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [parseInt(limit), parseInt(offset)]);
+
+    const countResult = await pool.query(`
+      SELECT COUNT(*) as cnt FROM notas_fiscais
+    `);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      total: parseInt(countResult.rows[0].cnt)
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // DEBUG: Endpoint para diagnosticar tipo_despesa e JOINs
 router.get('/debug/tipo-despesa', async (req, res) => {
   try {
