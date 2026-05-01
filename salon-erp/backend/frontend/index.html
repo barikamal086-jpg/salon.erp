@@ -2513,14 +2513,21 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         // ==================== MÉTODOS DE NOTAS FISCAIS ====================
         async carregarNotasPendentes() {
           try {
+            console.log('📥 Carregando notas processadas...');
             const response = await api.obterNotasHistorico(100, 0);
+            console.log('✅ Resposta recebida:', response);
+            console.log('📊 response.data:', response.data);
+            console.log('📊 response.data.data:', response.data.data);
             this.notasPendentes = response.data.data || [];
+            console.log('✅ notasPendentes atualizado:', this.notasPendentes.length, 'registros');
 
             // Carregar estatísticas
             const respStats = await api.obterNotasFiscais();
             this.notasStats = respStats.data.stats || {};
           } catch (error) {
-            console.error('Erro ao carregar histórico de notas:', error);
+            console.error('❌ Erro ao carregar histórico de notas:', error);
+            console.error('❌ Erro message:', error.message);
+            console.error('❌ Erro response:', error.response);
           }
         },
 
