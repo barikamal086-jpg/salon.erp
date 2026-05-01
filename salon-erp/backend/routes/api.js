@@ -1646,6 +1646,19 @@ router.get('/debug/contar-notas', async (req, res) => {
   }
 });
 
+// GET /api/debug/status-notas - Verificar distribuição de status
+router.get('/debug/status-notas', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT status, COUNT(*) as count FROM notas_fiscais GROUP BY status ORDER BY status');
+    res.json({
+      success: true,
+      data: result.rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/notas-fiscais/historico - Obter histórico de notas
 router.get('/notas-fiscais/historico', async (req, res) => {
   try {
