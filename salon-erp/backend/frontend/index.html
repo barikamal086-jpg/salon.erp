@@ -2513,13 +2513,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         // ==================== MÉTODOS DE NOTAS FISCAIS ====================
         async carregarNotasPendentes() {
           try {
-            // Usar período de 30 dias como padrão (como o gráfico de receitas/despesas)
-            const hoje = new Date();
-            const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
-            const dataInicio = inicio.toISOString().split('T')[0];
-            const dataFim = hoje.toISOString().split('T')[0];
-
-            const response = await api.obterNotasHistorico(dataInicio, dataFim);
+            const response = await api.obterNotasHistorico(100, 0);
             this.notasPendentes = response.data.data || [];
 
             // Carregar estatísticas

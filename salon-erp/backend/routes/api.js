@@ -925,42 +925,6 @@ router.get('/notas-fiscais', async (req, res) => {
   }
 });
 
-// GET /api/notas-fiscais/chart - Obter notas processadas (histórico) para exibição
-// ?from=YYYY-MM-DD&to=YYYY-MM-DD
-router.get('/notas-fiscais/chart', async (req, res) => {
-  try {
-    const { from, to } = req.query;
-
-    if (!from || !to) {
-      return res.status(400).json({
-        success: false,
-        error: 'Parâmetros "from" e "to" são obrigatórios'
-      });
-    }
-
-    const notas = await pool.query(`
-      SELECT
-        id, numero_nf, fornecedor_nome, fornecedor_cnpj,
-        data_emissao, data_vencimento, valor_total, descricao,
-        classificacao_sugerida, status, processado_em
-      FROM notas_fiscais
-      WHERE status = $1 AND data_emissao >= $2 AND data_emissao <= $3
-      ORDER BY data_emissao DESC
-    `, ['processado', from, to]);
-
-    res.json({
-      success: true,
-      data: notas.rows,
-      count: notas.rows.length
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
 // GET /api/notas-fiscais/pendentes - Obter apenas notas pendentes
 router.get('/notas-fiscais/pendentes', async (req, res) => {
   try {
