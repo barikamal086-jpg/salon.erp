@@ -1194,40 +1194,44 @@ router.delete('/notas-fiscais/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const nota = await NotaFiscal.obter(id);
-    if (!nota) {
+    // Verificar se nota existe e seu status
+    const notaResult = await pool.query('SELECT id, status FROM notas_fiscais WHERE id = $1', [id]);
+
+    if (notaResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Nota fiscal não encontrada'
       });
     }
 
+    const nota = notaResult.rows[0];
+
+    // Validar status - permitir apenas pendente
     if (nota.status === 'processado') {
       return res.status(400).json({
         success: false,
-        error: 'Não é possível deletar nota fiscal já processada'
+        error: 'Não é possível deletar nota fiscal já processada. Use /api/debug/reverter-notas-pendentes primeiro.'
       });
     }
 
     // Deletar nota fiscal
-    const { db } = require('../database');
-    return new Promise((resolve) => {
-      db.run('DELETE FROM notas_fiscais WHERE id = ?', [id], function(err) {
-        if (err) {
-          res.status(400).json({
-            success: false,
-            error: err.message
-          });
-        } else {
-          res.json({
-            success: true,
-            message: 'Nota fiscal deletada com sucesso'
-          });
-        }
-        resolve();
+    console.log(`🗑️  Deletando nota fiscal ID ${id} com status ${nota.status}`);
+    const deleteResult = await pool.query('DELETE FROM notas_fiscais WHERE id = $1', [id]);
+
+    if (deleteResult.rowCount === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Erro ao deletar nota fiscal'
       });
+    }
+
+    res.json({
+      success: true,
+      message: 'Nota fiscal deletada com sucesso',
+      notaId: id
     });
   } catch (error) {
+    console.error('❌ Erro ao deletar nota fiscal:', error.message);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1659,28 +1663,71 @@ router.get('/debug/status-notas', async (req, res) => {
   }
 });
 
-// GET /api/debug/reverter-notas-pendentes - Mudar todas as notas de 'processado' para 'pendente'
-router.get('/debug/reverter-notas-pendentes', async (req, res) => {
+// POST /api/debug/reverter-notas-pendentes - Mudar todas as notas de 'processado' para 'pendente'
+router.post('/debug/reverter-notas-pendentes', async (req, res) => {
+  const client = await pool.connect();
   try {
-    // Contar quantas notas vão ser atualizadas
-    const beforeCount = await pool.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['processado']);
+    console.log('🔄 Iniciando reversão de notas...');
+
+    // Começar transação
+    await client.query('BEGIN');
+
+    // 1. Contar ANTES
+    console.log('📊 Contando notas com status = processado...');
+    const beforeCount = await client.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['processado']);
     const before = parseInt(beforeCount.rows[0].count);
+    console.log(`   Encontradas: ${before} notas com status = 'processado'`);
 
-    // Fazer update
-    const updateResult = await pool.query('UPDATE notas_fiscais SET status = $1 WHERE status = $2', ['pendente', 'processado']);
+    // 2. Fazer UPDATE
+    console.log('🔄 Executando UPDATE SET status = pendente...');
+    const updateResult = await client.query(
+      'UPDATE notas_fiscais SET status = $1 WHERE status = $2',
+      ['pendente', 'processado']
+    );
+    console.log(`   ✅ UPDATE afetou ${updateResult.rowCount} linhas`);
 
-    // Contar resultado
-    const afterCount = await pool.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['pendente']);
-    const after = parseInt(afterCount.rows[0].count);
+    // 3. Contar DEPOIS - verificar resultado
+    console.log('📊 Contando notas com novo status...');
+    const afterProcessado = await client.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['processado']);
+    const afterProcessadoCount = parseInt(afterProcessado.rows[0].count);
+
+    const afterPendente = await client.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['pendente']);
+    const afterPendenteCount = parseInt(afterPendente.rows[0].count);
+
+    console.log(`   Notas 'processado' agora: ${afterProcessadoCount}`);
+    console.log(`   Notas 'pendente' agora: ${afterPendenteCount}`);
+
+    // Confirmar transação
+    await client.query('COMMIT');
+    console.log('✅ Transação confirmada com sucesso');
 
     res.json({
       success: true,
       message: `${before} notas revertidas de 'processado' para 'pendente'`,
-      notasRevertidas: before,
-      totalPendentes: after
+      dados: {
+        notasRevertidas: before,
+        rowsAffected: updateResult.rowCount,
+        statusApos: {
+          processado: afterProcessadoCount,
+          pendente: afterPendenteCount
+        }
+      }
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+    }
+    console.error('❌ Erro ao reverter notas:', err.message);
+    console.error('   Stack:', err.stack);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: err.stack
+    });
+  } finally {
+    client.release();
   }
 });
 
