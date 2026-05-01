@@ -807,15 +807,24 @@ router.get('/tipo-despesa', async (req, res) => {
 // GET /api/tipo-despesa/agrupado - Obter tipos agrupados por classificação
 router.get('/tipo-despesa/agrupado', async (req, res) => {
   try {
+    console.log('🔍 [tipo-despesa/agrupado] Iniciando...');
+
     const tipos = await TipoDespesa.obterPorClassificacao();
+
+    console.log('✅ [tipo-despesa/agrupado] Retornando:', Object.keys(tipos).length, 'classificações');
+
     res.json({
       success: true,
       data: tipos
     });
   } catch (error) {
+    console.error('❌ [tipo-despesa/agrupado] Erro:', error.message);
+    console.error('❌ Stack:', error.stack);
+
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
     });
   }
 });
