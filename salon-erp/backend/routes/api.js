@@ -1050,6 +1050,9 @@ router.get('/notas-fiscais/:id', async (req, res) => {
 // POST /api/notas-fiscais/upload - Fazer upload e processar notas fiscais (XML/PDF)
 router.post('/notas-fiscais/upload', upload.array('files', 10), async (req, res) => {
   try {
+    console.log('\n📤 Upload de notas fiscais iniciado');
+    console.log(`   Arquivos recebidos: ${req.files?.length || 0}`);
+
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
@@ -1061,29 +1064,37 @@ router.post('/notas-fiscais/upload', upload.array('files', 10), async (req, res)
     const erros = [];
 
     // Processar cada arquivo
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      console.log(`\n📄 Processando arquivo ${i + 1}/${req.files.length}: ${file.originalname}`);
       try {
         // Fazer parsing do arquivo
+        console.log(`   Tamanho: ${file.size} bytes`);
         const dadosExtraidos = await NotaFiscalParser.detectarEParsear(
           file.buffer,
           file.originalname
         );
+        console.log(`   ✅ Parsing bem-sucedido: ${dadosExtraidos.numero_nf}`);
 
         // Verificar se nota já existe
         const notaExistente = await NotaFiscal.obterPorNumero(dadosExtraidos.numero_nf);
         if (notaExistente) {
+          const msg = `Nota fiscal ${dadosExtraidos.numero_nf} já foi processada`;
+          console.log(`   ⚠️  ${msg}`);
           erros.push({
             arquivo: file.originalname,
-            erro: `Nota fiscal ${dadosExtraidos.numero_nf} já foi processada`
+            erro: msg
           });
           continue;
         }
 
         // Salvar nota fiscal no banco
+        console.log(`   💾 Salvando no banco...`);
         const resultado = await NotaFiscal.criar({
           ...dadosExtraidos,
           pdf_filename: file.originalname
         });
+        console.log(`   ✅ Salvo com ID: ${resultado.id}`);
 
         notasProcessadas.push({
           id: resultado.id,
@@ -1094,12 +1105,20 @@ router.post('/notas-fiscais/upload', upload.array('files', 10), async (req, res)
           classificacao_sugerida: dadosExtraidos.classificacao_sugerida
         });
       } catch (erro) {
+        console.error(`   ❌ Erro ao processar ${file.originalname}:`);
+        console.error(`      ${erro.message}`);
+        console.error(`      Stack: ${erro.stack}`);
         erros.push({
           arquivo: file.originalname,
-          erro: erro.message
+          erro: erro.message,
+          stack: erro.stack
         });
       }
     }
+
+    console.log(`\n📊 Resumo do upload:`);
+    console.log(`   ✅ Notas processadas: ${notasProcessadas.length}`);
+    console.log(`   ❌ Erros: ${erros.length}`);
 
     res.status(201).json({
       success: notasProcessadas.length > 0,
@@ -1108,9 +1127,12 @@ router.post('/notas-fiscais/upload', upload.array('files', 10), async (req, res)
       errors: erros.length > 0 ? erros : undefined
     });
   } catch (error) {
+    console.error('❌ Erro geral no upload:', error.message);
+    console.error('   Stack:', error.stack);
     res.status(400).json({
       success: false,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 });

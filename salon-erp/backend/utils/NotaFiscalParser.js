@@ -11,21 +11,30 @@ class NotaFiscalParser {
    */
   static async parseXML(xmlContent) {
     try {
+      console.log('🔄 Iniciando parsing XML...');
       const parser = new xml2js.Parser({
         explicitArray: false,
         mergeAttrs: true
       });
 
       const xml = await parser.parseStringPromise(xmlContent);
+      console.log('✅ XML parseado com sucesso');
 
       // Navegar pela estrutura XML da NF-e padrão
       // Estrutura: nfeProc > NFe > infNFe > ide/emit/dest/det/total/cobr
       const nfeData = xml.nfeProc?.NFe?.infNFe || xml.NFe?.infNFe || {};
+      console.log('📋 nfeData encontrado:', !!nfeData);
+
       const ide = nfeData.ide || {};
       const emit = nfeData.emit || {};
       const total = nfeData.total?.ICMSTot || {};
       const det = Array.isArray(nfeData.det) ? nfeData.det : [nfeData.det];
       const cobr = nfeData.cobr || {}; // Informações de cobrança
+
+      console.log('🔍 Campos extraídos:');
+      console.log('   - IDE:', { cUF: ide.cUF, AAMM: ide.AAMM, nNF: ide.nNF });
+      console.log('   - EMIT:', { CNPJ: emit.CNPJ, xNome: emit.xNome });
+      console.log('   - TOTAL:', { vNF: total.vNF });
 
       // Extrair data de vencimento de cobr.dup (duplicata/parcela)
       let dataVencimento = ide.dEmi; // Default: data de emissão
@@ -39,18 +48,35 @@ class NotaFiscalParser {
       const descricao = this._extrairDescricaoItens(det);
       const classificacao = this._sugerirClassificacao(descricao, det);
 
-      return {
+      // Validar e converter valor_total com segurança
+      let valorTotal = 0;
+      try {
+        if (total.vNF) {
+          valorTotal = parseFloat(String(total.vNF).replace(',', '.'));
+          if (isNaN(valorTotal)) valorTotal = 0;
+        }
+      } catch (e) {
+        console.warn('⚠️  Erro ao converter valor_total:', e.message);
+        valorTotal = 0;
+      }
+
+      const resultado = {
         numero_nf: numeroNF || `NF-${Date.now()}`,
         fornecedor_nome: emit.xNome || 'Fornecedor Desconhecido',
         fornecedor_cnpj: emit.CNPJ || '',
         data_emissao: this._formatarData(ide.dEmi),
         data_vencimento: this._formatarData(dataVencimento),
-        valor_total: parseFloat(total.vNF || 0),
+        valor_total: valorTotal,
         descricao: descricao,
         classificacao_sugerida: classificacao,
         xml_content: xmlContent.toString('utf8')
       };
+
+      console.log('✅ XML parsing finalizado:', resultado.numero_nf);
+      return resultado;
     } catch (error) {
+      console.error('❌ Erro ao fazer parsing do XML:', error.message);
+      console.error('   Stack:', error.stack);
       throw new Error(`Erro ao fazer parsing do XML: ${error.message}`);
     }
   }

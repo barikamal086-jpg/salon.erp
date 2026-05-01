@@ -282,7 +282,7 @@
             <!-- Dias -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📅 Dias</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">{{ stats.dias }}</p>
+              <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">{{ stats?.dias || 0 }}</p>
             </div>
           </div>
         </div>
@@ -348,9 +348,9 @@
                 </div>
               </div>
               <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-                <div>{{ cat.dias }} {{ cat.dias === 1 ? 'dia' : 'dias' }}</div>
-                <div v-if="cat.mediaReceita > 0">Média Receita: R$ {{ formatarValor(cat.mediaReceita) }}</div>
-                <div v-if="cat.mediaDespesa > 0">Média Despesa: R$ {{ formatarValor(cat.mediaDespesa) }}</div>
+                <div>{{ cat?.dias || 0 }} {{ (cat?.dias || 0) === 1 ? 'dia' : 'dias' }}</div>
+                <div v-if="cat?.mediaReceita > 0">Média Receita: R$ {{ formatarValor(cat.mediaReceita) }}</div>
+                <div v-if="cat?.mediaDespesa > 0">Média Despesa: R$ {{ formatarValor(cat.mediaDespesa) }}</div>
               </div>
             </div>
           </div>
@@ -984,7 +984,7 @@
             </div>
             <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
               <p class="text-gray-600 text-sm font-medium">📅 Período</p>
-              <p class="text-lg font-bold text-blue-600 mt-2">{{ cmvDados.periodo.dias }} dias</p>
+              <p class="text-lg font-bold text-blue-600 mt-2">{{ cmvDados?.periodo?.dias || 0 }} dias</p>
             </div>
           </div>
           <div v-else class="text-gray-500 text-center py-8">

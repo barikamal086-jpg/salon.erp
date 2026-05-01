@@ -41,7 +41,7 @@ const KPIs = {
         <div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-500">
           <p class="text-gray-600 text-sm font-medium">📅 Dias</p>
           <p class="text-3xl font-bold text-red-600 mt-2">
-            {{ stats.dias }}
+            {{ stats?.dias || 0 }}
           </p>
         </div>
       </div>
