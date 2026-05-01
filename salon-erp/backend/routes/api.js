@@ -1635,6 +1635,17 @@ router.post('/debug/init-tipo-despesa', async (req, res) => {
   }
 });
 
+// DEBUG: Contar notas fiscais
+router.get('/debug/contar-notas', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT COUNT(*) as cnt FROM notas_fiscais');
+    const count = parseInt(result.rows[0].cnt);
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DEBUG: Endpoint para diagnosticar tipo_despesa e JOINs
 router.get('/debug/tipo-despesa', async (req, res) => {
   try {
