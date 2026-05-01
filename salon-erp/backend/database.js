@@ -153,42 +153,67 @@ async function insertDefaultRestaurantes() {
 
 // Inserir tipos de despesa padrão
 async function insertDefaultTiposDespesa() {
-  const tiposDespesa = [
-    // CMV
-    { classificacao: 'CMV', subcategoria: 'Hortifruti', descricao: 'Vegetais e frutas' },
-    { classificacao: 'CMV', subcategoria: 'Padaria', descricao: 'Pão, massas e derivados' },
-    { classificacao: 'CMV', subcategoria: 'Óleo', descricao: 'Óleos e gorduras' },
-    { classificacao: 'CMV', subcategoria: 'Batata', descricao: 'Batatas e tubérculos' },
-    { classificacao: 'CMV', subcategoria: 'Carne', descricao: 'Carnes, peixes e proteínas' },
-    { classificacao: 'CMV', subcategoria: 'Embalagem', descricao: 'Embalagens e descartáveis' },
-    { classificacao: 'CMV', subcategoria: 'Bebida', descricao: 'Bebidas diversas' },
-    { classificacao: 'CMV', subcategoria: 'Outros', descricao: 'Outros insumos' },
-    // Operacional
-    { classificacao: 'Operacional', subcategoria: 'Aluguel', descricao: 'Aluguel do estabelecimento' },
-    { classificacao: 'Operacional', subcategoria: 'Utilidades', descricao: 'Água, luz, gás' },
-    { classificacao: 'Operacional', subcategoria: 'Limpeza', descricao: 'Materiais de limpeza' },
-    { classificacao: 'Operacional', subcategoria: 'Manutenção', descricao: 'Manutenção e reparos' },
-    { classificacao: 'Operacional', subcategoria: 'Taxas', descricao: 'Taxas de plataforma' },
-    // Administrativa
-    { classificacao: 'Administrativa', subcategoria: 'Impostos', descricao: 'Impostos e taxas' },
-    { classificacao: 'Administrativa', subcategoria: 'Pessoal', descricao: 'Salários e encargos' },
-    { classificacao: 'Administrativa', subcategoria: 'Software', descricao: 'Ferramentas e sistemas' },
-    // Financeira
-    { classificacao: 'Financeira', subcategoria: 'Juros', descricao: 'Juros e multas' },
-    { classificacao: 'Financeira', subcategoria: 'Taxas', descricao: 'Taxas bancárias' }
-  ];
+  try {
+    // Verificar quantos já existem
+    const checkResult = await pool.query('SELECT COUNT(*) as cnt FROM tipo_despesa WHERE ativa = true');
+    const existentes = parseInt(checkResult.rows[0].cnt);
 
-  for (const tipo of tiposDespesa) {
-    try {
-      await pool.query(
-        `INSERT INTO tipo_despesa (classificacao, subcategoria, descricao, ativa)
-         VALUES ($1, $2, $3, true)
-         ON CONFLICT (classificacao, subcategoria) DO NOTHING`,
-        [tipo.classificacao, tipo.subcategoria, tipo.descricao]
-      );
-    } catch (err) {
-      console.error(`Erro ao inserir tipo_despesa ${tipo.subcategoria}:`, err.message);
+    if (existentes > 0) {
+      console.log(`✅ tipo_despesa já tem ${existentes} registros - pulando inicialização`);
+      return;
     }
+
+    console.log('📝 Inicializando tipo_despesa com categorias padrão...');
+
+    const tiposDespesa = [
+      // CMV
+      { classificacao: 'CMV', subcategoria: 'Taxas', descricao: 'Taxas de delivery (iFood, Uber, etc)' },
+      { classificacao: 'CMV', subcategoria: 'Bebidas', descricao: 'Custo de bebidas' },
+      { classificacao: 'CMV', subcategoria: 'Comidas', descricao: 'Custo de alimentos' },
+      { classificacao: 'CMV', subcategoria: 'Açúcar/Temperos', descricao: 'Açúcar, sal, temperos' },
+      { classificacao: 'CMV', subcategoria: 'Embalagem', descricao: 'Embalagens e descartáveis' },
+      // Operacional
+      { classificacao: 'Operacional', subcategoria: 'Aluguel', descricao: 'Aluguel do estabelecimento' },
+      { classificacao: 'Operacional', subcategoria: 'Energia', descricao: 'Conta de energia/luz' },
+      { classificacao: 'Operacional', subcategoria: 'Água', descricao: 'Conta de água' },
+      { classificacao: 'Operacional', subcategoria: 'Telefone/Internet', descricao: 'Internet e telefone' },
+      { classificacao: 'Operacional', subcategoria: 'Limpeza', descricao: 'Produtos de limpeza' },
+      { classificacao: 'Operacional', subcategoria: 'Manutenção', descricao: 'Manutenção de equipamentos' },
+      // Administrativa
+      { classificacao: 'Administrativa', subcategoria: 'Folha de Pagamento', descricao: 'Salários e encargos' },
+      { classificacao: 'Administrativa', subcategoria: 'Contador', descricao: 'Serviços contábeis' },
+      { classificacao: 'Administrativa', subcategoria: 'Seguros', descricao: 'Seguros diversos' },
+      { classificacao: 'Administrativa', subcategoria: 'Material Administrativo', descricao: 'Papéis, canetas, etc' },
+      // Financeira
+      { classificacao: 'Financeira', subcategoria: 'Juros e Multas', descricao: 'Juros e multas bancárias' },
+      { classificacao: 'Financeira', subcategoria: 'Custos Financeiros', descricao: 'Taxa de cartão, POS' },
+      { classificacao: 'Financeira', subcategoria: 'Empréstimos', descricao: 'Juros de empréstimos' }
+    ];
+
+    let insertados = 0;
+    for (const tipo of tiposDespesa) {
+      try {
+        const result = await pool.query(
+          `INSERT INTO tipo_despesa (classificacao, subcategoria, descricao, ativa)
+           VALUES ($1, $2, $3, true)
+           ON CONFLICT (classificacao, subcategoria) DO NOTHING
+           RETURNING id`,
+          [tipo.classificacao, tipo.subcategoria, tipo.descricao]
+        );
+        if (result.rows.length > 0) {
+          insertados++;
+        }
+      } catch (err) {
+        console.error(`  ⚠️  Erro ao inserir ${tipo.subcategoria}:`, err.message);
+      }
+    }
+
+    // Verificar resultado
+    const finalResult = await pool.query('SELECT COUNT(*) as cnt FROM tipo_despesa WHERE ativa = true');
+    const final = parseInt(finalResult.rows[0].cnt);
+    console.log(`✅ tipo_despesa inicializado: ${final} registros total (${insertados} novos)`);
+  } catch (err) {
+    console.error('❌ Erro ao inicializar tipo_despesa:', err.message);
   }
 }
 

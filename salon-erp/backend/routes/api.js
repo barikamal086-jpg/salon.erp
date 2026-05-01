@@ -809,6 +809,22 @@ router.get('/tipo-despesa/agrupado', async (req, res) => {
   try {
     console.log('🔍 [tipo-despesa/agrupado] Iniciando...');
 
+    // 1. Verificar se tabela tem dados
+    const checkResult = await pool.query('SELECT COUNT(*) as cnt FROM tipo_despesa WHERE ativa = true');
+    const count = parseInt(checkResult.rows[0].cnt);
+    console.log(`🔍 [tipo-despesa/agrupado] Encontrados ${count} registros`);
+
+    // 2. Se vazio, retornar objeto vazio ao invés de erro
+    if (count === 0) {
+      console.log('⚠️  [tipo-despesa/agrupado] tipo_despesa vazio - retornando {}');
+      return res.json({
+        success: true,
+        data: {},
+        warning: 'tipo_despesa está vazio. Execute POST /debug/init-tipo-despesa para inicializar'
+      });
+    }
+
+    // 3. Buscar dados agrupados
     const tipos = await TipoDespesa.obterPorClassificacao();
 
     console.log('✅ [tipo-despesa/agrupado] Retornando:', Object.keys(tipos).length, 'classificações');
@@ -824,7 +840,8 @@ router.get('/tipo-despesa/agrupado', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack,
+      hint: 'Se tipo_despesa está vazio, execute: POST /debug/init-tipo-despesa'
     });
   }
 });
