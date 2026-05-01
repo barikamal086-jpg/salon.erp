@@ -1663,6 +1663,61 @@ router.get('/debug/status-notas', async (req, res) => {
   }
 });
 
+// DELETE /api/debug/deletar-todas-notas - Deletar TODAS as notas (debug/cleanup)
+router.post('/debug/deletar-todas-notas', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    console.log('🗑️  Iniciando deleção de TODAS as notas...');
+
+    // Começar transação
+    await client.query('BEGIN');
+
+    // 1. Contar ANTES
+    console.log('📊 Contando notas no banco...');
+    const beforeCount = await client.query('SELECT COUNT(*) as count FROM notas_fiscais');
+    const before = parseInt(beforeCount.rows[0].count);
+    console.log(`   Total de notas: ${before}`);
+
+    // 2. Fazer DELETE sem condição (força limpeza)
+    console.log('🗑️  Deletando todas as notas...');
+    const deleteResult = await client.query('DELETE FROM notas_fiscais');
+    console.log(`   ✅ DELETE afetou ${deleteResult.rowCount} linhas`);
+
+    // 3. Contar DEPOIS
+    console.log('📊 Verificando banco após limpeza...');
+    const afterCount = await client.query('SELECT COUNT(*) as count FROM notas_fiscais');
+    const after = parseInt(afterCount.rows[0].count);
+    console.log(`   Notas restantes: ${after}`);
+
+    // Confirmar transação
+    await client.query('COMMIT');
+    console.log('✅ Limpeza confirmada com sucesso');
+
+    res.json({
+      success: true,
+      message: `${before} notas deletadas com sucesso`,
+      dados: {
+        notasDeletadas: before,
+        rowsAffected: deleteResult.rowCount,
+        notasRestantes: after
+      }
+    });
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+    }
+    console.error('❌ Erro ao deletar notas:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
 // POST /api/debug/reverter-notas-pendentes - Mudar todas as notas de 'processado' para 'pendente'
 router.post('/debug/reverter-notas-pendentes', async (req, res) => {
   const client = await pool.connect();
