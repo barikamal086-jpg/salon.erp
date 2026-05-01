@@ -1695,6 +1695,174 @@ router.get('/debug/status-notas', async (req, res) => {
   }
 });
 
+// POST /api/debug/processar-todas-notas-pendentes - Processar todas as notas pendentes em lote
+router.post('/debug/processar-todas-notas-pendentes', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    console.log('\n🔄 Processando TODAS as notas pendentes em lote...');
+
+    // Começar transação
+    await client.query('BEGIN');
+
+    // 1. Contar notas pendentes
+    console.log('📊 Contando notas pendentes...');
+    const contarResult = await client.query(
+      'SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1',
+      ['pendente']
+    );
+    const totalPendentes = parseInt(contarResult.rows[0].count);
+    console.log(`   Total de notas pendentes: ${totalPendentes}`);
+
+    if (totalPendentes === 0) {
+      await client.query('COMMIT');
+      return res.json({
+        success: true,
+        message: 'Nenhuma nota pendente para processar',
+        dados: {
+          totalProcessado: 0,
+          porClassificacao: {}
+        }
+      });
+    }
+
+    // 2. Buscar todas as notas pendentes
+    console.log('📋 Buscando notas pendentes...');
+    const notasResult = await client.query(
+      'SELECT * FROM notas_fiscais WHERE status = $1 ORDER BY id',
+      ['pendente']
+    );
+    const notas = notasResult.rows;
+    console.log(`   Encontradas ${notas.length} notas`);
+
+    // 3. Processá-las todas
+    const resumo = {
+      cmv: 0,
+      operacional: 0,
+      administrativa: 0,
+      outras: 0,
+      erros: []
+    };
+
+    let processadas = 0;
+
+    for (let i = 0; i < notas.length; i++) {
+      const nota = notas[i];
+      try {
+        if ((i + 1) % 20 === 0) {
+          console.log(`   Processando ${i + 1}/${notas.length}...`);
+        }
+
+        // Obter ou criar tipo_despesa baseado na classificação
+        let tipoDespesaId = nota.tipo_despesa_id;
+
+        if (!tipoDespesaId && nota.classificacao_sugerida) {
+          // Procurar tipo_despesa por classificação
+          let subcategoria = 'Diversos';
+
+          if (nota.classificacao_sugerida === 'CMV') {
+            subcategoria = 'Comidas'; // padrão CMV
+          } else if (nota.classificacao_sugerida === 'Operacional') {
+            subcategoria = 'Manutenção'; // padrão Operacional
+          } else if (nota.classificacao_sugerida === 'Administrativa') {
+            subcategoria = 'Material Administrativo'; // padrão Administrativa
+          }
+
+          const tipoResult = await client.query(
+            'SELECT id FROM tipo_despesa WHERE classificacao = $1 AND subcategoria = $2 LIMIT 1',
+            [nota.classificacao_sugerida, subcategoria]
+          );
+
+          if (tipoResult.rows.length > 0) {
+            tipoDespesaId = tipoResult.rows[0].id;
+          }
+        }
+
+        // Extrair data da nota (usar data_emissao se existir, senão usar hoje)
+        let dataFaturamento = nota.data_emissao;
+        if (!dataFaturamento) {
+          dataFaturamento = new Date().toISOString().split('T')[0];
+        }
+
+        // Criar faturamento
+        const faturamentoResult = await client.query(
+          `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, status, categoria_produto, created_at)
+           VALUES ($1, $2, $3, 'despesa', $4, false, $5, NOW())
+           RETURNING id`,
+          [
+            dataFaturamento,
+            nota.valor_total || 0,
+            'Salão', // categoria padrão
+            tipoDespesaId || null,
+            nota.classificacao_sugerida || 'Despesa'
+          ]
+        );
+
+        const faturamentoId = faturamentoResult.rows[0].id;
+
+        // Marcar nota como processado
+        await client.query(
+          'UPDATE notas_fiscais SET status = $1, faturamento_id = $2, processado_em = NOW() WHERE id = $3',
+          ['processado', faturamentoId, nota.id]
+        );
+
+        // Contar por classificação
+        if (nota.classificacao_sugerida === 'CMV') {
+          resumo.cmv++;
+        } else if (nota.classificacao_sugerida === 'Operacional') {
+          resumo.operacional++;
+        } else if (nota.classificacao_sugerida === 'Administrativa') {
+          resumo.administrativa++;
+        } else {
+          resumo.outras++;
+        }
+
+        processadas++;
+      } catch (erro) {
+        console.error(`❌ Erro ao processar nota ${nota.id}:`, erro.message);
+        resumo.erros.push({
+          notaId: nota.id,
+          numero: nota.numero_nf,
+          erro: erro.message
+        });
+      }
+    }
+
+    // 4. Confirmar transação
+    await client.query('COMMIT');
+    console.log(`✅ ${processadas} notas processadas com sucesso`);
+
+    res.json({
+      success: true,
+      message: `${processadas}/${notas.length} notas processadas com sucesso`,
+      dados: {
+        totalProcessado: processadas,
+        totalErros: resumo.erros.length,
+        porClassificacao: {
+          CMV: resumo.cmv,
+          Operacional: resumo.operacional,
+          Administrativa: resumo.administrativa,
+          Outras: resumo.outras
+        },
+        erros: resumo.erros.length > 0 ? resumo.erros : undefined
+      }
+    });
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+    }
+    console.error('❌ Erro ao processar notas:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: err.stack
+    });
+  } finally {
+    client.release();
+  }
+});
+
 // DELETE /api/debug/deletar-todas-notas - Deletar TODAS as notas (debug/cleanup)
 router.post('/debug/deletar-todas-notas', async (req, res) => {
   const client = await pool.connect();
