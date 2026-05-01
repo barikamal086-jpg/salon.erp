@@ -10,6 +10,7 @@ const CMVAnalyzer = require('../utils/CMVAnalyzer');
 const CMVAnalyzerV2 = require('../utils/CMVAnalyzerV2');
 const logger = require('../utils/logger');
 const { gerarToken, verificarSenha, buscarUsuarioPorEmail, middlewareAutenticacao } = require('../auth');
+const { pool } = require('../database');
 
 // Configurar multer para upload de arquivos
 const upload = multer({
@@ -1516,6 +1517,92 @@ router.get('/debug/stats-categoria', async (req, res) => {
         despesasRetornadas: despesas ? despesas.length : 0,
         stats: stats || [],
         despesas: despesas || []
+      }
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// DEBUG: Endpoint para diagnosticar tipo_despesa e JOINs
+router.get('/debug/tipo-despesa', async (req, res) => {
+  try {
+    console.log('\n🔍 [DEBUG] Diagnosticando tipo_despesa...');
+
+    // Query 1: Contar faturamentos com tipo_despesa_id NOT NULL
+    const q1 = await pool.query(
+      'SELECT COUNT(*) as cnt FROM faturamento WHERE tipo_despesa_id IS NOT NULL'
+    );
+    const comTipoDespesaId = parseInt(q1.rows[0].cnt);
+    console.log(`🔍 [DEBUG] Faturamentos com tipo_despesa_id NOT NULL: ${comTipoDespesaId}`);
+
+    // Query 2: JOIN com tipo_despesa para Taxas
+    const q2 = await pool.query(`
+      SELECT COUNT(*) as cnt FROM faturamento f
+      JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE td.subcategoria = 'Taxas'
+    `);
+    const joinTaxas = parseInt(q2.rows[0].cnt);
+    console.log(`🔍 [DEBUG] JOIN faturamento ↔ tipo_despesa (Taxas): ${joinTaxas}`);
+
+    // Query 3: Agrupamento de tipo_despesa_id por subcategoria
+    const q3 = await pool.query(`
+      SELECT f.tipo_despesa_id, td.subcategoria, COUNT(*) as cnt
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.tipo = 'despesa'
+      GROUP BY f.tipo_despesa_id, td.subcategoria
+      ORDER BY cnt DESC
+      LIMIT 10
+    `);
+    const agrupamento = q3.rows;
+    console.log(`🔍 [DEBUG] Agrupamento: ${agrupamento.length} grupos encontrados`);
+
+    // Query 4: Total de registros em tipo_despesa
+    const q4 = await pool.query('SELECT COUNT(*) as cnt FROM tipo_despesa');
+    const totalTipoDespesa = parseInt(q4.rows[0].cnt);
+    console.log(`🔍 [DEBUG] Total de registros em tipo_despesa: ${totalTipoDespesa}`);
+
+    // Query 5: Subcategorias disponíveis
+    const q5 = await pool.query(`
+      SELECT DISTINCT subcategoria, COUNT(*) as cnt
+      FROM tipo_despesa
+      GROUP BY subcategoria
+      ORDER BY subcategoria
+    `);
+    const subcategorias = q5.rows;
+
+    // Query 6: Verificar IDs órfãos (tipo_despesa_id que não existem em tipo_despesa)
+    const q6 = await pool.query(`
+      SELECT DISTINCT f.tipo_despesa_id, COUNT(*) as cnt
+      FROM faturamento f
+      WHERE f.tipo_despesa_id IS NOT NULL
+        AND f.tipo_despesa_id NOT IN (SELECT id FROM tipo_despesa)
+      GROUP BY f.tipo_despesa_id
+    `);
+    const orfaos = q6.rows;
+
+    res.json({
+      success: true,
+      diagnostico: {
+        faturamentosComTipoDespesaId: comTipoDespesaId,
+        joinComTipoDespesaTaxas: joinTaxas,
+        totalTipoDespesaRegistros: totalTipoDespesa,
+        subcategorias: subcategorias,
+        agrupamentoPorSubcategoria: agrupamento,
+        tiposOrfaos: {
+          quantidade: orfaos.length,
+          detalhes: orfaos
+        },
+        resumo: {
+          problema: orfaos.length > 0 ? 'IDs órfãos encontrados - dados perdidos na migração' : 'OK',
+          causa: comTipoDespesaId === 0 ? 'Nenhum tipo_despesa_id foi migrado' : 'Possível mismatch de IDs'
+        }
       }
     });
   } catch (error) {
