@@ -1662,14 +1662,22 @@ router.get('/debug/status-notas', async (req, res) => {
 // GET /api/debug/reverter-notas-pendentes - Mudar todas as notas de 'processado' para 'pendente'
 router.get('/debug/reverter-notas-pendentes', async (req, res) => {
   try {
-    const result = await pool.query('UPDATE notas_fiscais SET status = $1 WHERE status = $2 RETURNING COUNT(*)', ['pendente', 'processado']);
-    const countResult = await pool.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['pendente']);
-    const count = parseInt(countResult.rows[0].count);
+    // Contar quantas notas vão ser atualizadas
+    const beforeCount = await pool.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['processado']);
+    const before = parseInt(beforeCount.rows[0].count);
+
+    // Fazer update
+    const updateResult = await pool.query('UPDATE notas_fiscais SET status = $1 WHERE status = $2', ['pendente', 'processado']);
+
+    // Contar resultado
+    const afterCount = await pool.query('SELECT COUNT(*) as count FROM notas_fiscais WHERE status = $1', ['pendente']);
+    const after = parseInt(afterCount.rows[0].count);
 
     res.json({
       success: true,
-      message: `${count} notas revertidas para pendente`,
-      count: count
+      message: `${before} notas revertidas de 'processado' para 'pendente'`,
+      notasRevertidas: before,
+      totalPendentes: after
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
