@@ -6,7 +6,7 @@ class TipoDespesa {
     const sql = `
       SELECT id, classificacao, subcategoria, descricao
       FROM tipo_despesa
-      WHERE ativa = 1
+      WHERE ativa = true
       ORDER BY classificacao, subcategoria
     `;
     return await allAsync(sql);
@@ -36,7 +36,7 @@ class TipoDespesa {
     const sql = `
       SELECT id, subcategoria, descricao
       FROM tipo_despesa
-      WHERE classificacao = 'CMV' AND ativa = 1
+      WHERE classificacao = 'CMV' AND ativa = true
       ORDER BY subcategoria
     `;
     return await allAsync(sql);
@@ -47,7 +47,7 @@ class TipoDespesa {
     const sql = `
       SELECT *
       FROM tipo_despesa
-      WHERE id = ? AND ativa = 1
+      WHERE id = ? AND ativa = true
     `;
     return await getAsync(sql, [id]);
   }
@@ -56,7 +56,7 @@ class TipoDespesa {
   static async criar(classificacao, subcategoria, descricao) {
     const sql = `
       INSERT INTO tipo_despesa (classificacao, subcategoria, descricao, ativa)
-      VALUES (?, ?, ?, 1)
+      VALUES (?, ?, ?, true)
     `;
     return await runAsync(sql, [classificacao, subcategoria, descricao]);
   }
@@ -75,7 +75,7 @@ class TipoDespesa {
   static async desativar(id) {
     const sql = `
       UPDATE tipo_despesa
-      SET ativa = 0
+      SET ativa = false
       WHERE id = ?
     `;
     return await runAsync(sql, [id]);
@@ -86,7 +86,7 @@ class TipoDespesa {
     const sql = `
       SELECT id, classificacao, subcategoria, descricao
       FROM tipo_despesa
-      WHERE classificacao = ? AND subcategoria = ? AND ativa = 1
+      WHERE classificacao = ? AND subcategoria = ? AND ativa = true
       LIMIT 1
     `;
     return await getAsync(sql, [classificacao, subcategoria]);
