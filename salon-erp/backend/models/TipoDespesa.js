@@ -6,10 +6,10 @@ class TipoDespesa {
     const sql = `
       SELECT id, classificacao, subcategoria, descricao
       FROM tipo_despesa
-      WHERE ativa = true
+      WHERE ativa = $1
       ORDER BY classificacao, subcategoria
     `;
-    return await allAsync(sql);
+    return await allAsync(sql, [true]);
   }
 
   // Obter tipos agrupados por classificação
@@ -36,10 +36,10 @@ class TipoDespesa {
     const sql = `
       SELECT id, subcategoria, descricao
       FROM tipo_despesa
-      WHERE classificacao = 'CMV' AND ativa = true
+      WHERE classificacao = $1 AND ativa = $2
       ORDER BY subcategoria
     `;
-    return await allAsync(sql);
+    return await allAsync(sql, ['CMV', true]);
   }
 
   // Obter um tipo específico
@@ -47,26 +47,26 @@ class TipoDespesa {
     const sql = `
       SELECT *
       FROM tipo_despesa
-      WHERE id = ? AND ativa = true
+      WHERE id = $1 AND ativa = $2
     `;
-    return await getAsync(sql, [id]);
+    return await getAsync(sql, [id, true]);
   }
 
   // Criar novo tipo de despesa
   static async criar(classificacao, subcategoria, descricao) {
     const sql = `
       INSERT INTO tipo_despesa (classificacao, subcategoria, descricao, ativa)
-      VALUES (?, ?, ?, true)
+      VALUES ($1, $2, $3, $4)
     `;
-    return await runAsync(sql, [classificacao, subcategoria, descricao]);
+    return await runAsync(sql, [classificacao, subcategoria, descricao, true]);
   }
 
   // Atualizar tipo de despesa
   static async atualizar(id, classificacao, subcategoria, descricao) {
     const sql = `
       UPDATE tipo_despesa
-      SET classificacao = ?, subcategoria = ?, descricao = ?
-      WHERE id = ?
+      SET classificacao = $1, subcategoria = $2, descricao = $3
+      WHERE id = $4
     `;
     return await runAsync(sql, [classificacao, subcategoria, descricao, id]);
   }
@@ -75,10 +75,10 @@ class TipoDespesa {
   static async desativar(id) {
     const sql = `
       UPDATE tipo_despesa
-      SET ativa = false
-      WHERE id = ?
+      SET ativa = $1
+      WHERE id = $2
     `;
-    return await runAsync(sql, [id]);
+    return await runAsync(sql, [false, id]);
   }
 
   // Verificar se existe categoria por classificação e subcategoria
@@ -86,10 +86,10 @@ class TipoDespesa {
     const sql = `
       SELECT id, classificacao, subcategoria, descricao
       FROM tipo_despesa
-      WHERE classificacao = ? AND subcategoria = ? AND ativa = true
+      WHERE classificacao = $1 AND subcategoria = $2 AND ativa = $3
       LIMIT 1
     `;
-    return await getAsync(sql, [classificacao, subcategoria]);
+    return await getAsync(sql, [classificacao, subcategoria, true]);
   }
 }
 
