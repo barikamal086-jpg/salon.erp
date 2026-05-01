@@ -518,7 +518,7 @@
                       <p class="text-sm text-gray-600">{{ nota.fornecedor_nome }}</p>
                       <p class="text-sm text-gray-500">{{ nota.descricao }}</p>
                       <div class="flex gap-2 mt-2">
-                        <span class="text-xs bg-gray-200 px-2 py-1 rounded">💰 R$ {{ nota.valor_total.toFixed(2) }}</span>
+                        <span class="text-xs bg-gray-200 px-2 py-1 rounded">💰 R$ {{ (nota.valor_total || 0).toFixed(2) }}</span>
                         <span
                           v-if="notasCategoria[nota.id]"
                           :class="['text-xs px-2 py-1 rounded font-semibold',
@@ -973,14 +973,14 @@
             </div>
             <div class="bg-orange-50 rounded-lg p-4 border-l-4 border-orange-500">
               <p class="text-gray-600 text-sm font-medium">📈 CMV %</p>
-              <p class="text-2xl font-bold text-orange-600 mt-2">{{ cmvDados.resumo.cmvPercentual.toFixed(2) }}%</p>
+              <p class="text-2xl font-bold text-orange-600 mt-2">{{ (cmvDados.resumo.cmvPercentual || 0).toFixed(2) }}%</p>
               <p v-if="cmvDados.resumo.variacao !== 0" class="text-xs mt-2" :class="cmvDados.resumo.variacao > 0 ? 'text-red-500' : 'text-green-500'">
-                {{ cmvDados.resumo.variacao > 0 ? '📈' : '📉' }} {{ cmvDados.resumo.variacao.toFixed(2) }}%
+                {{ cmvDados.resumo.variacao > 0 ? '📈' : '📉' }} {{ (cmvDados.resumo.variacao || 0).toFixed(2) }}%
               </p>
             </div>
             <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
               <p class="text-gray-600 text-sm font-medium">💵 Margem Bruta</p>
-              <p class="text-2xl font-bold text-green-600 mt-2">{{ cmvDados.resumo.margemBruta.toFixed(2) }}%</p>
+              <p class="text-2xl font-bold text-green-600 mt-2">{{ (cmvDados.resumo.margemBruta || 0).toFixed(2) }}%</p>
             </div>
             <div class="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
               <p class="text-gray-600 text-sm font-medium">📅 Período</p>
@@ -1010,7 +1010,7 @@
                 <tr v-for="(item, idx) in cmvDados.cmvDetalhado" :key="idx" class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="px-4 py-2 font-medium text-gray-900">{{ item.subcategoria }}</td>
                   <td class="px-4 py-2 text-right text-red-600 font-semibold">R$ {{ formatarValor(item.total) }}</td>
-                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ item.percentualReceitaCMV.toFixed(2) }}%</td>
+                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ (item.percentualReceitaCMV || 0).toFixed(2) }}%</td>
                   <td class="px-4 py-2 text-right text-gray-600">R$ {{ formatarValor(item.media) }}</td>
                   <td class="px-4 py-2 text-right text-gray-600">{{ item.quantidade }}</td>
                 </tr>
@@ -1068,11 +1068,11 @@
               <div class="grid grid-cols-3 gap-2 text-xs">
                 <div>
                   <span class="text-gray-600">CMV %:</span>
-                  <span class="font-bold">{{ cmvAnalise.situacao.cmvPercentual.toFixed(2) }}%</span>
+                  <span class="font-bold">{{ (cmvAnalise.situacao.cmvPercentual || 0).toFixed(2) }}%</span>
                 </div>
                 <div>
                   <span class="text-gray-600">Margem:</span>
-                  <span class="font-bold">{{ cmvAnalise.situacao.margemBruta.toFixed(2) }}%</span>
+                  <span class="font-bold">{{ (cmvAnalise.situacao.margemBruta || 0).toFixed(2) }}%</span>
                 </div>
                 <div>
                   <span class="text-gray-600">Status:</span>
@@ -1267,7 +1267,7 @@
                   <td class="px-4 py-2 text-right text-red-600 font-semibold">R$ {{ formatarValor(item.total) }}</td>
                   <td class="px-4 py-2 text-right text-gray-600">{{ item.quantidade }}</td>
                   <td class="px-4 py-2 text-right text-gray-600">R$ {{ formatarValor(item.media) }}</td>
-                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ ((item.total / auditoriaDados.resumo.totalCMV) * 100).toFixed(1) }}%</td>
+                  <td class="px-4 py-2 text-right text-orange-600 font-semibold">{{ (((item.total || 0) / (auditoriaDados.resumo.totalCMV || 1)) * 100).toFixed(1) }}%</td>
                 </tr>
               </tbody>
             </table>
@@ -2141,13 +2141,13 @@
             },
             tendencias: {
               emoji: variacao < 0 ? '📉' : '📈',
-              descricao: `CMV variou ${Math.abs(variacao).toFixed(2)}% em relação ao período anterior`,
+              descricao: `CMV variou ${Math.abs(variacao || 0).toFixed(2)}% em relação ao período anterior`,
               status: tendenciaStatus,
-              variacao: variacao.toFixed(2)
+              variacao: (variacao || 0).toFixed(2)
             },
             comparacao: {
-              avaliacao: `CMV está em ${cmvAtual.toFixed(2)}%, meta é ${cmvIdeal}%`,
-              cmvAtual: cmvAtual.toFixed(2),
+              avaliacao: `CMV está em ${(cmvAtual || 0).toFixed(2)}%, meta é ${cmvIdeal}%`,
+              cmvAtual: (cmvAtual || 0).toFixed(2),
               cmvIdeal: cmvIdeal,
               impactoMensal: {
                 diferenca: impactoFinanceiro.toLocaleString('pt-BR', {
@@ -2169,8 +2169,8 @@
 📊 SITUAÇÃO: ${analise.situacao.status}
 ${analise.situacao.descricao}
 
-💰 RECEITA LÍQUIDA: R$ ${analise.receita.liquida.toFixed(2)}
-   (Bruta: R$ ${analise.receita.bruta.toFixed(2)} - Taxas: R$ ${analise.receita.taxas.toFixed(2)})
+💰 RECEITA LÍQUIDA: R$ ${(analise.receita.liquida || 0).toFixed(2)}
+   (Bruta: R$ ${(analise.receita.bruta || 0).toFixed(2)} - Taxas: R$ ${(analise.receita.taxas || 0).toFixed(2)})
 
 🎯 CMV: R$ ${analise.cmv.total} = ${analise.cmv.percentualRL}% (meta: ${analise.cmv.meta}%)
    Variação: ${analise.cmv.variacao > 0 ? '+' : ''}${analise.cmv.variacao}%
