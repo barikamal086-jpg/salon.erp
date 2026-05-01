@@ -5,6 +5,7 @@ const path = require('path');
 require('./database'); // Inicializa o banco de dados
 
 const apiRoutes = require('./routes/api');
+const debugRoutes = require('./routes/debug');
 
 const app = express();
 const PORT = process.env.PORT || 5006;
@@ -20,6 +21,9 @@ app.use(express.static(frontendPath));
 
 // Rotas API
 app.use('/api', apiRoutes);
+
+// Rotas DEBUG
+app.use('/debug', debugRoutes);
 
 // Rota raiz (serve index.html)
 app.get('/', (req, res) => {
