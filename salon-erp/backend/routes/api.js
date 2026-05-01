@@ -1538,6 +1538,86 @@ router.get('/debug/stats-categoria', async (req, res) => {
   }
 });
 
+// DEBUG: Endpoint para inicializar tipo_despesa se vazio
+router.post('/debug/init-tipo-despesa', async (req, res) => {
+  try {
+    console.log('\n🔍 [DEBUG] Inicializando tipo_despesa...');
+
+    // Verificar quantos registros há
+    const check = await pool.query('SELECT COUNT(*) as cnt FROM tipo_despesa WHERE ativa = true');
+    const count = parseInt(check.rows[0].cnt);
+
+    if (count > 0) {
+      console.log(`✅ [DEBUG] tipo_despesa já tem ${count} registros`);
+      return res.json({
+        success: true,
+        message: `tipo_despesa já inicializado com ${count} registros`,
+        count: count
+      });
+    }
+
+    // Se vazio, inserir dados padrão
+    const tiposDespesa = [
+      // CMV
+      { classificacao: 'CMV', subcategoria: 'Taxas', descricao: 'Taxas de delivery (iFood, Uber, etc)' },
+      { classificacao: 'CMV', subcategoria: 'Bebidas', descricao: 'Custo de bebidas' },
+      { classificacao: 'CMV', subcategoria: 'Comidas', descricao: 'Custo de alimentos' },
+      { classificacao: 'CMV', subcategoria: 'Açúcar/Temperos', descricao: 'Açúcar, sal, temperos' },
+      { classificacao: 'CMV', subcategoria: 'Embalagem', descricao: 'Sacolas, caixas, copos' },
+      // Operacional
+      { classificacao: 'Operacional', subcategoria: 'Aluguel', descricao: 'Aluguel do estabelecimento' },
+      { classificacao: 'Operacional', subcategoria: 'Energia', descricao: 'Conta de energia/luz' },
+      { classificacao: 'Operacional', subcategoria: 'Água', descricao: 'Conta de água' },
+      { classificacao: 'Operacional', subcategoria: 'Telefone/Internet', descricao: 'Internet e telefone' },
+      { classificacao: 'Operacional', subcategoria: 'Limpeza', descricao: 'Produtos de limpeza' },
+      { classificacao: 'Operacional', subcategoria: 'Manutenção', descricao: 'Manutenção de equipamentos' },
+      // Administrativa
+      { classificacao: 'Administrativa', subcategoria: 'Folha de Pagamento', descricao: 'Salários e encargos' },
+      { classificacao: 'Administrativa', subcategoria: 'Contador', descricao: 'Serviços contábeis' },
+      { classificacao: 'Administrativa', subcategoria: 'Seguros', descricao: 'Seguros diversos' },
+      { classificacao: 'Administrativa', subcategoria: 'Material Administrativo', descricao: 'Papéis, canetas, etc' },
+      // Financeira
+      { classificacao: 'Financeira', subcategoria: 'Juros e Multas', descricao: 'Juros e multas bancárias' },
+      { classificacao: 'Financeira', subcategoria: 'Custos Financeiros', descricao: 'Taxa de cartão, POS' },
+      { classificacao: 'Financeira', subcategoria: 'Empréstimos', descricao: 'Juros de empréstimos' }
+    ];
+
+    let insertados = 0;
+    for (const tipo of tiposDespesa) {
+      try {
+        await pool.query(
+          `INSERT INTO tipo_despesa (classificacao, subcategoria, descricao, ativa)
+           VALUES ($1, $2, $3, true)
+           ON CONFLICT (classificacao, subcategoria) DO NOTHING`,
+          [tipo.classificacao, tipo.subcategoria, tipo.descricao]
+        );
+        insertados++;
+      } catch (err) {
+        console.error(`  ⚠️  Erro ao inserir ${tipo.subcategoria}:`, err.message);
+      }
+    }
+
+    const newCheck = await pool.query('SELECT COUNT(*) as cnt FROM tipo_despesa WHERE ativa = true');
+    const newCount = parseInt(newCheck.rows[0].cnt);
+
+    console.log(`✅ [DEBUG] tipo_despesa inicializado: ${newCount} registros`);
+
+    res.json({
+      success: true,
+      message: `tipo_despesa inicializado com ${newCount} registros`,
+      count: newCount,
+      inseridos: insertados
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro ao inicializar tipo_despesa:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
+    });
+  }
+});
+
 // DEBUG: Endpoint para diagnosticar tipo_despesa e JOINs
 router.get('/debug/tipo-despesa', async (req, res) => {
   try {
