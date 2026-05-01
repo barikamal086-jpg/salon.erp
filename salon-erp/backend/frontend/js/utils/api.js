@@ -97,7 +97,7 @@ const api = {
   },
 
   // GET /api/notas-fiscais - Obter histórico de notas processadas (status=processado)
-  obterNotasHistorico(limit = 100, offset = 0) {
+  obterNotasHistorico(limit = 1000, offset = 0) {
     return axios.get(`${API_BASE}/notas-fiscais?status=processado&limit=${limit}&offset=${offset}`);
   },
 

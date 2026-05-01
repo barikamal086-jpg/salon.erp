@@ -2513,13 +2513,22 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         // ==================== MÉTODOS DE NOTAS FISCAIS ====================
         async carregarNotasPendentes() {
           try {
-            console.log('📥 Carregando notas processadas...');
-            const response = await api.obterNotasHistorico(100, 0);
+            console.log('📥 Carregando TODAS as notas processadas...');
+            const response = await api.obterNotasHistorico(1000, 0);
             console.log('✅ Resposta recebida:', response);
             console.log('📊 response.data:', response.data);
             console.log('📊 response.data.data:', response.data.data);
+            console.log('📊 Quantidade de notas na resposta:', response.data.data ? response.data.data.length : 0);
             this.notasPendentes = response.data.data || [];
             console.log('✅ notasPendentes atualizado:', this.notasPendentes.length, 'registros');
+
+            if (this.notasPendentes.length > 0) {
+              console.log('🎉 Notas carregadas com sucesso!');
+              console.log('Primeira nota:', this.notasPendentes[0].numero_nf);
+              console.log('Última nota:', this.notasPendentes[this.notasPendentes.length - 1].numero_nf);
+            } else {
+              console.warn('⚠️ Nenhuma nota foi carregada');
+            }
 
             // Carregar estatísticas
             const respStats = await api.obterNotasFiscais();
