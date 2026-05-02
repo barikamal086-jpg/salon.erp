@@ -1653,8 +1653,8 @@
           categoriaIdMap: { 'Salão': null, 'iFood': null, '99Food': null, 'Keeta': null }, // Mapa de categoria -> ID
           // Histórico: Filtros e Paginação
           filtroHistorico: {
-            dataInicio: this.obterDataInicioDomesMes(),
-            dataFim: this.obterDataFimMes(),
+            dataInicio: this.obterData90DiasAtras(),
+            dataFim: this.obterDataHoje(),
             categoria: ''
           },
           paginacao: {
@@ -1818,6 +1818,19 @@
           const hoje = new Date();
           const ultimo = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
           return getLocalDateISO(ultimo);
+        },
+
+        // Para Histórico: Data de 90 dias atrás
+        obterData90DiasAtras() {
+          const hoje = new Date();
+          const dias90atras = new Date(hoje.getTime() - (90 * 24 * 60 * 60 * 1000));
+          return getLocalDateISO(dias90atras);
+        },
+
+        // Para Histórico: Data de hoje
+        obterDataHoje() {
+          const hoje = new Date();
+          return getLocalDateISO(hoje);
         },
 
         // Limpar filtros do histórico
