@@ -1717,18 +1717,27 @@
 
         // Resumo do filtrado (Receitas, Despesas, Total)
         resumoFiltrado() {
+          // ✅ Converter valores para número ANTES de somar
           const totalReceita = this.receitasFiltradas
             .filter(r => r.tipo === 'receita')
-            .reduce((acc, r) => acc + (r.total || 0), 0);
+            .reduce((acc, r) => {
+              const valor = parseFloat(r.total) || 0;
+              return acc + valor;
+            }, 0);
 
           const totalDespesa = this.receitasFiltradas
             .filter(r => r.tipo === 'despesa')
-            .reduce((acc, r) => acc + (r.total || 0), 0);
+            .reduce((acc, r) => {
+              const valor = parseFloat(r.total) || 0;
+              return acc + valor;
+            }, 0);
+
+          const totalLiquido = totalReceita - totalDespesa;
 
           return {
-            totalReceita: totalReceita,
-            totalDespesa: totalDespesa,
-            totalLiquido: totalReceita - totalDespesa
+            totalReceita: isNaN(totalReceita) ? 0 : totalReceita,
+            totalDespesa: isNaN(totalDespesa) ? 0 : totalDespesa,
+            totalLiquido: isNaN(totalLiquido) ? 0 : totalLiquido
           };
         }
       },
@@ -2507,15 +2516,51 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         formatarData(data) {
-          // ✅ Parse data LOCAL (YYYY-MM-DD) sem conversão UTC
-          const [year, month, day] = data.split('-');
-          const dataLocal = new Date(year, month - 1, day);
-          return dataLocal.toLocaleDateString('pt-BR', {
-            weekday: 'short',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          });
+          // ✅ Validar data antes de processar
+          if (!data || typeof data !== 'string') {
+            // Fallback: retornar hoje em formato brasileiro se data inválida
+            const hoje = new Date();
+            return hoje.toLocaleDateString('pt-BR', {
+              weekday: 'short',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+          }
+
+          try {
+            // Parse data LOCAL (YYYY-MM-DD) sem conversão UTC
+            const [year, month, day] = data.split('-');
+
+            // Validar se temos ano, mês e dia válidos
+            if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+              throw new Error('Data inválida');
+            }
+
+            const dataLocal = new Date(year, month - 1, day);
+
+            // Validar se a data é válida
+            if (isNaN(dataLocal.getTime())) {
+              throw new Error('Data inválida');
+            }
+
+            return dataLocal.toLocaleDateString('pt-BR', {
+              weekday: 'short',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+          } catch (err) {
+            // Fallback: retornar hoje se houver erro no parse
+            console.warn('⚠️ Erro ao formatar data:', data, err.message);
+            const hoje = new Date();
+            return hoje.toLocaleDateString('pt-BR', {
+              weekday: 'short',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            });
+          }
         },
 
         // ==================== MÉTODOS DE NOTAS FISCAIS ====================
