@@ -1151,11 +1151,12 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
 
 // POST /api/importar-conta-azul - Importar faturamentos do Excel Conta Azul
 router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) => {
-  const client = await pool.connect();
+  let client;
   try {
     console.log('\n📊 Importação Conta Azul iniciada');
 
     if (!req.file) {
+      console.error('❌ Erro: Nenhum arquivo recebido');
       return res.status(400).json({
         success: false,
         error: 'Nenhum arquivo foi enviado'
@@ -1163,15 +1164,28 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
     }
 
     // Ler arquivo Excel
-    console.log(`   Arquivo: ${req.file.originalname}`);
-    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const linhas = xlsx.utils.sheet_to_json(worksheet);
+    console.log(`   Arquivo: ${req.file.originalname} (${req.file.size} bytes)`);
 
-    console.log(`   Linhas encontradas: ${linhas.length}`);
+    let workbook, sheetName, worksheet, linhas;
+    try {
+      workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+      console.log(`   ✅ Excel parseado`);
+      sheetName = workbook.SheetNames[0];
+      worksheet = workbook.Sheets[sheetName];
+      linhas = xlsx.utils.sheet_to_json(worksheet);
+      console.log(`   ✅ ${linhas.length} linhas extraídas`);
+    } catch (parseErr) {
+      console.error('❌ Erro ao fazer parsing do Excel:', parseErr.message);
+      throw new Error(`Erro ao ler Excel: ${parseErr.message}`);
+    }
+
+    // Conectar ao banco
+    console.log('   Conectando ao banco de dados...');
+    client = await pool.connect();
+    console.log('   ✅ Conectado');
 
     if (linhas.length === 0) {
+      console.error('❌ Erro: Excel vazio');
       return res.status(400).json({
         success: false,
         error: 'Arquivo Excel vazio'
@@ -1179,7 +1193,9 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
     }
 
     // Começar transação
+    console.log('   Iniciando transação...');
     await client.query('BEGIN');
+    console.log('   ✅ Transação iniciada');
 
     const importados = [];
     const erros = [];
@@ -1291,19 +1307,33 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
       }
     });
   } catch (err) {
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackErr) {
-      console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+    console.error('\n❌ ERRO GERAL NA IMPORTAÇÃO:');
+    console.error('Tipo de erro:', err.constructor.name);
+    console.error('Mensagem:', err.message);
+    console.error('Stack:', err.stack);
+
+    if (client) {
+      try {
+        console.log('🔄 Fazendo rollback...');
+        await client.query('ROLLBACK');
+        console.log('✅ Rollback concluído');
+      } catch (rollbackErr) {
+        console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+      }
     }
-    console.error('❌ Erro na importação:', err.message);
+
     res.status(500).json({
       success: false,
-      error: err.message,
+      error: err.message || 'Erro desconhecido na importação',
+      tipo: err.constructor.name,
       stack: err.stack
     });
   } finally {
-    client.release();
+    if (client) {
+      console.log('🔌 Fechando conexão com banco...');
+      client.release();
+      console.log('✅ Conexão fechada');
+    }
   }
 });
 
