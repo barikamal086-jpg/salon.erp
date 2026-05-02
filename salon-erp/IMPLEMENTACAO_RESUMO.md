@@ -407,7 +407,20 @@ Converteu timestamps ISO para YYYY-MM-DD para `input[type=date]`:
 
 **Implementado em:** Commits `055c59e` a `c53ed17` | **Data:** 2026-05-02 | **Tempo:** ~1.5 horas
 
+### Sessão 3 - Data Entry Fixes (Tipo, Data, Filtro, Duplicatas)
+| Aspecto | Status |
+|---------|--------|
+| Validação de tipo case-sensitive | ✅ POST, PUT endpoints + modelo |
+| Formato de data ISO → YYYY-MM-DD | ✅ Frontend + backend |
+| Filtro de período (02/04 → 90 dias) | ✅ Todos os períodos unificados |
+| Auto-ajuste de filtro ao inserir | ✅ Sempre inclui nova data |
+| Detecção de duplicatas | ✅ Endpoint debug |
+| Limpeza de duplicatas | ✅ Endpoint cleanup |
+| Documentação completa | ✅ DATA_ENTRY_FIXES.md |
+
+**Implementado em:** Commits `5fafe1c` a `ca8ef1e` | **Data:** 2026-05-02 | **Tempo:** ~2 horas
+
 ---
 
-**Total Sessão:** ~3.5 horas
+**Total 3 Sessões:** ~6.5 horas
 **Status Geral:** ✅ PRONTA PARA PRODUÇÃO
