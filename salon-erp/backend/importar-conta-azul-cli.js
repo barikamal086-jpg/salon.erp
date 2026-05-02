@@ -71,7 +71,9 @@ async function importar() {
     if (resultado.dados.importados > 0) {
       console.log(`\n📋 Primeiros 10 importados:`);
       resultado.dados.detalhes.importados.forEach((item, i) => {
-        console.log(`   ${i + 1}. ${item.data} | ${item.tipo.toUpperCase().padEnd(8)} | R$ ${item.valor.toFixed(2).padEnd(10)} | ${item.categoria.padEnd(10)} | ${item.descricao.substring(0, 40)}`);
+        const tipo = item.tipo || 'DESPESA';
+        const valor = typeof item.valor === 'number' ? item.valor : parseFloat(item.valor || 0);
+        console.log(`   ${i + 1}. ${item.data} | ${tipo.toUpperCase().padEnd(8)} | R$ ${valor.toFixed(2).padEnd(10)} | ${(item.categoria || 'N/A').padEnd(10)} | ${item.descricao.substring(0, 40)}`);
       });
     }
 
