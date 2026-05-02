@@ -1213,6 +1213,52 @@ router.get('/notas-fiscais/:id', async (req, res) => {
   }
 });
 
+// POST /api/diagnosticos/testar-xml - Testar extração de data de XML (DEBUG)
+router.post('/diagnosticos/testar-xml', upload.single('arquivo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nenhum arquivo foi enviado'
+      });
+    }
+
+    console.log('\n🔧 DIAGNÓSTICO: Testando extração de XML');
+    console.log(`   Arquivo: ${req.file.originalname}`);
+    console.log(`   Tamanho: ${req.file.size} bytes`);
+
+    const dadosExtraidos = await NotaFiscalParser.detectarEParsear(
+      req.file.buffer,
+      req.file.originalname
+    );
+
+    console.log(`\n📊 Resultado da extração:`);
+    console.log(JSON.stringify(dadosExtraidos, null, 2));
+
+    res.json({
+      success: true,
+      message: 'Extração bem-sucedida - verifique os logs do servidor',
+      dados: {
+        numero_nf: dadosExtraidos.numero_nf,
+        fornecedor_nome: dadosExtraidos.fornecedor_nome,
+        data_emissao: dadosExtraidos.data_emissao,
+        data_vencimento: dadosExtraidos.data_vencimento,
+        valor_total: dadosExtraidos.valor_total,
+        descricao: dadosExtraidos.descricao,
+        classificacao_sugerida: dadosExtraidos.classificacao_sugerida,
+        nota_diagnostico: `Data de emissão: ${dadosExtraidos.data_emissao} (hoje é ${new Date().toISOString().split('T')[0]})`
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro no diagnóstico:', error.message);
+    res.status(400).json({
+      success: false,
+      error: error.message,
+      diagnostico: 'Verifique os logs do servidor para detalhes da extração'
+    });
+  }
+});
+
 // POST /api/notas-fiscais/upload - Fazer upload e processar notas fiscais (XML/PDF)
 router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res) => {
   try {
