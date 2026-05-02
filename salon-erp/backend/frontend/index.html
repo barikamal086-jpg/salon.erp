@@ -2591,6 +2591,13 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             this.notasPendentes = response.data.data || [];
             console.log('✅ notasPendentes atualizado:', this.notasPendentes.length, 'registros');
 
+            // 🔧 Inicializar notasCategoria para cada nota (garante reatividade)
+            this.notasCategoria = {};
+            for (let nota of this.notasPendentes) {
+              this.$set(this.notasCategoria, nota.id, '');
+            }
+            console.log('✅ notasCategoria inicializado para', this.notasPendentes.length, 'notas');
+
             if (this.notasPendentes.length > 0) {
               console.log('🎉 Notas carregadas com sucesso!');
               console.log('Primeira nota:', this.notasPendentes[0].numero_nf);
