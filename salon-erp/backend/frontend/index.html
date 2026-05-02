@@ -591,7 +591,7 @@
                   </div>
                   <div class="flex gap-2 mt-2">
                     <button
-                      @click="processarNota(nota.id)"
+                      @click="processarNota(nota.id, notasCategoria[nota.id])"
                       :disabled="!notasCategoria[nota.id]"
                       class="flex-1 px-2 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
                       ✅ Processar
@@ -2659,10 +2659,10 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           return 'Operacional';
         },
 
-        async processarNota(notaId) {
-          const tipoDespesaId = this.notasCategoria[notaId];
+        async processarNota(notaId, tipoDespesaIdParam = null) {
+          const tipoDespesaId = tipoDespesaIdParam || this.notasCategoria[notaId];
           if (!tipoDespesaId) {
-            alert('Selecione uma categoria antes de processar');
+            alert('⚠️ Selecione uma categoria antes de processar');
             return;
           }
 
