@@ -2621,4 +2621,97 @@ router.get('/debug/tipo-despesa', async (req, res) => {
   }
 });
 
+// DEBUG: Verificar duplicatas
+router.get('/debug/verificar-duplicatas', async (req, res) => {
+  try {
+    console.log('\n🔍 [DEBUG] Verificando duplicatas...\n');
+
+    // Query 1: Registros exatos com data, valor e categoria
+    const duplicataExata = await pool.query(`
+      SELECT
+        id,
+        data,
+        total,
+        categoria,
+        tipo,
+        created_at
+      FROM faturamento
+      WHERE DATE(data) = '2026-04-01'
+        AND total = 3609.70
+        AND categoria = 'Salão'
+      ORDER BY created_at DESC
+    `);
+
+    // Query 2: Todos de 01/04/2026
+    const todosDoMesmoDia = await pool.query(`
+      SELECT
+        id,
+        data,
+        total,
+        categoria,
+        tipo,
+        created_at
+      FROM faturamento
+      WHERE DATE(data) = '2026-04-01'
+      ORDER BY total DESC, created_at DESC
+    `);
+
+    // Query 3: Estatísticas
+    const stats = await pool.query(`
+      SELECT
+        COUNT(*) as total_lancamentos,
+        COUNT(DISTINCT id) as ids_unicos,
+        COUNT(*) - COUNT(DISTINCT id) as duplicados
+      FROM faturamento
+    `);
+
+    // Query 4: Procurar por data e valor (ignorar categoria)
+    const porDataEValor = await pool.query(`
+      SELECT
+        DATE(data) as data,
+        total,
+        COUNT(*) as quantidade,
+        ARRAY_AGG(id) as ids,
+        ARRAY_AGG(categoria) as categorias
+      FROM faturamento
+      WHERE DATE(data) = '2026-04-01'
+      GROUP BY DATE(data), total
+      HAVING COUNT(*) > 1
+      ORDER BY quantidade DESC
+    `);
+
+    res.json({
+      success: true,
+      diagnostico: {
+        'Duplicata exata (01/04, 3609.70, Salão)': {
+          quantidade: duplicataExata.rows.length,
+          detalhes: duplicataExata.rows
+        },
+        'Todos os lançamentos de 01/04/2026': {
+          quantidade: todosDoMesmoDia.rows.length,
+          detalhes: todosDoMesmoDia.rows
+        },
+        'Registros com mesmo valor em 01/04': {
+          quantidade: porDataEValor.rows.length,
+          detalhes: porDataEValor.rows
+        },
+        'Estatísticas gerais': {
+          totalLancamentos: parseInt(stats.rows[0].total_lancamentos),
+          idsUnicos: parseInt(stats.rows[0].ids_unicos),
+          duplicadosDetectados: parseInt(stats.rows[0].duplicados),
+          problema: stats.rows[0].duplicados > 0 ?
+            `⚠️ ${stats.rows[0].duplicados} registros duplicados no banco!` :
+            '✅ Sem duplicatas detectadas'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
