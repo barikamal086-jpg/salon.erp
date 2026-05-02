@@ -22,14 +22,21 @@ const upload = multer({
     files: 100 // Máximo 100 arquivos por requisição
   },
   fileFilter: (req, file, cb) => {
-    const allowedMimes = ['application/xml', 'text/xml', 'application/pdf'];
-    const allowedExt = ['.xml', '.pdf'];
+    const allowedMimes = [
+      'application/xml',
+      'text/xml',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'application/octet-stream' // Fallback for some browsers
+    ];
+    const allowedExt = ['.xml', '.pdf', '.xlsx', '.xls'];
     const ext = require('path').extname(file.originalname).toLowerCase();
 
     if (allowedExt.includes(ext) || allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Apenas arquivos XML e PDF são permitidos'));
+      cb(new Error('Apenas arquivos XML, PDF e Excel são permitidos'));
     }
   }
 });
