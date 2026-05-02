@@ -1149,11 +1149,12 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
   }
 });
 
-// POST /api/importar-conta-azul - Importar faturamentos do Excel Conta Azul
+// POST /api/importar-conta-azul - Importar Excel Conta Azul como notas fiscais
+// Reutiliza a lógica existente de processamento de notas
 router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) => {
   let client;
   try {
-    console.log('\n📊 Importação Conta Azul iniciada');
+    console.log('\n📊 Importação Conta Azul iniciada (usando lógica de notas fiscais)');
 
     if (!req.file) {
       console.error('❌ Erro: Nenhum arquivo recebido');
@@ -1179,11 +1180,6 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
       throw new Error(`Erro ao ler Excel: ${parseErr.message}`);
     }
 
-    // Conectar ao banco
-    console.log('   Conectando ao banco de dados...');
-    client = await pool.connect();
-    console.log('   ✅ Conectado');
-
     if (linhas.length === 0) {
       console.error('❌ Erro: Excel vazio');
       return res.status(400).json({
@@ -1191,6 +1187,11 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
         error: 'Arquivo Excel vazio'
       });
     }
+
+    // Conectar ao banco
+    console.log('   Conectando ao banco de dados...');
+    client = await pool.connect();
+    console.log('   ✅ Conectado');
 
     // Começar transação
     console.log('   Iniciando transação...');
@@ -1201,12 +1202,10 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
     const erros = [];
     const duplicados = [];
 
-    // Processar cada linha
+    // Processar cada linha como nota fiscal
     for (let i = 0; i < linhas.length; i++) {
       try {
         const linha = linhas[i];
-
-        // Processar linha
         const dados = ContaAzulMapper.processarLinhaExcel(linha, i + 1);
 
         if (!dados.valid) {
@@ -1217,67 +1216,65 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
           continue;
         }
 
-        // Verificar duplicata pelo identificador
+        // Gerar numero_nf único (usando código de referência do Conta Azul ou timestamp)
+        const numeroNF = `CA-${dados.identificador}`;
+
+        // Verificar duplicata pelo numero_nf
+        console.log(`   Verificando duplicata para ${numeroNF}...`);
         const checkDupResult = await client.query(
-          'SELECT id FROM faturamento WHERE descricao LIKE $1 LIMIT 1',
-          [`%${dados.identificador}%`]
+          'SELECT id FROM notas_fiscais WHERE numero_nf = $1 LIMIT 1',
+          [numeroNF]
         );
 
         if (checkDupResult.rows.length > 0) {
+          console.log(`   ⚠️  Duplicada: ${numeroNF}`);
           duplicados.push({
             linha: i + 1,
             descricao: dados.descricao,
-            identificador: dados.identificador
+            numero_nf: numeroNF
           });
           continue;
         }
 
-        // Buscar tipo_despesa_id pelo mapeamento
-        let tipoDespesaId = null;
-        try {
-          const tipoResult = await client.query(
-            'SELECT id FROM tipo_despesa WHERE classificacao = $1 AND subcategoria = $2 LIMIT 1',
-            [dados.classificacao, dados.subcategoria]
-          );
-
-          if (tipoResult.rows.length > 0) {
-            tipoDespesaId = tipoResult.rows[0].id;
-          }
-        } catch (tipoErr) {
-          console.error(`⚠️  Erro ao buscar tipo_despesa para ${dados.classificacao}/${dados.subcategoria}:`, tipoErr.message);
-        }
-
-        // Criar faturamento
-        const descricaoCompleta = `${dados.descricao} (${dados.categoria_conta_azul}) [CA: ${dados.identificador}]`;
-
+        // Inserir como nota fiscal (status='pendente' para processamento posterior)
         const insertResult = await client.query(
-          `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, descricao, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-           RETURNING id`,
+          `INSERT INTO notas_fiscais (
+            numero_nf,
+            fornecedor_nome,
+            fornecedor_cnpj,
+            data_emissao,
+            valor_total,
+            descricao,
+            classificacao_sugerida,
+            status,
+            created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          RETURNING id`,
           [
+            numeroNF,
+            dados.fornecedor_nome,
+            '',  // CNPJ vazio (não temos do Conta Azul)
             dados.data,
             dados.total,
-            dados.categoria,
-            dados.tipo,
-            tipoDespesaId,
-            dados.classificacao,
-            descricaoCompleta
+            dados.descricao,
+            dados.classificacao,  // CMV / Operacional / Administrativa / Financeira
+            'pendente'  // Status pendente para revisão
           ]
         );
 
         importados.push({
           id: insertResult.rows[0].id,
+          numero_nf: numeroNF,
           data: dados.data,
           descricao: dados.descricao,
           fornecedor: dados.fornecedor_nome,
           valor: dados.total,
-          tipo: dados.tipo,
-          categoria: dados.categoria,
-          classificacao: dados.classificacao
+          classificacao: dados.classificacao,
+          categoria_ca: dados.categoria_conta_azul
         });
 
         if ((i + 1) % 20 === 0) {
-          console.log(`   Processadas ${i + 1}/${linhas.length} linhas...`);
+          console.log(`   ✅ Processadas ${i + 1}/${linhas.length} linhas...`);
         }
       } catch (erro) {
         console.error(`❌ Erro na linha ${i + 1}:`, erro.message);
@@ -1290,25 +1287,26 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
 
     // Confirmar transação
     await client.query('COMMIT');
-    console.log(`✅ Importação concluída: ${importados.length} lançamentos importados`);
+    console.log(`✅ Importação concluída: ${importados.length} notas inseridas como "pendentes"`);
+    console.log(`   Próximo passo: processar as notas via UI ou API\n`);
 
     res.status(201).json({
       success: importados.length > 0,
-      message: `${importados.length} lançamento(s) importado(s), ${duplicados.length} duplicado(s), ${erros.length} erro(s)`,
+      message: `${importados.length} nota(s) importada(s) como pendente(s), ${duplicados.length} duplicada(s), ${erros.length} erro(s)`,
       dados: {
         importados: importados.length,
         duplicados: duplicados.length,
         erros: erros.length,
         detalhes: {
-          importados: importados.slice(0, 10), // Primeiros 10
+          importados: importados.slice(0, 10),
           duplicados: duplicados.slice(0, 5),
           erros: erros.slice(0, 5)
         }
       }
     });
   } catch (err) {
-    console.error('\n❌ ERRO GERAL NA IMPORTAÇÃO:');
-    console.error('Tipo de erro:', err.constructor.name);
+    console.error('\n❌ ERRO NA IMPORTAÇÃO:');
+    console.error('Tipo:', err.constructor.name);
     console.error('Mensagem:', err.message);
     console.error('Stack:', err.stack);
 
@@ -1324,15 +1322,13 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
 
     res.status(500).json({
       success: false,
-      error: err.message || 'Erro desconhecido na importação',
-      tipo: err.constructor.name,
-      stack: err.stack
+      error: err.message || 'Erro na importação',
+      tipo: err.constructor.name
     });
   } finally {
     if (client) {
-      console.log('🔌 Fechando conexão com banco...');
+      console.log('🔌 Fechando conexão...');
       client.release();
-      console.log('✅ Conexão fechada');
     }
   }
 });
