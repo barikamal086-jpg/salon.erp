@@ -1413,95 +1413,24 @@
       </div>
     </div>
 
-    <!-- Modal: Sugestão de Data para Processamento de Nota -->
+    <!-- Modal: Data para Processamento de Nota (Simplificado) -->
     <div v-if="mostrarSugestaoData" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-lg p-8 w-96">
-        <!-- COM SUGESTÃO (hoje ou futura) -->
-        <template v-if="sugestaoData.temSugestao">
-          <h3 class="text-lg font-bold text-gray-900 mb-2">📅 Quando processar esta nota?</h3>
-          <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
+      <div class="bg-white rounded-lg shadow-lg p-6 w-96">
+        <h3 class="text-lg font-bold text-gray-900 mb-2">📅 Data do Lançamento</h3>
+        <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
 
-          <!-- Mensagem Inteligente com Prioridade -->
-          <div
-            :class="[
-              'p-4 rounded-lg mb-6 border-l-4 font-semibold',
-              sugestaoData.prioridade === 'urgente'
-                ? 'bg-red-50 border-red-500 text-red-700'
-                : sugestaoData.prioridade === 'próximo'
-                ? 'bg-yellow-50 border-yellow-500 text-yellow-700'
-                : 'bg-blue-50 border-blue-500 text-blue-700'
-            ]">
-            <p>{{ sugestaoData.mensagem_inteligente || (sugestaoData.sugestao === 'agora' ? '✅ Processar agora' : '📅 Agendar para vencimento') }}</p>
-          </div>
-
-          <div class="space-y-3">
-            <!-- Opção 1: Agora -->
-            <button
-              @click="processarComData(sugestaoData.opcoes.agora.data)"
-              :class="[
-                'w-full p-4 rounded-lg border-2 text-left font-semibold transition-all',
-                sugestaoData.sugestao === 'agora'
-                  ? sugestaoData.prioridade === 'urgente'
-                    ? 'border-red-500 bg-red-50 text-red-700 hover:bg-red-100 ring-2 ring-red-300'
-                    : sugestaoData.prioridade === 'próximo'
-                    ? 'border-yellow-500 bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
-                    : 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
-                  : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-              ]">
-              <p>{{ sugestaoData.prioridade === 'urgente' ? '🚨 PROCESSAR AGORA' : '✅ Processar Agora' }}</p>
-              <p class="text-xs font-normal">{{ sugestaoData.opcoes.agora.data }}</p>
-              <p class="text-xs font-normal">{{ sugestaoData.opcoes.agora.descricao }}</p>
-            </button>
-
-            <!-- Opção 2: Futuro (apenas se existe) -->
-            <button
-              v-if="sugestaoData.opcoes.futuro"
-              @click="processarComData(sugestaoData.opcoes.futuro.data)"
-              :class="[
-                'w-full p-4 rounded-lg border-2 text-left font-semibold transition-all',
-                sugestaoData.sugestao === 'futuro'
-                  ? sugestaoData.prioridade === 'próximo'
-                    ? 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100 ring-2 ring-orange-300'
-                    : 'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-              ]">
-              <p>{{ sugestaoData.prioridade === 'próximo' ? '⏰ AGENDAR (Próximo a Vencer)' : '📅 Agendar para Data de Vencimento' }}</p>
-              <p class="text-xs font-normal">{{ sugestaoData.opcoes.futuro.data }}</p>
-              <p class="text-xs font-normal">{{ sugestaoData.opcoes.futuro.descricao }}</p>
-            </button>
-
-            <!-- Opção 3: Customizar Data -->
-            <div class="pt-2">
-              <label class="block text-xs font-medium text-gray-700 mb-2">📍 Ou escolha outra data:</label>
-              <input
-                v-model="dataCustomizada"
-                type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
-          </div>
-        </template>
-
-        <!-- SEM SUGESTÃO (data passada) -->
-        <template v-else>
-          <h3 class="text-lg font-bold text-gray-900 mb-2">⚠️ Data Vencida</h3>
-          <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
-
-          <div class="bg-yellow-50 p-4 rounded-lg mb-6 border-l-4 border-yellow-500">
-            <p class="text-sm text-yellow-800">
-              <strong>Esta nota venceu em {{ sugestaoData.data_vencimento }}</strong><br>
-              Escolha a data para registrar o lançamento.
-            </p>
-          </div>
-
-          <div class="space-y-3">
-            <label class="block text-sm font-medium text-gray-700 mb-2">📅 Data do lançamento:</label>
+        <div class="space-y-4">
+          <!-- Campo de Data -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Data:</label>
             <input
               v-model="dataCustomizada"
               type="date"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
-        </template>
+        </div>
 
+        <!-- Botões -->
         <div class="flex gap-2 pt-6">
           <button
             @click="processarComData(dataCustomizada)"
