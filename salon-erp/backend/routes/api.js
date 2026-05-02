@@ -297,7 +297,7 @@ router.put('/faturamentos/:id', async (req, res) => {
       });
     }
 
-    if (tipo && !['receita', 'despesa'].includes(tipo)) {
+    if (tipo && !['receita', 'despesa'].includes(tipo.toLowerCase())) {
       return res.status(400).json({
         success: false,
         error: 'Tipo deve ser "receita" ou "despesa"'
@@ -316,7 +316,8 @@ router.put('/faturamentos/:id', async (req, res) => {
 
     console.log(`✅ Faturamento encontrado:`, { id: faturamento.id, data_antes: faturamento.data, total_antes: faturamento.total });
 
-    await Faturamento.atualizarCompleto(id, data, total, categoria, tipo, tipo_despesa_id);
+    const tipoNormalizado = tipo ? tipo.toLowerCase() : faturamento.tipo;
+    await Faturamento.atualizarCompleto(id, data, total, categoria, tipoNormalizado, tipo_despesa_id);
 
     console.log(`✅ Faturamento atualizado com sucesso! Nova data: ${data}, Novo total: ${total}`);
 
