@@ -51,10 +51,19 @@ class NotaFiscalParser {
       }
 
       // Extrair data de vencimento de cobr.dup (duplicata/parcela)
+      console.log('🔍 Verificando cobr.dup para data de vencimento:');
+      console.log('   - cobr existe?', !!cobr);
+      console.log('   - cobr.dup existe?', !!cobr.dup);
+
       let dataVencimento = dataEmissao; // Default: data de emissão
       if (cobr.dup) {
         const dup = Array.isArray(cobr.dup) ? cobr.dup[0] : cobr.dup;
+        console.log('   - dup encontrado:', JSON.stringify(dup).substring(0, 100));
+        console.log('   - dup.dVenc:', dup.dVenc);
         dataVencimento = dup.dVenc || dataEmissao;
+        console.log(`   ✅ dataVencimento extraído: ${dataVencimento}`);
+      } else {
+        console.log('   ⚠️  cobr.dup não encontrado, usando dataEmissao como vencimento');
       }
 
       // Extrair informações principais
@@ -74,6 +83,10 @@ class NotaFiscalParser {
         valorTotal = 0;
       }
 
+      console.log('\n🗓️  DATAS EXTRAÍDAS (antes de formatação):');
+      console.log(`   - dataEmissao: ${dataEmissao}`);
+      console.log(`   - dataVencimento: ${dataVencimento}`);
+
       const resultado = {
         numero_nf: numeroNF || `NF-${Date.now()}`,
         fornecedor_nome: emit.xNome || 'Fornecedor Desconhecido',
@@ -85,6 +98,10 @@ class NotaFiscalParser {
         classificacao_sugerida: classificacao,
         xml_content: xmlContent.toString('utf8')
       };
+
+      console.log('\n🗓️  DATAS FORMATADAS (depois de _formatarData):');
+      console.log(`   - data_emissao: ${resultado.data_emissao}`);
+      console.log(`   - data_vencimento: ${resultado.data_vencimento}`);
 
       console.log('✅ XML parsing finalizado:', resultado.numero_nf);
       return resultado;
