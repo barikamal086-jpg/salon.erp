@@ -1833,12 +1833,13 @@
           return getLocalDateISO(hoje);
         },
 
-        // Limpar filtros do histórico
+        // Limpar filtros do histórico (volta para últimos 90 dias)
         limparFiltrosHistorico() {
-          this.filtroHistorico.dataInicio = this.obterDataInicioDomesMes();
-          this.filtroHistorico.dataFim = this.obterDataFimMes();
+          this.filtroHistorico.dataInicio = this.obterData90DiasAtras();
+          this.filtroHistorico.dataFim = this.obterDataHoje();
           this.filtroHistorico.categoria = '';
           this.paginacao.paginaAtual = 1;
+          console.log('🔄 Filtros histórico limpos (volta para últimos 90 dias)');
         },
 
         // CMV Inteligente Methods
@@ -2477,7 +2478,30 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             this.novaReceita.tipoDespesaId = null;
             this.subcategoriasDisponiveis = [];
             this.outraCategoria = '';
+
+            console.log('✅ [salvarNovaReceita] Lançamento salvo. Recarregando dados...');
             await this.atualizarPeriodo();
+
+            // Garantir que o filtro inclua a data do novo lançamento
+            const dataNoveLancamento = this.novaReceita.data;
+            if (dataNoveLancamento < this.filtroHistorico.dataInicio || dataNoveLancamento > this.filtroHistorico.dataFim) {
+              console.warn(`⚠️  [salvarNovaReceita] Data ${dataNoveLancamento} FORA do período [${this.filtroHistorico.dataInicio}, ${this.filtroHistorico.dataFim}]`);
+              console.log('🔄 [salvarNovaReceita] Ajustando filtro para incluir nova data...');
+
+              // Se o lançamento é anterior ao período, estender o início
+              if (dataNoveLancamento < this.filtroHistorico.dataInicio) {
+                this.filtroHistorico.dataInicio = dataNoveLancamento;
+              }
+              // Se o lançamento é posterior ao período, estender o fim
+              if (dataNoveLancamento > this.filtroHistorico.dataFim) {
+                this.filtroHistorico.dataFim = dataNoveLancamento;
+              }
+
+              console.log(`✅ [salvarNovaReceita] Filtro ajustado: [${this.filtroHistorico.dataInicio}, ${this.filtroHistorico.dataFim}]`);
+              await this.atualizarPeriodo();
+            }
+
+            alert('✅ Lançamento adicionado com sucesso!');
           } catch (error) {
             alert('Erro ao salvar: ' + error.message);
           }
