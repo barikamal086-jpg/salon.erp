@@ -34,12 +34,7 @@ const api = {
     return axios.post(`${API_BASE}/tipo-despesa`, { classificacao, subcategoria, descricao });
   },
 
-  // PUT /api/faturamentos/:id
-  atualizarFaturamento(id, total) {
-    return axios.put(`${API_BASE}/faturamentos/${id}`, { total });
-  },
-
-  // PUT /api/faturamentos/:id - Atualizar faturamento
+  // PUT /api/faturamentos/:id - Atualizar faturamento completo
   atualizarFaturamento(id, data, total, categoria, tipo, tipoDespesaId = null) {
     return axios.put(`${API_BASE}/faturamentos/${id}`, {
       data,
