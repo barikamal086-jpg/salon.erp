@@ -1420,10 +1420,17 @@
           <h3 class="text-lg font-bold text-gray-900 mb-2">📅 Quando processar esta nota?</h3>
           <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
 
-          <div class="bg-blue-50 p-3 rounded-lg mb-6">
-            <p class="text-xs text-gray-600">💡 Sugestão automática:</p>
-            <p class="font-semibold text-blue-700">{{ sugestaoData.sugestao === 'agora' ? '🟢 Lançar AGORA' : '🟠 Lançar FUTURO' }}</p>
-            <p class="text-sm text-gray-700 mt-1">{{ sugestaoData.sugestao === 'agora' ? sugestaoData.opcoes.agora.descricao : sugestaoData.opcoes.futuro.descricao }}</p>
+          <!-- Mensagem Inteligente com Prioridade -->
+          <div
+            :class="[
+              'p-4 rounded-lg mb-6 border-l-4 font-semibold',
+              sugestaoData.prioridade === 'urgente'
+                ? 'bg-red-50 border-red-500 text-red-700'
+                : sugestaoData.prioridade === 'próximo'
+                ? 'bg-yellow-50 border-yellow-500 text-yellow-700'
+                : 'bg-blue-50 border-blue-500 text-blue-700'
+            ]">
+            <p>{{ sugestaoData.mensagem_inteligente || (sugestaoData.sugestao === 'agora' ? '✅ Processar agora' : '📅 Agendar para vencimento') }}</p>
           </div>
 
           <div class="space-y-3">
@@ -1433,12 +1440,16 @@
               :class="[
                 'w-full p-4 rounded-lg border-2 text-left font-semibold transition-all',
                 sugestaoData.sugestao === 'agora'
-                  ? 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
+                  ? sugestaoData.prioridade === 'urgente'
+                    ? 'border-red-500 bg-red-50 text-red-700 hover:bg-red-100 ring-2 ring-red-300'
+                    : sugestaoData.prioridade === 'próximo'
+                    ? 'border-yellow-500 bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                    : 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100'
                   : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
               ]">
-              <p>✅ Lançar AGORA</p>
-              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.agora.data }}</p>
-              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.agora.descricao }}</p>
+              <p>{{ sugestaoData.prioridade === 'urgente' ? '🚨 PROCESSAR AGORA' : '✅ Processar Agora' }}</p>
+              <p class="text-xs font-normal">{{ sugestaoData.opcoes.agora.data }}</p>
+              <p class="text-xs font-normal">{{ sugestaoData.opcoes.agora.descricao }}</p>
             </button>
 
             <!-- Opção 2: Futuro (apenas se existe) -->
@@ -1448,12 +1459,14 @@
               :class="[
                 'w-full p-4 rounded-lg border-2 text-left font-semibold transition-all',
                 sugestaoData.sugestao === 'futuro'
-                  ? 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100'
+                  ? sugestaoData.prioridade === 'próximo'
+                    ? 'border-orange-500 bg-orange-50 text-orange-700 hover:bg-orange-100 ring-2 ring-orange-300'
+                    : 'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100'
                   : 'border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
               ]">
-              <p>📅 Lançar FUTURO</p>
-              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.futuro.data }}</p>
-              <p class="text-xs font-normal text-gray-600">{{ sugestaoData.opcoes.futuro.descricao }}</p>
+              <p>{{ sugestaoData.prioridade === 'próximo' ? '⏰ AGENDAR (Próximo a Vencer)' : '📅 Agendar para Data de Vencimento' }}</p>
+              <p class="text-xs font-normal">{{ sugestaoData.opcoes.futuro.data }}</p>
+              <p class="text-xs font-normal">{{ sugestaoData.opcoes.futuro.descricao }}</p>
             </button>
 
             <!-- Opção 3: Customizar Data -->

@@ -996,48 +996,98 @@ router.get('/notas-fiscais/:id/sugestao-data', async (req, res) => {
     // Data atual
     const hoje = new Date().toISOString().split('T')[0];
 
+    // Helper: calcular dias entre datas
+    const calcularDias = (data1, data2) => {
+      const d1 = new Date(data1);
+      const d2 = new Date(data2);
+      return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+    };
+
     // Determinar sugestão baseado na data de vencimento
     let temSugestao = false;
     let sugestao = null;
     let data_sugerida = null;
+    let prioridade = 'normal'; // normal, urgente, próximo
+    let mensagem_inteligente = '';
     const opcoes = {};
 
-    if (nota.data_vencimento && nota.data_vencimento > hoje) {
-      // Data FUTURA - Oferecer ambas as opções com "Lançar FUTURO" como sugestão
-      temSugestao = true;
-      sugestao = 'futuro';
-      data_sugerida = nota.data_vencimento;
+    if (nota.data_vencimento) {
+      const diasAte = calcularDias(hoje, nota.data_vencimento);
 
-      opcoes.agora = {
-        label: 'Lançar AGORA',
-        data: hoje,
-        descricao: `Registrar em ${hoje}`
-      };
+      if (diasAte === 0) {
+        // Data HOJE - Sugerir "Pagar Hoje" com urgência
+        temSugestao = true;
+        sugestao = 'agora';
+        data_sugerida = hoje;
+        prioridade = 'urgente';
+        mensagem_inteligente = '🔴 VENCE HOJE - Recomendamos processar agora';
 
-      opcoes.futuro = {
-        label: 'Lançar FUTURO',
-        data: nota.data_vencimento,
-        descricao: `Agendar para ${nota.data_vencimento}`
-      };
-    } else if (nota.data_vencimento && nota.data_vencimento === hoje) {
-      // Data HOJE - Sugerir "Lançar AGORA"
-      temSugestao = true;
-      sugestao = 'agora';
-      data_sugerida = hoje;
+        opcoes.agora = {
+          label: '✅ Pagar HOJE',
+          data: hoje,
+          descricao: `Registrar em ${hoje} - Vence hoje!`
+        };
+      } else if (diasAte > 0 && diasAte <= 7) {
+        // Data FUTURA PRÓXIMA (1-7 dias) - "Próximo a Vencer"
+        temSugestao = true;
+        sugestao = 'futuro';
+        data_sugerida = nota.data_vencimento;
+        prioridade = 'próximo';
+        mensagem_inteligente = `⚠️ PRÓXIMO A VENCER em ${diasAte} dia(s)`;
 
-      opcoes.agora = {
-        label: 'Lançar AGORA',
-        data: hoje,
-        descricao: `Registrar em ${hoje}`
-      };
+        opcoes.agora = {
+          label: 'Processar AGORA',
+          data: hoje,
+          descricao: `Registrar em ${hoje}`
+        };
+
+        opcoes.futuro = {
+          label: '📅 Agendar para Data de Vencimento',
+          data: nota.data_vencimento,
+          descricao: `Agendar para ${nota.data_vencimento} (em ${diasAte} dia${diasAte > 1 ? 's' : ''})`
+        };
+      } else if (diasAte > 7) {
+        // Data FUTURA DISTANTE (>7 dias) - "Pague quando conveniente"
+        temSugestao = true;
+        sugestao = 'futuro';
+        data_sugerida = nota.data_vencimento;
+        prioridade = 'normal';
+        mensagem_inteligente = `📅 Vence em ${diasAte} dias - Pague quando conveniente`;
+
+        opcoes.agora = {
+          label: 'Processar AGORA',
+          data: hoje,
+          descricao: `Registrar em ${hoje}`
+        };
+
+        opcoes.futuro = {
+          label: '📅 Agendar para Data de Vencimento',
+          data: nota.data_vencimento,
+          descricao: `Agendar para ${nota.data_vencimento} (em ${diasAte} dias)`
+        };
+      } else if (diasAte < 0) {
+        // Data PASSADA - "Vencida"
+        const diasVencidos = Math.abs(diasAte);
+        temSugestao = true;
+        sugestao = 'agora';
+        data_sugerida = hoje;
+        prioridade = 'urgente';
+        mensagem_inteligente = `🔴 VENCIDA há ${diasVencidos} dia${diasVencidos > 1 ? 's' : ''} - Recomendamos pagar agora`;
+
+        opcoes.agora = {
+          label: '🚨 Pagar AGORA (Atrasado)',
+          data: hoje,
+          descricao: `Registrar em ${hoje} - Nota vencida!`
+        };
+      }
     } else {
-      // Data PASSADA - Sem sugestão, deixa customizar
+      // Sem data de vencimento - Deixa customizar
       temSugestao = false;
       sugestao = null;
       data_sugerida = null;
     }
 
-    logger.debug(`SUGESTAO-DATA: nota=${nota.id}, temSugestao=${temSugestao}, venc=${nota.data_vencimento}, hoje=${hoje}`);
+    logger.debug(`SUGESTAO-DATA: nota=${nota.id}, temSugestao=${temSugestao}, venc=${nota.data_vencimento}, hoje=${hoje}, prioridade=${prioridade}`);
 
     res.json({
       success: true,
@@ -1048,6 +1098,8 @@ router.get('/notas-fiscais/:id/sugestao-data', async (req, res) => {
         temSugestao: temSugestao,
         sugestao: sugestao,
         data_sugerida: data_sugerida,
+        prioridade: prioridade,
+        mensagem_inteligente: mensagem_inteligente,
         fornecedor: nota.fornecedor_nome,
         valor: nota.valor_total,
         opcoes: opcoes
