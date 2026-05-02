@@ -1581,23 +1581,44 @@ router.post('/notas-fiscais/:id/processar', async (req, res) => {
     const { id } = req.params;
     const { tipo_despesa_id, data_faturamento } = req.body;
 
+    console.log(`\n📝 Processando nota #${id}`);
+    console.log(`   tipo_despesa_id: ${tipo_despesa_id}`);
+    console.log(`   data_faturamento: ${data_faturamento}`);
+
+    // Validação 1: tipo_despesa_id obrigatório
     if (!tipo_despesa_id) {
+      console.error('   ❌ Erro: tipo_despesa_id é obrigatório');
       return res.status(400).json({
         success: false,
         error: 'tipo_despesa_id é obrigatório'
       });
     }
 
-    // Obter nota fiscal
+    // Converter para número se for string
+    const tipoDespesaId = parseInt(tipo_despesa_id, 10);
+    if (isNaN(tipoDespesaId)) {
+      console.error(`   ❌ Erro: tipo_despesa_id inválido (${tipo_despesa_id})`);
+      return res.status(400).json({
+        success: false,
+        error: `tipo_despesa_id inválido: ${tipo_despesa_id}`
+      });
+    }
+
+    // Validação 2: Obter nota fiscal
+    console.log(`   🔍 Buscando nota fiscal #${id}...`);
     const nota = await NotaFiscal.obter(id);
     if (!nota) {
+      console.error(`   ❌ Erro: Nota fiscal #${id} não encontrada`);
       return res.status(404).json({
         success: false,
         error: 'Nota fiscal não encontrada'
       });
     }
+    console.log(`   ✅ Nota encontrada: ${nota.numero_nf}`);
 
+    // Validação 3: Verificar status
     if (nota.status === 'processado') {
+      console.error(`   ❌ Erro: Nota já foi processada`);
       return res.status(400).json({
         success: false,
         error: 'Esta nota fiscal já foi processada'
@@ -1606,30 +1627,39 @@ router.post('/notas-fiscais/:id/processar', async (req, res) => {
 
     // Usar data fornecida ou data de emissão por padrão
     const dataFaturamento = data_faturamento || nota.data_emissao;
+    console.log(`   📅 Data do faturamento: ${dataFaturamento}`);
 
-    // Obter tipo de despesa para determinar classificação (CMV vs Operacional)
-    const tipoDespesa = await TipoDespesa.obter(tipo_despesa_id);
+    // Validação 4: Obter tipo de despesa
+    console.log(`   🔍 Buscando tipo de despesa #${tipoDespesaId}...`);
+    const tipoDespesa = await TipoDespesa.obter(tipoDespesaId);
     if (!tipoDespesa) {
+      console.error(`   ❌ Erro: Tipo de despesa #${tipoDespesaId} não encontrado`);
       return res.status(400).json({
         success: false,
-        error: 'Tipo de despesa não encontrado'
+        error: `Tipo de despesa #${tipoDespesaId} não encontrado`
       });
     }
+    console.log(`   ✅ Tipo de despesa: ${tipoDespesa.subcategoria} (${tipoDespesa.classificacao})`);
 
     const classificacao = tipoDespesa.classificacao; // 'CMV' ou 'Operacional'
-    logger.info(`Tipo de Despesa: ${tipoDespesa.subcategoria} | Classificação: ${classificacao}`);
 
     // Criar faturamento (despesa)
+    console.log(`   💾 Criando faturamento...`);
     const resultado = await Faturamento.criar(
       dataFaturamento,
       nota.valor_total,
       'Salão',
       'despesa',
-      tipo_despesa_id
+      tipoDespesaId
     );
+    console.log(`   ✅ Faturamento criado: #${resultado.id}`);
 
     // Marcar nota como processada
-    await NotaFiscal.processar(id, resultado.id, tipo_despesa_id);
+    console.log(`   📌 Marcando nota como processada...`);
+    await NotaFiscal.processar(id, resultado.id, tipoDespesaId);
+    console.log(`   ✅ Nota marcada como processada`);
+
+    console.log(`\n✅ Processamento concluído com sucesso\n`);
 
     res.json({
       success: true,
@@ -1641,9 +1671,15 @@ router.post('/notas-fiscais/:id/processar', async (req, res) => {
       classificacao: classificacao
     });
   } catch (error) {
-    res.status(400).json({
+    console.error('\n❌ ERRO AO PROCESSAR NOTA:');
+    console.error(`   Tipo: ${error.constructor.name}`);
+    console.error(`   Mensagem: ${error.message}`);
+    console.error(`   Stack: ${error.stack}\n`);
+
+    res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      tipo: error.constructor.name
     });
   }
 });
