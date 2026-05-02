@@ -2466,10 +2466,18 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         abrirEdicao(receita) {
+          // ✅ Garantir que data está no formato YYYY-MM-DD para o input[type=date]
+          let dataFormatada = receita.data;
+
+          // Se data é timestamp ISO (ex: 2026-04-07T00:00:00Z), extrair apenas YYYY-MM-DD
+          if (dataFormatada && typeof dataFormatada === 'string' && dataFormatada.includes('T')) {
+            dataFormatada = dataFormatada.split('T')[0];
+          }
+
           this.receitaEmEdicao = {
             id: receita.id,
-            data: receita.data,
-            total: receita.total,
+            data: dataFormatada,
+            total: parseFloat(receita.total) || 0,
             categoria: receita.categoria,
             tipo: receita.tipo,
             tipo_despesa_id: receita.tipo_despesa_id
@@ -2480,15 +2488,45 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
         async salvarEdicao() {
           try {
-            if (!this.receitaEmEdicao.data || !this.receitaEmEdicao.total) {
-              alert('Data e Total são obrigatórios');
+            // ✅ Validações robustas
+            if (!this.receitaEmEdicao.data || !this.receitaEmEdicao.data.trim()) {
+              alert('❌ Data é obrigatória');
               return;
             }
+
+            if (!this.receitaEmEdicao.total || parseFloat(this.receitaEmEdicao.total) <= 0) {
+              alert('❌ Total deve ser maior que zero');
+              return;
+            }
+
+            if (!this.receitaEmEdicao.categoria || !this.receitaEmEdicao.categoria.trim()) {
+              alert('❌ Categoria é obrigatória');
+              return;
+            }
+
+            if (!this.receitaEmEdicao.tipo || !this.receitaEmEdicao.tipo.trim()) {
+              alert('❌ Tipo (Receita/Despesa) é obrigatório');
+              return;
+            }
+
+            // Validar formato de data (YYYY-MM-DD)
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(this.receitaEmEdicao.data)) {
+              alert('❌ Data em formato inválido. Use DD/MM/YYYY');
+              return;
+            }
+
+            console.log('💾 Salvando edição:', {
+              id: this.receitaEmEdicao.id,
+              data: this.receitaEmEdicao.data,
+              total: this.receitaEmEdicao.total,
+              categoria: this.receitaEmEdicao.categoria,
+              tipo: this.receitaEmEdicao.tipo
+            });
 
             await api.atualizarFaturamento(
               this.receitaEmEdicao.id,
               this.receitaEmEdicao.data,
-              this.receitaEmEdicao.total,
+              parseFloat(this.receitaEmEdicao.total),
               this.receitaEmEdicao.categoria,
               this.receitaEmEdicao.tipo,
               this.receitaEmEdicao.tipo_despesa_id
@@ -2499,7 +2537,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             await this.atualizarPeriodo();
             alert('✅ Lançamento atualizado com sucesso!');
           } catch (error) {
-            alert('Erro ao atualizar: ' + error.message);
+            console.error('❌ Erro ao atualizar:', error);
+            alert('❌ Erro ao atualizar: ' + error.message);
           }
         },
 
