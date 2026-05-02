@@ -1562,8 +1562,8 @@
           // Views
           activeView: 'dashboard',
           cmvPeriodo: {
-            dataInicio: this.obterDataInicio(),
-            dataFim: this.obterDataFim()
+            dataInicio: this.obterData90DiasAtras(),
+            dataFim: this.obterDataHoje()
           },
           cmvDados: null,
           cmvAnalise: null,
@@ -1571,12 +1571,12 @@
           carregandoAnaliseIA: false,
           auditoriaDados: null,
           auditoriaPeriodo: {
-            dataInicio: this.obterDataInicio(),
-            dataFim: this.obterDataFim()
+            dataInicio: this.obterData90DiasAtras(),
+            dataFim: this.obterDataHoje()
           },
           periodo: {
-            dataInicio: this.obterDataInicio(),
-            dataFim: this.obterDataFim()
+            dataInicio: this.obterData90DiasAtras(),
+            dataFim: this.obterDataHoje()
           },
           stats: {
             total: 0,
@@ -1794,16 +1794,6 @@
           localStorage.removeItem('salon-erp-usuario');
           this.loginForm.email = '';
           this.loginForm.senha = '';
-        },
-
-        obterDataInicio() {
-          const hoje = new Date();
-          const inicio = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return getLocalDateISO(inicio);
-        },
-
-        obterDataFim() {
-          return getLocalDateISO();
         },
 
         // Para Histórico: Primeiro dia do mês atual
