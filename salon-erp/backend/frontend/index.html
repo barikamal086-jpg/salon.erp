@@ -2567,6 +2567,11 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             });
           }
 
+          // Handle ISO timestamps (2026-04-15T00:00:00.000Z) by extracting just the date part
+          if (data.includes('T')) {
+            data = data.split('T')[0];
+          }
+
           try {
             // Parse data LOCAL (YYYY-MM-DD) sem conversão UTC
             const [year, month, day] = data.split('-');
