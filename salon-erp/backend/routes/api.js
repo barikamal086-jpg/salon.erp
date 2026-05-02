@@ -342,23 +342,30 @@ router.put('/faturamentos/:id', async (req, res) => {
 router.delete('/faturamentos/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`🗑️  [DELETE] Deletando faturamento ID: ${id}`);
 
     // Verificar se existe
     const faturamento = await Faturamento.obter(id);
     if (!faturamento) {
+      console.log(`❌ [DELETE] Faturamento ${id} não encontrado`);
       return res.status(404).json({
         success: false,
         error: 'Faturamento não encontrado'
       });
     }
 
-    await Faturamento.deletar(id);
+    console.log(`✓ [DELETE] Encontrado:`, { id: faturamento.id, data: faturamento.data, total: faturamento.total });
+
+    const result = await Faturamento.deletar(id);
+    console.log(`✅ [DELETE] Deletado com sucesso. Result:`, result);
 
     res.json({
       success: true,
-      message: 'Faturamento deletado com sucesso'
+      message: 'Faturamento deletado com sucesso',
+      id: id
     });
   } catch (error) {
+    console.error(`❌ [DELETE] ERRO:`, error.message);
     res.status(400).json({
       success: false,
       error: error.message

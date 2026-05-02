@@ -2336,16 +2336,37 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
         async carregarReceitas() {
           try {
+            console.log('📥 [carregarReceitas] Buscando dados da API (365 dias)...');
             const response = await api.listarFaturamentos(365);
+
             if (response.data.success) {
-              console.log('📋 Filtrando receitas por período:', this.periodo.dataInicio, '-', this.periodo.dataFim);
-              this.receitas = response.data.data.filter(r =>
-                r.data >= this.periodo.dataInicio && r.data <= this.periodo.dataFim
-              ).sort((a, b) => new Date(b.data) - new Date(a.data));
-              console.log('✅ Receitas filtradas:', this.receitas.length);
+              console.log(`📊 [carregarReceitas] Recebido ${response.data.data.length} registros do banco`);
+
+              // Limpar array antes de filtrar (importante para DELETE!)
+              this.receitas = [];
+              console.log('🧹 [carregarReceitas] Array limpdo');
+
+              console.log('📋 [carregarReceitas] Filtrando receitas por período:', this.periodo.dataInicio, '-', this.periodo.dataFim);
+              const filtradas = response.data.data.filter(r => {
+                const ok = r.data >= this.periodo.dataInicio && r.data <= this.periodo.dataFim;
+                if (!ok) {
+                  console.log(`   ⊗ Fora do período: ${r.data}`);
+                }
+                return ok;
+              }).sort((a, b) => new Date(b.data) - new Date(a.data));
+
+              this.receitas = filtradas;
+              console.log(`✅ [carregarReceitas] Receitas filtradas: ${this.receitas.length}`);
+
+              // Verificar duplicatas
+              const ids = this.receitas.map(r => r.id);
+              const idsUnicos = new Set(ids);
+              if (ids.length !== idsUnicos.size) {
+                console.warn(`⚠️  [carregarReceitas] DUPLICATAS DETECTADAS! Total: ${ids.length}, Únicos: ${idsUnicos.size}`);
+              }
             }
           } catch (error) {
-            console.error('Erro ao carregar receitas:', error);
+            console.error('❌ [carregarReceitas] Erro ao carregar receitas:', error);
           }
         },
 
@@ -2463,13 +2484,22 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         async deletarReceita(id) {
+          console.log(`🗑️  [Frontend] Deletando faturamento ID: ${id}`);
           if (confirm('Deletar este faturamento?')) {
             try {
-              await api.deletarFaturamento(id);
+              console.log(`📤 [Frontend] Enviando DELETE para API...`);
+              const response = await api.deletarFaturamento(id);
+              console.log(`✅ [Frontend] Resposta do DELETE:`, response.data);
+
+              console.log(`🔄 [Frontend] Recarregando dados...`);
               await this.atualizarPeriodo();
+              console.log(`✅ [Frontend] Dados recarregados`);
+
               this.menuAcoesAberto = null;
+              alert('Faturamento deletado com sucesso!');
             } catch (error) {
-              alert('Erro ao deletar');
+              console.error(`❌ [Frontend] Erro ao deletar:`, error);
+              alert(`Erro ao deletar: ${error.message}`);
             }
           }
         },
@@ -2601,12 +2631,14 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               throw new Error('Data inválida');
             }
 
-            return dataLocal.toLocaleDateString('pt-BR', {
-              weekday: 'short',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit'
-            });
+            // Formatar com barras para garantir consistência
+            const dia = String(dataLocal.getDate()).padStart(2, '0');
+            const mes = String(dataLocal.getMonth() + 1).padStart(2, '0');
+            const ano = dataLocal.getFullYear();
+            const diasSemana = ['dom.', 'seg.', 'ter.', 'qua.', 'qui.', 'sex.', 'sáb.'];
+            const diaSemana = diasSemana[dataLocal.getDay()];
+
+            return `${diaSemana}, ${dia}/${mes}/${ano}`;
           } catch (err) {
             // Fallback: retornar hoje se houver erro no parse
             console.warn('⚠️ Erro ao formatar data:', data, err.message);
