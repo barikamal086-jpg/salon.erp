@@ -15,6 +15,7 @@ class ContaAzulMapper {
       'óleo': { classificacao: 'CMV', subcategoria: 'Óleo', canal: 'Salão' },
       'embalagem': { classificacao: 'CMV', subcategoria: 'Embalagem', canal: 'Salão' },
       'descartáveis': { classificacao: 'CMV', subcategoria: 'Embalagem', canal: 'Salão' },
+      'descartaveis': { classificacao: 'CMV', subcategoria: 'Embalagem', canal: 'Salão' }, // sem acento
       'gelo': { classificacao: 'CMV', subcategoria: 'Bebidas', canal: 'Salão' },
       'laticínios': { classificacao: 'CMV', subcategoria: 'Hortifruti', canal: 'Salão' },
       'laticinios': { classificacao: 'CMV', subcategoria: 'Hortifruti', canal: 'Salão' }, // sem acento
@@ -25,9 +26,11 @@ class ContaAzulMapper {
       'água e saneamento': { classificacao: 'Operacional', subcategoria: 'Utilidades', canal: 'Salão' },
       'energia elétrica': { classificacao: 'Operacional', subcategoria: 'Utilidades', canal: 'Salão' },
       'gás': { classificacao: 'Operacional', subcategoria: 'Utilidades', canal: 'Salão' },
+      'gas': { classificacao: 'Operacional', subcategoria: 'Utilidades', canal: 'Salão' }, // sem acento
 
       // Administrativa
       'salário': { classificacao: 'Administrativa', subcategoria: 'Pessoal', canal: 'Salão' },
+      'salario': { classificacao: 'Administrativa', subcategoria: 'Pessoal', canal: 'Salão' }, // sem acento
       'impostos': { classificacao: 'Administrativa', subcategoria: 'Impostos', canal: 'Salão' },
       'iptu': { classificacao: 'Administrativa', subcategoria: 'Impostos', canal: 'Salão' },
       'prolabore': { classificacao: 'Administrativa', subcategoria: 'Pessoal', canal: 'Salão' },
