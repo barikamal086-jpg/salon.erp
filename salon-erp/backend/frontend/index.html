@@ -582,7 +582,7 @@
                     </div>
                     <select
                       :value="notasCategoria[nota.id] || ''"
-                      @input="$set(notasCategoria, nota.id, $event.target.value)"
+                      @change="selecionarCategoria(nota.id, $event.target.value)"
                       class="px-2 py-1 border border-gray-300 rounded text-sm">
                       <option value="">Selecionar...</option>
                       <option v-for="tipo in tiposDespesaPlano" :key="tipo.id" :value="String(tipo.id)">
@@ -2729,6 +2729,12 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           this.notaIdAtualProcessamento = null;
           this.tipoDespesaIdAtualProcessamento = null;
           this.dataCustomizada = '';
+        },
+
+        selecionarCategoria(notaId, valor) {
+          // Guardar a categoria selecionada de forma reativa
+          this.$set(this.notasCategoria, notaId, valor);
+          console.log(`📌 Categoria selecionada: Nota #${notaId} = ${valor}`);
         },
 
         async deletarNota(notaId) {
