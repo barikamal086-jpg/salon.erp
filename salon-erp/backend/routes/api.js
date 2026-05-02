@@ -2621,6 +2621,64 @@ router.get('/debug/tipo-despesa', async (req, res) => {
   }
 });
 
+// DEBUG: Limpar duplicatas (DELETAR TODOS MENOS O MAIS RECENTE)
+router.post('/debug/limpar-duplicatas', async (req, res) => {
+  try {
+    console.log('\n🗑️  [DEBUG] Limpando duplicatas...\n');
+
+    // Encontrar grupos de duplicatas (mesma data, valor, categoria)
+    const duplicatas = await pool.query(`
+      SELECT
+        DATE(data) as data,
+        total,
+        categoria,
+        COUNT(*) as quantidade,
+        ARRAY_AGG(id ORDER BY id DESC) as ids,
+        MAX(created_at) as mais_recente_criado
+      FROM faturamento
+      GROUP BY DATE(data), total, categoria
+      HAVING COUNT(*) > 1
+      ORDER BY quantidade DESC
+    `);
+
+    console.log(`Found ${duplicatas.rows.length} groups with duplicates\n`);
+
+    let totalDeletados = 0;
+
+    for (const grupo of duplicatas.rows) {
+      const ids = grupo.ids;
+      const idsParaDeletar = ids.slice(1); // Manter apenas o primeiro (mais antigo), deletar os outros
+
+      console.log(`Grupo: ${grupo.data} | R$ ${grupo.total} | ${grupo.categoria}`);
+      console.log(`  Total: ${grupo.quantidade} | Mantendo ID ${ids[0]}, deletando: ${idsParaDeletar.join(', ')}`);
+
+      if (idsParaDeletar.length > 0) {
+        const placeholders = idsParaDeletar.map(() => '?').join(',');
+        const deleteResult = await pool.query(
+          `DELETE FROM faturamento WHERE id IN (${placeholders})`,
+          idsParaDeletar
+        );
+        totalDeletados += idsParaDeletar.length;
+        console.log(`  ✅ Deletados: ${idsParaDeletar.length}\n`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Limpeza concluída: ${totalDeletados} registros duplicados removidos`,
+      grupos_com_duplicatas: duplicatas.rows.length,
+      registros_deletados: totalDeletados,
+      detalhes: duplicatas.rows
+    });
+  } catch (error) {
+    console.error('❌ [DEBUG] Erro:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // DEBUG: Verificar duplicatas
 router.get('/debug/verificar-duplicatas', async (req, res) => {
   try {
