@@ -322,8 +322,65 @@ Se TODOS são iguais e não detectou, abrir issue (bug).
 
 ---
 
+## 🔄 Melhorias Subsequentes (2026-05-02 - Sessão 2)
+
+### Problema: Modal Mostrando Data Errada
+Modal estava exibindo data de hoje (02/05/2026) em vez da data real da nota do XML.
+
+**Exemplo:** Nota com vencimento em 2026-04-15 mas modal mostrava 02/05/2026
+
+### Soluções Implementadas
+
+#### 1. Extração Inteligente de Datas
+```javascript
+// Fallback para múltiplos campos se ide.dEmi não existir
+let dataEmissao = ide.dEmi;
+if (!dataEmissao) {
+  dataEmissao = ide.dSaiEnt || ide.dEmiDi || ide.dhEmi || null;
+}
+
+// Extrai vencimento de cobr.dup
+let dataVencimento = dataEmissao;
+if (cobr.dup) {
+  dataVencimento = dup.dVenc || dataEmissao;
+}
+```
+
+#### 2. Endpoint de Diagnóstico
+Criado `POST /api/diagnosticos/testar-xml` para debug sem processar nota:
+```bash
+curl -X POST https://seu-dominio/api/diagnosticos/testar-xml -F "arquivo=@nota.xml"
+```
+
+#### 3. Modal Melhorado
+Modal agora exibe:
+- **📅 Vencimento:** Data do XML (desabilitada, apenas referência)
+- **📝 Data do Lançamento:** Editável, pré-preenchida com vencimento
+
+#### 4. REGRA Implementada
+```javascript
+// Use data_vencimento se disponível; else use data_emissao
+if (response.data.data.data_vencimento) {
+  dataSugerida = response.data.data.data_vencimento;
+}
+```
+
+#### 5. Correção de Formato
+Converteu timestamps ISO para YYYY-MM-DD para `input[type=date]`:
+```javascript
+:value="sugestaoData.data_vencimento?.split('T')[0]"
+```
+
+### Resultado
+✅ Modal mostra data correta do XML
+✅ Usuário vê data de vencimento como referência
+✅ Pode editar data de lançamento se necessário
+
+---
+
 ## Resumo Final
 
+### Sessão 1 - Detecção de Duplicatas
 | Aspecto | Status |
 |---------|--------|
 | Problema identificado | ✅ 5 notas KIMCHI não detectadas |
@@ -333,11 +390,24 @@ Se TODOS são iguais e não detectou, abrir issue (bug).
 | Deploy | ✅ Pushed to Railway |
 | Backward compatible | ✅ 100% (0 breaking changes) |
 | Robusta contra erros | ✅ Never blocks import due to detection error |
-| Pronta para produção | ✅ SIM |
+
+**Implementado em:** Commit `0d703ed` | **Data:** 2026-05-02
+
+### Sessão 2 - Data Vencimento Modal Fix
+| Aspecto | Status |
+|---------|--------|
+| Problema identificado | ✅ Modal mostrando data de hoje em vez de XML |
+| Extração XML melhorada | ✅ Fallback para múltiplos campos de data |
+| Endpoint diagnóstico | ✅ POST /api/diagnosticos/testar-xml |
+| Modal melhorado | ✅ Mostra vencimento + data de lançamento |
+| REGRA implementada | ✅ Use data_vencimento se disponível |
+| Formato de data | ✅ ISO timestamp → YYYY-MM-DD |
+| Deploy | ✅ Commits 055c59e → c53ed17 |
+| Testado | ✅ FUNCIONOU! |
+
+**Implementado em:** Commits `055c59e` a `c53ed17` | **Data:** 2026-05-02 | **Tempo:** ~1.5 horas
 
 ---
 
-**Implementado em:** Commit `0d703ed`
-**Data:** 2026-05-02
-**Autor:** Claude
-**Tempo total:** ~2 horas (análise + implementação + documentação + deploy)
+**Total Sessão:** ~3.5 horas
+**Status Geral:** ✅ PRONTA PARA PRODUÇÃO
