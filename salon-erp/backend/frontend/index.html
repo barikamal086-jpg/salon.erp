@@ -2591,12 +2591,14 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             this.notasPendentes = response.data.data || [];
             console.log('✅ notasPendentes atualizado:', this.notasPendentes.length, 'registros');
 
-            // 🔧 Inicializar notasCategoria para cada nota (garante reatividade)
-            this.notasCategoria = {};
+            // 🔧 Inicializar notasCategoria APENAS para notas novas (preservar seleções)
             for (let nota of this.notasPendentes) {
-              this.notasCategoria[nota.id] = '';
+              // Só adicionar se ainda não tem valor (preservar seleção do usuário)
+              if (!this.notasCategoria.hasOwnProperty(nota.id)) {
+                this.notasCategoria[nota.id] = '';
+              }
             }
-            console.log('✅ notasCategoria inicializado para', this.notasPendentes.length, 'notas');
+            console.log('✅ notasCategoria atualizado (preservando seleções)');
 
             if (this.notasPendentes.length > 0) {
               console.log('🎉 Notas carregadas com sucesso!');
