@@ -32,38 +32,22 @@ class NotaFiscalParser {
       const cobr = nfeData.cobr || {}; // Informações de cobrança
 
       console.log('🔍 Campos extraídos:');
-      console.log('   - IDE:', { cUF: ide.cUF, AAMM: ide.AAMM, nNF: ide.nNF, dEmi: ide.dEmi });
+      console.log('   - IDE:', { cUF: ide.cUF, AAMM: ide.AAMM, nNF: ide.nNF });
       console.log('   - EMIT:', { CNPJ: emit.CNPJ, xNome: emit.xNome });
       console.log('   - TOTAL:', { vNF: total.vNF });
-      console.log('   - IDE COMPLETO:', JSON.stringify(ide).substring(0, 200));
 
       // Extrair data de emissão com fallback para outros campos
       let dataEmissao = ide.dEmi;
       if (!dataEmissao) {
-        console.warn('⚠️  ide.dEmi não encontrado, tentando fallback...');
         // Fallback: tentar outros campos possíveis
         dataEmissao = ide.dSaiEnt || ide.dEmiDi || ide.dhEmi || null;
-        if (dataEmissao) {
-          console.log(`✅ Data de emissão encontrada em fallback: ${dataEmissao}`);
-        } else {
-          console.warn('⚠️  Nenhum campo de data encontrado em ide. Usando hoje.');
-        }
       }
 
       // Extrair data de vencimento de cobr.dup (duplicata/parcela)
-      console.log('🔍 Verificando cobr.dup para data de vencimento:');
-      console.log('   - cobr existe?', !!cobr);
-      console.log('   - cobr.dup existe?', !!cobr.dup);
-
       let dataVencimento = dataEmissao; // Default: data de emissão
       if (cobr.dup) {
         const dup = Array.isArray(cobr.dup) ? cobr.dup[0] : cobr.dup;
-        console.log('   - dup encontrado:', JSON.stringify(dup).substring(0, 100));
-        console.log('   - dup.dVenc:', dup.dVenc);
         dataVencimento = dup.dVenc || dataEmissao;
-        console.log(`   ✅ dataVencimento extraído: ${dataVencimento}`);
-      } else {
-        console.log('   ⚠️  cobr.dup não encontrado, usando dataEmissao como vencimento');
       }
 
       // Extrair informações principais
@@ -83,10 +67,6 @@ class NotaFiscalParser {
         valorTotal = 0;
       }
 
-      console.log('\n🗓️  DATAS EXTRAÍDAS (antes de formatação):');
-      console.log(`   - dataEmissao: ${dataEmissao}`);
-      console.log(`   - dataVencimento: ${dataVencimento}`);
-
       const resultado = {
         numero_nf: numeroNF || `NF-${Date.now()}`,
         fornecedor_nome: emit.xNome || 'Fornecedor Desconhecido',
@@ -99,9 +79,9 @@ class NotaFiscalParser {
         xml_content: xmlContent.toString('utf8')
       };
 
-      console.log('\n🗓️  DATAS FORMATADAS (depois de _formatarData):');
-      console.log(`   - data_emissao: ${resultado.data_emissao}`);
-      console.log(`   - data_vencimento: ${resultado.data_vencimento}`);
+      const dataAtual = new Date().toISOString().split('T')[0];
+      console.log(`\n📅 data_vencimento: ${resultado.data_vencimento}`);
+      console.log(`📅 data_atual: ${dataAtual}`);
 
       console.log('✅ XML parsing finalizado:', resultado.numero_nf);
       return resultado;
@@ -232,37 +212,26 @@ class NotaFiscalParser {
    * @private
    */
   static _formatarData(data) {
-    console.log(`🕐 _formatarData recebido: tipo=${typeof data}, valor="${data}"`);
-
-    if (!data) {
-      console.warn(`⚠️  Data é null/undefined, retornando hoje`);
-      return new Date().toISOString().split('T')[0];
-    }
+    if (!data) return new Date().toISOString().split('T')[0];
 
     // Se já está no formato YYYY-MM-DD, retornar
     if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
-      console.log(`✅ Data já em YYYY-MM-DD: ${data}`);
       return data;
     }
 
     // Se está em YYYYMMDD, converter
     if (/^\d{8}$/.test(data)) {
-      const formatted = `${data.substring(0, 4)}-${data.substring(4, 6)}-${data.substring(6, 8)}`;
-      console.log(`✅ Convertido de YYYYMMDD para YYYY-MM-DD: ${data} → ${formatted}`);
-      return formatted;
+      return `${data.substring(0, 4)}-${data.substring(4, 6)}-${data.substring(6, 8)}`;
     }
 
     // Tentar fazer parsing como data
     try {
       const date = new Date(data);
       if (!isNaN(date.getTime())) {
-        const result = date.toISOString().split('T')[0];
-        console.log(`✅ Parseado como Date: ${data} → ${result}`);
-        return result;
+        return date.toISOString().split('T')[0];
       }
     } catch (e) {}
 
-    console.warn(`⚠️  Não conseguiu processar data "${data}", retornando hoje`);
     return new Date().toISOString().split('T')[0];
   }
 
