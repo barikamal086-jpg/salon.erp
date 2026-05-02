@@ -1072,12 +1072,12 @@ router.get('/notas-fiscais/:id/sugestao-data', async (req, res) => {
         sugestao = 'agora';
         data_sugerida = hoje;
         prioridade = 'urgente';
-        mensagem_inteligente = `🔴 VENCIDA há ${diasVencidos} dia${diasVencidos > 1 ? 's' : ''} - Recomendamos pagar agora`;
+        mensagem_inteligente = `🔴 VENCIDA em ${nota.data_vencimento} - Recomendamos pagar agora`;
 
         opcoes.agora = {
           label: '🚨 Pagar AGORA (Atrasado)',
           data: hoje,
-          descricao: `Registrar em ${hoje} - Nota vencida!`
+          descricao: `Registrar em ${hoje} - Venceu em ${nota.data_vencimento}!`
         };
       }
     } else {
