@@ -1218,13 +1218,17 @@ router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) =
 
         // Buscar tipo_despesa_id pelo mapeamento
         let tipoDespesaId = null;
-        const tipoResult = await client.query(
-          'SELECT id FROM tipo_despesa WHERE classificacao = $1 AND subcategoria = $2 LIMIT 1',
-          [dados.classificacao, dados.subcategoria]
-        );
+        try {
+          const tipoResult = await client.query(
+            'SELECT id FROM tipo_despesa WHERE classificacao = $1 AND subcategoria = $2 LIMIT 1',
+            [dados.classificacao, dados.subcategoria]
+          );
 
-        if (tipoResult.rows.length > 0) {
-          tipoDespesaId = tipoResult.rows[0].id;
+          if (tipoResult.rows.length > 0) {
+            tipoDespesaId = tipoResult.rows[0].id;
+          }
+        } catch (tipoErr) {
+          console.error(`⚠️  Erro ao buscar tipo_despesa para ${dados.classificacao}/${dados.subcategoria}:`, tipoErr.message);
         }
 
         // Criar faturamento

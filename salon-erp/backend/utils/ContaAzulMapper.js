@@ -17,6 +17,7 @@ class ContaAzulMapper {
       'descartáveis': { classificacao: 'CMV', subcategoria: 'Embalagem', canal: 'Salão' },
       'gelo': { classificacao: 'CMV', subcategoria: 'Bebidas', canal: 'Salão' },
       'laticínios': { classificacao: 'CMV', subcategoria: 'Hortifruti', canal: 'Salão' },
+      'laticinios': { classificacao: 'CMV', subcategoria: 'Hortifruti', canal: 'Salão' }, // sem acento
 
       // Operacional
       'freelancer': { classificacao: 'Operacional', subcategoria: 'Pessoal', canal: 'Salão' },
