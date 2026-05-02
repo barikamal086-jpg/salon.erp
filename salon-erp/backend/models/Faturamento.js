@@ -38,13 +38,16 @@ class Faturamento {
       throw new Error('Categoria é obrigatória');
     }
 
+    // Normalizar tipo para minúsculas
+    const tipoNormalizado = tipo.toLowerCase();
+
     // Validar tipo
-    if (!['receita', 'despesa'].includes(tipo)) {
+    if (!['receita', 'despesa'].includes(tipoNormalizado)) {
       throw new Error('Tipo deve ser "receita" ou "despesa"');
     }
 
     // Se for despesa, tipo_despesa_id é obrigatório
-    if (tipo === 'despesa' && !tipoDespesaId) {
+    if (tipoNormalizado === 'despesa' && !tipoDespesaId) {
       throw new Error('tipo_despesa_id é obrigatório para despesas');
     }
 
@@ -52,7 +55,7 @@ class Faturamento {
       INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, false, NOW(), NOW())
     `;
-    return await runAsync(sql, [data, parseFloat(total), categoria.trim(), tipo, tipoDespesaId, categoriaProduto]);
+    return await runAsync(sql, [data, parseFloat(total), categoria.trim(), tipoNormalizado, tipoDespesaId, categoriaProduto]);
   }
 
   // Atualizar faturamento (apenas total)
@@ -81,7 +84,10 @@ class Faturamento {
       throw new Error('Total deve ser maior que zero');
     }
 
-    if (!['receita', 'despesa'].includes(tipo)) {
+    // Normalizar tipo para minúsculas
+    const tipoNormalizado = tipo.toLowerCase();
+
+    if (!['receita', 'despesa'].includes(tipoNormalizado)) {
       throw new Error('Tipo deve ser "receita" ou "despesa"');
     }
 
@@ -94,7 +100,7 @@ class Faturamento {
 
     console.log(`🔄 [Faturamento.atualizarCompleto] INICIANDO UPDATE`);
     console.log(`   ID: ${idInt} (tipo: ${typeof idInt})`);
-    console.log(`   Dados: data=${data}, total=${parseFloat(total)}, categoria=${categoria}, tipo=${tipo}, tipo_despesa_id=${tipoDespesaId}`);
+    console.log(`   Dados: data=${data}, total=${parseFloat(total)}, categoria=${categoria}, tipo=${tipoNormalizado}, tipo_despesa_id=${tipoDespesaId}`);
 
     // VERIFICAR que o registro EXISTS antes de atualizar
     const registroAntes = await getAsync('SELECT * FROM faturamento WHERE id = ?', [idInt]);
@@ -110,7 +116,7 @@ class Faturamento {
     `;
 
     console.log(`   Executando SQL:`, sql.replace(/\n/g, ' '));
-    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipo, tipoDespesaId, idInt]);
+    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipoNormalizado, tipoDespesaId, idInt]);
     console.log(`   ✓ runAsync retornou:`, result);
 
     // VERIFICAR que o registro foi atualizado

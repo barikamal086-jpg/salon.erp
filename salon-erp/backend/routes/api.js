@@ -251,21 +251,22 @@ router.post('/faturamentos', async (req, res) => {
       });
     }
 
-    if (!['receita', 'despesa'].includes(tipo)) {
+    const tipoNormalizado = tipo.toLowerCase();
+    if (!['receita', 'despesa'].includes(tipoNormalizado)) {
       return res.status(400).json({
         success: false,
         error: 'Tipo deve ser "receita" ou "despesa"'
       });
     }
 
-    if (tipo === 'despesa' && !tipo_despesa_id) {
+    if (tipoNormalizado === 'despesa' && !tipo_despesa_id) {
       return res.status(400).json({
         success: false,
         error: 'tipo_despesa_id é obrigatório para despesas'
       });
     }
 
-    const result = await Faturamento.criar(data, total, categoria, tipo, tipo_despesa_id, categoria_produto);
+    const result = await Faturamento.criar(data, total, categoria, tipoNormalizado, tipo_despesa_id, categoria_produto);
 
     res.status(201).json({
       success: true,
