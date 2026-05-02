@@ -8,9 +8,11 @@ const NotaFiscal = require('../models/NotaFiscal');
 const NotaFiscalParser = require('../utils/NotaFiscalParser');
 const CMVAnalyzer = require('../utils/CMVAnalyzer');
 const CMVAnalyzerV2 = require('../utils/CMVAnalyzerV2');
+const ContaAzulMapper = require('../utils/ContaAzulMapper');
 const logger = require('../utils/logger');
 const { gerarToken, verificarSenha, buscarUsuarioPorEmail, middlewareAutenticacao } = require('../auth');
 const { pool } = require('../database');
+const xlsx = require('xlsx');
 
 // Configurar multer para upload de arquivos
 const upload = multer({
@@ -1144,6 +1146,160 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
       error: error.message,
       stack: error.stack
     });
+  }
+});
+
+// POST /api/importar-conta-azul - Importar faturamentos do Excel Conta Azul
+router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    console.log('\n📊 Importação Conta Azul iniciada');
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nenhum arquivo foi enviado'
+      });
+    }
+
+    // Ler arquivo Excel
+    console.log(`   Arquivo: ${req.file.originalname}`);
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const linhas = xlsx.utils.sheet_to_json(worksheet);
+
+    console.log(`   Linhas encontradas: ${linhas.length}`);
+
+    if (linhas.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Arquivo Excel vazio'
+      });
+    }
+
+    // Começar transação
+    await client.query('BEGIN');
+
+    const importados = [];
+    const erros = [];
+    const duplicados = [];
+
+    // Processar cada linha
+    for (let i = 0; i < linhas.length; i++) {
+      try {
+        const linha = linhas[i];
+
+        // Processar linha
+        const dados = ContaAzulMapper.processarLinhaExcel(linha, i + 1);
+
+        if (!dados.valid) {
+          erros.push({
+            linha: i + 1,
+            erro: dados.erro
+          });
+          continue;
+        }
+
+        // Verificar duplicata pelo identificador
+        const checkDupResult = await client.query(
+          'SELECT id FROM faturamento WHERE descricao LIKE $1 LIMIT 1',
+          [`%${dados.identificador}%`]
+        );
+
+        if (checkDupResult.rows.length > 0) {
+          duplicados.push({
+            linha: i + 1,
+            descricao: dados.descricao,
+            identificador: dados.identificador
+          });
+          continue;
+        }
+
+        // Buscar tipo_despesa_id pelo mapeamento
+        let tipoDespesaId = null;
+        const tipoResult = await client.query(
+          'SELECT id FROM tipo_despesa WHERE classificacao = $1 AND subcategoria = $2 LIMIT 1',
+          [dados.classificacao, dados.subcategoria]
+        );
+
+        if (tipoResult.rows.length > 0) {
+          tipoDespesaId = tipoResult.rows[0].id;
+        }
+
+        // Criar faturamento
+        const descricaoCompleta = `${dados.descricao} (${dados.categoria_conta_azul}) [CA: ${dados.identificador}]`;
+
+        const insertResult = await client.query(
+          `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, descricao, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+           RETURNING id`,
+          [
+            dados.data,
+            dados.total,
+            dados.categoria,
+            dados.tipo,
+            tipoDespesaId,
+            dados.classificacao,
+            descricaoCompleta
+          ]
+        );
+
+        importados.push({
+          id: insertResult.rows[0].id,
+          data: dados.data,
+          descricao: dados.descricao,
+          fornecedor: dados.fornecedor_nome,
+          valor: dados.total,
+          tipo: dados.tipo,
+          categoria: dados.categoria,
+          classificacao: dados.classificacao
+        });
+
+        if ((i + 1) % 20 === 0) {
+          console.log(`   Processadas ${i + 1}/${linhas.length} linhas...`);
+        }
+      } catch (erro) {
+        console.error(`❌ Erro na linha ${i + 1}:`, erro.message);
+        erros.push({
+          linha: i + 1,
+          erro: erro.message
+        });
+      }
+    }
+
+    // Confirmar transação
+    await client.query('COMMIT');
+    console.log(`✅ Importação concluída: ${importados.length} lançamentos importados`);
+
+    res.status(201).json({
+      success: importados.length > 0,
+      message: `${importados.length} lançamento(s) importado(s), ${duplicados.length} duplicado(s), ${erros.length} erro(s)`,
+      dados: {
+        importados: importados.length,
+        duplicados: duplicados.length,
+        erros: erros.length,
+        detalhes: {
+          importados: importados.slice(0, 10), // Primeiros 10
+          duplicados: duplicados.slice(0, 5),
+          erros: erros.slice(0, 5)
+        }
+      }
+    });
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+    }
+    console.error('❌ Erro na importação:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: err.stack
+    });
+  } finally {
+    client.release();
   }
 });
 

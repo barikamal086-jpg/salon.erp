@@ -152,6 +152,19 @@ const api = {
   // POST /api/criar-categoria-simples - Criar categoria rápida
   criarCategoriaSimples(nome, classificacao = 'Operacional') {
     return axios.post(`${API_BASE}/criar-categoria-simples`, { nome, classificacao });
+  },
+
+  // ==================== IMPORTAÇÃO CONTA AZUL ====================
+
+  // POST /api/importar-conta-azul - Importar Excel do Conta Azul
+  importarContaAzul(arquivo) {
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+    return axios.post(`${API_BASE}/importar-conta-azul`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
   }
 };
 
