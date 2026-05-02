@@ -14,7 +14,7 @@ const { gerarToken, verificarSenha, buscarUsuarioPorEmail, middlewareAutenticaca
 const { pool } = require('../database');
 const xlsx = require('xlsx');
 
-// Configurar multer para upload de arquivos
+// Configurar multer para upload de arquivos (XML, PDF, Excel)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -37,6 +37,31 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Apenas arquivos XML, PDF e Excel são permitidos'));
+    }
+  }
+});
+
+// Configurar multer específico para Excel (sem restrições de tipo)
+const uploadExcel = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB por arquivo
+    files: 1 // Máximo 1 arquivo por requisição para Excel
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedExt = ['.xlsx', '.xls'];
+    const ext = require('path').extname(file.originalname).toLowerCase();
+
+    // Allow if extension is correct OR if mimetype suggests Excel
+    const isExcelFile = allowedExt.includes(ext) ||
+                       file.mimetype.includes('spreadsheet') ||
+                       file.mimetype.includes('excel') ||
+                       file.mimetype === 'application/octet-stream';
+
+    if (isExcelFile) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos Excel (.xlsx, .xls) são permitidos'));
     }
   }
 });
@@ -1158,7 +1183,7 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
 
 // POST /api/importar-conta-azul - Importar Excel Conta Azul como notas fiscais
 // Reutiliza a lógica existente de processamento de notas
-router.post('/importar-conta-azul', upload.single('arquivo'), async (req, res) => {
+router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, res) => {
   let client;
   try {
     console.log('\n📊 Importação Conta Azul iniciada (usando lógica de notas fiscais)');
