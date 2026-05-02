@@ -2619,7 +2619,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               this.notaIdAtualProcessamento = notaId;
               this.tipoDespesaIdAtualProcessamento = tipoDespesaIdNumero;
               this.sugestaoData = response.data.data;
-              this.dataCustomizada = response.data.data.data_sugerida || new Date().toISOString().split('T')[0];
+              // Usar data_emissao da nota como padrão
+              this.dataCustomizada = response.data.data.data_emissao || new Date().toISOString().split('T')[0];
 
               // Mostrar modal em qualquer caso (com ou sem sugestão)
               this.mostrarSugestaoData = true;
