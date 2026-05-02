@@ -581,10 +581,11 @@
                       </div>
                     </div>
                     <select
-                      v-model="notasCategoria[nota.id]"
+                      :value="notasCategoria[nota.id] || ''"
+                      @input="$set(notasCategoria, nota.id, $event.target.value)"
                       class="px-2 py-1 border border-gray-300 rounded text-sm">
                       <option value="">Selecionar...</option>
-                      <option v-for="tipo in tiposDespesaPlano" :key="tipo.id" :value="tipo.id">
+                      <option v-for="tipo in tiposDespesaPlano" :key="tipo.id" :value="String(tipo.id)">
                         {{ tipo.subcategoria }}
                       </option>
                     </select>
@@ -2661,10 +2662,15 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
         async processarNota(notaId, tipoDespesaIdParam = null) {
           const tipoDespesaId = tipoDespesaIdParam || this.notasCategoria[notaId];
-          if (!tipoDespesaId) {
+
+          // Verificar se tipo_despesa_id é válido (não vazio e não null)
+          if (!tipoDespesaId || tipoDespesaId === '' || tipoDespesaId === undefined) {
             alert('⚠️ Selecione uma categoria antes de processar');
             return;
           }
+
+          // Converter para número se for string
+          const tipoDespesaIdNumero = parseInt(tipoDespesaId, 10);
 
           try {
             // Obter sugestão de data
@@ -2673,7 +2679,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             if (response.data.success) {
               // Guardar informações para processamento posterior
               this.notaIdAtualProcessamento = notaId;
-              this.tipoDespesaIdAtualProcessamento = tipoDespesaId;
+              this.tipoDespesaIdAtualProcessamento = tipoDespesaIdNumero;
               this.sugestaoData = response.data.data;
               this.dataCustomizada = response.data.data.data_sugerida || new Date().toISOString().split('T')[0];
 
