@@ -499,6 +499,39 @@
               </button>
             </div>
 
+            <!-- Importar Conta Azul -->
+            <div class="mb-6 pt-4 border-t border-gray-200">
+              <p class="text-sm font-semibold text-gray-700 mb-3">⬆️ Importar do Conta Azul</p>
+              <p class="text-xs text-gray-500 mb-3">Selecione um arquivo Excel exportado do Conta Azul</p>
+              <div class="flex gap-2">
+                <input
+                  type="file"
+                  ref="contaAzulFileInput"
+                  @change="selecionarArquivoContaAzul"
+                  accept=".xlsx,.xls"
+                  style="display: none">
+                <button
+                  @click="$refs.contaAzulFileInput.click()"
+                  class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm">
+                  📂 Selecionar Excel
+                </button>
+                <button
+                  @click="importarContaAzulDashboard"
+                  :disabled="!arquivoContaAzul || importandoContaAzul"
+                  class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm disabled:bg-gray-400">
+                  {{ importandoContaAzul ? '⏳ Importando...' : '📤 Importar' }}
+                </button>
+              </div>
+              <p v-if="arquivoContaAzul" class="text-sm text-gray-600 mt-2">
+                ✅ Arquivo selecionado: {{ arquivoContaAzul.name }}
+              </p>
+              <div v-if="mensagemImportacao" class="mt-3 p-3 rounded-lg" :class="importacaoSucesso ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'">
+                <p :class="importacaoSucesso ? 'text-green-700' : 'text-red-700'" class="text-sm">
+                  {{ mensagemImportacao }}
+                </p>
+              </div>
+            </div>
+
             <!-- Exportar Notas -->
             <div class="mb-6 pt-4 border-t border-gray-200">
               <p class="text-sm font-semibold text-gray-700 mb-3">⬇️ Exportar Notas</p>
@@ -1647,6 +1680,11 @@
           dataCustomizada: '',
           notaIdAtualProcessamento: null,
           tipoDespesaIdAtualProcessamento: null,
+          // Conta Azul Import
+          arquivoContaAzul: null,
+          importandoContaAzul: false,
+          mensagemImportacao: '',
+          importacaoSucesso: false,
           // Gráfico Mensal
           graficoMes: String(new Date().getMonth() + 1).padStart(2, '0'),
           graficoAno: new Date().getFullYear(),
@@ -2689,6 +2727,65 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           } catch (error) {
             console.error('Erro ao deletar nota:', error);
             alert('❌ Erro ao deletar nota. Tente novamente.');
+          }
+        },
+
+        // ==================== IMPORTAR CONTA AZUL ====================
+
+        selecionarArquivoContaAzul() {
+          const arquivo = this.$refs.contaAzulFileInput.files[0];
+          if (arquivo) {
+            this.arquivoContaAzul = arquivo;
+            this.mensagemImportacao = '';
+          }
+        },
+
+        async importarContaAzulDashboard() {
+          if (!this.arquivoContaAzul) {
+            alert('❌ Selecione um arquivo Excel');
+            return;
+          }
+
+          try {
+            this.importandoContaAzul = true;
+            this.mensagemImportacao = '';
+
+            const formData = new FormData();
+            formData.append('arquivo', this.arquivoContaAzul);
+
+            console.log('📤 Enviando arquivo para importação:', this.arquivoContaAzul.name);
+
+            const response = await fetch('/api/importar-conta-azul', {
+              method: 'POST',
+              body: formData
+            });
+
+            const resultado = await response.json();
+
+            if (resultado.success || resultado.dados.importados > 0) {
+              this.importacaoSucesso = true;
+              this.mensagemImportacao = `✅ ${resultado.dados.importados} nota(s) importada(s), ${resultado.dados.duplicados} duplicada(s), ${resultado.dados.erros} erro(s)`;
+              console.log('✅ Importação concluída:', resultado);
+
+              // Limpar arquivo selecionado
+              this.arquivoContaAzul = null;
+              this.$refs.contaAzulFileInput.value = '';
+
+              // Recarregar notas após 2 segundos
+              setTimeout(() => {
+                this.obterNotasHistorico();
+                this.mensagemImportacao = '';
+              }, 2000);
+            } else {
+              this.importacaoSucesso = false;
+              this.mensagemImportacao = `❌ Erro: ${resultado.error || 'Falha ao importar'}`;
+            }
+          } catch (error) {
+            this.importacaoSucesso = false;
+            this.mensagemImportacao = `❌ Erro na importação: ${error.message}`;
+            console.error('❌ Erro ao importar Conta Azul:', error);
+          } finally {
+            this.importandoContaAzul = false;
           }
         },
 
