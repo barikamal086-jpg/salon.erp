@@ -2629,8 +2629,17 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               this.notaIdAtualProcessamento = notaId;
               this.tipoDespesaIdAtualProcessamento = tipoDespesaIdNumero;
               this.sugestaoData = response.data.data;
-              // Usar data_emissao da nota como padrão
-              this.dataCustomizada = response.data.data.data_emissao || new Date().toISOString().split('T')[0];
+
+              // REGRA: Usar data_vencimento se existir e for >= hoje
+              const hoje = new Date().toISOString().split('T')[0];
+              let dataSugerida = response.data.data.data_emissao;
+
+              if (response.data.data.data_vencimento) {
+                // Se tem data de vencimento, usar ela
+                dataSugerida = response.data.data.data_vencimento;
+              }
+
+              this.dataCustomizada = dataSugerida || hoje;
 
               // Mostrar modal em qualquer caso (com ou sem sugestão)
               this.mostrarSugestaoData = true;
