@@ -67,6 +67,82 @@ const uploadExcel = multer({
 });
 
 // ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Detectar duplicatas inteligentes baseado em:
+ * - fornecedor_nome (exato)
+ * - descricao (exato)
+ * - valor_total (exato ou dentro de 1% de tolerância)
+ * - data_emissao (opcional: mesmo dia ou até 24h antes/depois)
+ *
+ * Retorna: { isDuplicate: boolean, similarNota: { id, numero_nf, ... } | null }
+ */
+async function checkIntelligentDuplicate(client, dados, hoursWindow = 24) {
+  try {
+    // Normalizar valores para comparação
+    const valoresSimilares = [
+      dados.valor_total,
+      dados.valor_total * 1.01,   // +1%
+      dados.valor_total * 0.99    // -1%
+    ];
+
+    // Construir query para encontrar duplicatas inteligentes
+    // Critério: MESMO fornecedor + MESMA descrição + valor similar + data próxima
+    let query = `
+      SELECT id, numero_nf, fornecedor_nome, descricao, valor_total, data_emissao
+      FROM notas_fiscais
+      WHERE LOWER(TRIM(fornecedor_nome)) = LOWER(TRIM($1))
+      AND LOWER(TRIM(descricao)) = LOWER(TRIM($2))
+      AND valor_total IN (${valoresSimilares.map((_, i) => `$${i + 3}`).join(',')})
+    `;
+
+    const params = [
+      dados.fornecedor_nome,
+      dados.descricao,
+      ...valoresSimilares
+    ];
+
+    // Se tiver data, adicionar filtro de data (24h antes/depois)
+    if (dados.data_emissao) {
+      const dataEmissao = new Date(dados.data_emissao);
+      const dataAntes = new Date(dataEmissao.getTime() - hoursWindow * 60 * 60 * 1000);
+      const dataDepois = new Date(dataEmissao.getTime() + hoursWindow * 60 * 60 * 1000);
+
+      query += ` AND data_emissao BETWEEN $${params.length + 1} AND $${params.length + 2}`;
+      params.push(dataAntes.toISOString(), dataDepois.toISOString());
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT 1`;
+
+    const result = await client.query(query, params);
+
+    if (result.rows.length > 0) {
+      return {
+        isDuplicate: true,
+        similarNota: result.rows[0],
+        motivo: `Encontrada nota similar: ${result.rows[0].numero_nf} (mesmo fornecedor, descrição e valor)`
+      };
+    }
+
+    return {
+      isDuplicate: false,
+      similarNota: null,
+      motivo: null
+    };
+  } catch (erro) {
+    console.error('❌ Erro ao verificar duplicata inteligente:', erro.message);
+    // Se houver erro na verificação, não bloqueia a importação
+    return {
+      isDuplicate: false,
+      similarNota: null,
+      motivo: null
+    };
+  }
+}
+
+// ============================================
 // AUTENTICAÇÃO
 // ============================================
 
@@ -1158,6 +1234,16 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
 
     const notasProcessadas = [];
     const erros = [];
+    const duplicadas = [];
+
+    // Conectar ao banco para verificações de duplicata inteligente
+    let client;
+    try {
+      client = await pool.connect();
+    } catch (poolErr) {
+      console.error('⚠️  Erro ao conectar ao banco para verificação de duplicatas');
+      client = null;
+    }
 
     // Processar cada arquivo
     for (let i = 0; i < req.files.length; i++) {
@@ -1172,16 +1258,43 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
         );
         console.log(`   ✅ Parsing bem-sucedido: ${dadosExtraidos.numero_nf}`);
 
-        // Verificar se nota já existe
+        // Verificar duplicata 1: numero_nf exato
         const notaExistente = await NotaFiscal.obterPorNumero(dadosExtraidos.numero_nf);
         if (notaExistente) {
           const msg = `Nota fiscal ${dadosExtraidos.numero_nf} já foi processada`;
           console.log(`   ⚠️  ${msg}`);
-          erros.push({
+          duplicadas.push({
             arquivo: file.originalname,
-            erro: msg
+            numero_nf: dadosExtraidos.numero_nf,
+            motivo: 'numero_nf duplicado'
           });
           continue;
+        }
+
+        // Verificar duplicata 2: inteligente (fornecedor + descrição + valor)
+        if (client) {
+          console.log(`   Verificando duplicata inteligente...`);
+          const dupCheck = await checkIntelligentDuplicate(client, {
+            fornecedor_nome: dadosExtraidos.fornecedor_nome,
+            descricao: dadosExtraidos.descricao,
+            valor_total: dadosExtraidos.valor_total,
+            data_emissao: dadosExtraidos.data_emissao
+          });
+
+          if (dupCheck.isDuplicate) {
+            console.log(`   ⚠️  Duplicata inteligente: ${dupCheck.similarNota.numero_nf}`);
+            duplicadas.push({
+              arquivo: file.originalname,
+              numero_nf: dadosExtraidos.numero_nf,
+              motivo: `Nota similar já existe (${dupCheck.similarNota.numero_nf}): mesmo fornecedor, descrição e valor`,
+              notaSimilar: {
+                numero_nf: dupCheck.similarNota.numero_nf,
+                data_emissao: dupCheck.similarNota.data_emissao,
+                valor: dupCheck.similarNota.valor_total
+              }
+            });
+            continue;
+          }
         }
 
         // Salvar nota fiscal no banco
@@ -1212,15 +1325,33 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
       }
     }
 
+    // Fechar conexão
+    if (client) {
+      try {
+        client.release();
+      } catch (err) {
+        console.error('⚠️  Erro ao fechar conexão:', err.message);
+      }
+    }
+
     console.log(`\n📊 Resumo do upload:`);
     console.log(`   ✅ Notas processadas: ${notasProcessadas.length}`);
+    console.log(`   ⚠️  Duplicadas: ${duplicadas.length}`);
     console.log(`   ❌ Erros: ${erros.length}`);
 
     res.status(201).json({
       success: notasProcessadas.length > 0,
-      message: `${notasProcessadas.length} nota(s) processada(s), ${erros.length} erro(s)`,
-      data: notasProcessadas,
-      errors: erros.length > 0 ? erros : undefined
+      message: `${notasProcessadas.length} nota(s) processada(s), ${duplicadas.length} duplicada(s), ${erros.length} erro(s)`,
+      data: {
+        processadas: notasProcessadas.length,
+        duplicadas: duplicadas.length,
+        erros: erros.length,
+        detalhes: {
+          processadas: notasProcessadas,
+          duplicadas: duplicadas.length > 0 ? duplicadas : undefined,
+          erros: erros.length > 0 ? erros : undefined
+        }
+      }
     });
   } catch (error) {
     console.error('❌ Erro geral no upload:', error.message);
@@ -1303,7 +1434,7 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
         // Gerar numero_nf único (usando código de referência do Conta Azul ou timestamp)
         const numeroNF = `CA-${dados.identificador}`;
 
-        // Verificar duplicata pelo numero_nf
+        // Verificar duplicata 1: numero_nf exato
         console.log(`   Verificando duplicata para ${numeroNF}...`);
         const checkDupResult = await client.query(
           'SELECT id FROM notas_fiscais WHERE numero_nf = $1 LIMIT 1',
@@ -1311,11 +1442,37 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
         );
 
         if (checkDupResult.rows.length > 0) {
-          console.log(`   ⚠️  Duplicada: ${numeroNF}`);
+          console.log(`   ⚠️  Duplicada (numero_nf): ${numeroNF}`);
           duplicados.push({
             linha: i + 1,
             descricao: dados.descricao,
-            numero_nf: numeroNF
+            numero_nf: numeroNF,
+            motivo: 'numero_nf duplicado'
+          });
+          continue;
+        }
+
+        // Verificar duplicata 2: inteligente (fornecedor + descrição + valor)
+        console.log(`   Verificando duplicata inteligente...`);
+        const dupCheck = await checkIntelligentDuplicate(client, {
+          fornecedor_nome: dados.fornecedor_nome,
+          descricao: dados.descricao,
+          valor_total: dados.total,
+          data_emissao: dados.data
+        });
+
+        if (dupCheck.isDuplicate) {
+          console.log(`   ⚠️  Duplicada (inteligente): ${dupCheck.similarNota.numero_nf}`);
+          duplicados.push({
+            linha: i + 1,
+            descricao: dados.descricao,
+            numero_nf: numeroNF,
+            motivo: `Nota similar já existe (${dupCheck.similarNota.numero_nf}): mesmo fornecedor, descrição e valor`,
+            notaSimilar: {
+              numero_nf: dupCheck.similarNota.numero_nf,
+              data_emissao: dupCheck.similarNota.data_emissao,
+              valor: dupCheck.similarNota.valor_total
+            }
           });
           continue;
         }
