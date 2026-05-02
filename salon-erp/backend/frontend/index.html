@@ -2594,7 +2594,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             // 🔧 Inicializar notasCategoria para cada nota (garante reatividade)
             this.notasCategoria = {};
             for (let nota of this.notasPendentes) {
-              this.$set(this.notasCategoria, nota.id, '');
+              this.notasCategoria[nota.id] = '';
             }
             console.log('✅ notasCategoria inicializado para', this.notasPendentes.length, 'notas');
 
@@ -2739,8 +2739,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         selecionarCategoria(notaId, valor) {
-          // Guardar a categoria selecionada de forma reativa
-          this.$set(this.notasCategoria, notaId, valor);
+          // Guardar a categoria selecionada
+          this.notasCategoria[notaId] = valor;
           console.log(`📌 Categoria selecionada: Nota #${notaId} = ${valor}`);
         },
 
