@@ -470,11 +470,6 @@
           <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-bold text-gray-900">📄 Processar Notas Fiscais</h3>
-              <button
-                @click="modalAberto = true"
-                class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm">
-                ⚙️ Gerenciar Regras por Fornecedor
-              </button>
             </div>
 
             <!-- Upload Drag-and-Drop -->
@@ -1523,118 +1518,6 @@
       </div>
     </div>
 
-    <!-- Modal: Gerenciar Regras por Fornecedor -->
-    <div v-if="modalAberto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-      <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl my-8">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-bold text-gray-900">⚙️ Gerenciar Regras por Fornecedor</h3>
-          <button @click="modalAberto = false" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-        </div>
-
-        <!-- Formulário Nova Regra -->
-        <div class="mb-6 pb-6 border-b border-gray-200">
-          <h4 class="text-sm font-semibold text-gray-700 mb-4">➕ Cadastrar Nova Regra</h4>
-
-          <div class="space-y-4">
-            <!-- Fornecedor -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">🏪 Nome do Fornecedor</label>
-              <input
-                v-model="novaRegra.fornecedor_nome"
-                type="text"
-                placeholder="Ex: MAXIS, Padaria São João, etc"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                @keyup.enter="salvarRegra">
-              <p class="text-xs text-gray-500 mt-1">Use o nome EXATO do fornecedor no XML (case-insensitive na busca)</p>
-            </div>
-
-            <!-- Tipo de Despesa -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">📊 Categoria (Tipo de Despesa)</label>
-              <select
-                v-model.number="novaRegra.tipo_despesa_id"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="">-- Selecione uma categoria --</option>
-                <optgroup v-for="(subcats, classificacao) in tiposDespesaAgrupados" :label="`${classificacao}`" :key="classificacao">
-                  <option v-for="subcat in subcats" :key="subcat.id" :value="subcat.id">
-                    {{ subcat.subcategoria }}
-                  </option>
-                </optgroup>
-              </select>
-              <p class="text-xs text-gray-500 mt-1">Selecione a categoria padrão para este fornecedor</p>
-            </div>
-
-            <!-- Botão Salvar -->
-            <div class="flex gap-2 pt-2">
-              <button
-                @click="salvarRegra"
-                :disabled="!novaRegra.fornecedor_nome || !novaRegra.tipo_despesa_id || carregandoRegras"
-                class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 font-medium disabled:bg-gray-400">
-                {{ carregandoRegras ? '⏳ Salvando...' : '💾 Cadastrar Regra' }}
-              </button>
-              <button
-                @click="novaRegra = { fornecedor_nome: '', tipo_despesa_id: null }"
-                class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 font-medium">
-                🔄 Limpar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Lista de Regras -->
-        <div>
-          <h4 class="text-sm font-semibold text-gray-700 mb-4">📋 Regras Cadastradas ({{ listaRegras.length }})</h4>
-
-          <div v-if="listaRegras.length === 0" class="text-center py-6">
-            <p class="text-gray-500">ℹ️ Nenhuma regra cadastrada ainda</p>
-            <p class="text-xs text-gray-400 mt-1">Cadastre a primeira regra usando o formulário acima</p>
-          </div>
-
-          <div v-else class="space-y-3 max-h-96 overflow-y-auto">
-            <div v-for="regra in listaRegras" :key="regra.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
-              <div class="flex-1">
-                <p class="font-medium text-gray-900">🏪 {{ regra.fornecedor_nome }}</p>
-                <p class="text-sm text-gray-600">📊 {{ regra.subcategoria }} ({{ regra.classificacao }})</p>
-              </div>
-              <div class="flex gap-2">
-                <button
-                  @click="editarRegra(regra)"
-                  class="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm font-medium">
-                  ✏️ Editar
-                </button>
-                <button
-                  @click="deletarRegra(regra.id)"
-                  :disabled="carregandoRegras"
-                  class="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm font-medium disabled:bg-gray-400">
-                  🗑️ Deletar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mensagens -->
-        <div v-if="mensagemRegras" class="mt-6 p-3 rounded-lg" :class="tipoMensagemRegras === 'sucesso' ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'">
-          <p :class="tipoMensagemRegras === 'sucesso' ? 'text-green-700' : 'text-red-700'" class="text-sm">
-            {{ mensagemRegras }}
-          </p>
-        </div>
-
-        <!-- Botões Finais -->
-        <div class="flex gap-2 mt-6 pt-6 border-t border-gray-200">
-          <button
-            @click="carregarRegras"
-            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 font-medium text-sm">
-            🔄 Recarregar
-          </button>
-          <button
-            @click="modalAberto = false"
-            class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium">
-            ❌ Fechar
-          </button>
-        </div>
-      </div>
-    </div>
     </template>
   </div>
 
