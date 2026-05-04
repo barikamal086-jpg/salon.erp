@@ -2729,8 +2729,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         // ==================== MÉTODOS DE NOTAS FISCAIS ====================
         async carregarNotasPendentes() {
           try {
-            console.log('📥 Carregando TODAS as notas processadas...');
-            const response = await axios.get('/api/notas-fiscais?limit=1000&offset=0');
+            console.log('📥 Carregando apenas notas PENDENTES...');
+            const response = await axios.get('/api/notas-fiscais/pendentes');
             console.log('✅ Resposta recebida:', response);
             console.log('📊 response.data:', response.data);
             console.log('📊 response.data.data:', response.data.data);
