@@ -3009,7 +3009,12 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
               // Recarregar notas após 3 segundos
               setTimeout(() => {
-                this.carregarNotasPendentes();
+                if (this.carregarNotasPendentes) {
+                  this.carregarNotasPendentes();
+                } else {
+                  console.warn('⚠️ carregarNotasPendentes não está disponível');
+                  location.reload(); // Reload como fallback
+                }
                 this.mensagemRegrasAplicadas = '';
               }, 3000);
             } else {
