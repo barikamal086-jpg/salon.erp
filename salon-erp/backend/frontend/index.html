@@ -2730,7 +2730,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         async carregarNotasPendentes() {
           try {
             console.log('📥 Carregando TODAS as notas processadas...');
-            const response = await api.obterNotasHistorico(1000, 0);
+            const response = await axios.get('/api/notas-fiscais?limit=1000&offset=0');
             console.log('✅ Resposta recebida:', response);
             console.log('📊 response.data:', response.data);
             console.log('📊 response.data.data:', response.data.data);
