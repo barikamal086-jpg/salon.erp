@@ -3420,64 +3420,123 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
       // ==================== REGRAS POR FORNECEDOR ====================
 
-      fecharModal() {
-        this.modalAberto = false;
+      // TEST: Função simples para verificar se methods está funcionando
+      salvarRegra() {
+        alert('✅ Função salvarRegra chamada!');
+        console.log('✅ salvarRegra está registrada!');
       },
 
       async carregarRegras() {
         try {
+          this.carregandoRegras = true;
           const response = await api.listarRegras();
           this.listaRegras = response.data.regras || [];
           console.log('✅ Regras carregadas:', this.listaRegras.length);
         } catch (error) {
           console.error('❌ Erro ao carregar regras:', error);
-          this.mensagemRegras = '❌ Erro ao carregar regras';
+
+          // Tentar inicializar tabela se não existe
+          if (error.response?.status === 500 || error.message?.includes('table') || error.message?.includes('não existe')) {
+            console.log('🔧 Tentando inicializar tabela...');
+            try {
+              const initResponse = await axios.post(`${window.location.origin}/api/debug/init-regras`);
+              console.log('✅ Tabela inicializada:', initResponse.data);
+              // Tentar carregar novamente
+              const retryResponse = await api.listarRegras();
+              this.listaRegras = retryResponse.data.regras || [];
+              this.mensagemRegras = '✅ Tabela criada com sucesso!';
+              this.tipoMensagemRegras = 'sucesso';
+            } catch (initError) {
+              console.error('❌ Erro ao inicializar tabela:', initError);
+              this.mensagemRegras = '❌ Erro ao inicializar regras';
+              this.tipoMensagemRegras = 'erro';
+            }
+          } else {
+            this.mensagemRegras = '❌ Erro ao carregar regras';
+            this.tipoMensagemRegras = 'erro';
+          }
+        } finally {
+          this.carregandoRegras = false;
         }
       },
 
       async salvarRegra() {
         if (!this.novaRegra.fornecedor || !this.novaRegra.tipo_despesa_id) {
-          alert('⚠️ Preencha todos os campos');
+          this.mensagemRegras = '⚠️ Preencha todos os campos';
+          this.tipoMensagemRegras = 'erro';
           return;
         }
 
         try {
-          const resultado = await api.cadastrarRegra(
-            this.novaRegra.fornecedor,
-            this.novaRegra.tipo_despesa_id
-          );
+          this.carregandoRegras = true;
 
-          alert(`✅ Regra cadastrada: "${this.novaRegra.fornecedor}"`);
+          if (this.regraEmEdicao) {
+            // Atualizar regra existente
+            const response = await api.atualizarRegra(this.regraEmEdicao.id, this.novaRegra.tipo_despesa_id);
+            this.mensagemRegras = '✅ Regra atualizada com sucesso!';
+          } else {
+            // Criar nova regra
+            const response = await api.cadastrarRegra(
+              this.novaRegra.fornecedor,
+              this.novaRegra.tipo_despesa_id
+            );
+            this.mensagemRegras = `✅ Regra cadastrada: "${this.novaRegra.fornecedor}"`;
+          }
+
+          this.tipoMensagemRegras = 'sucesso';
 
           // Limpar formulário
           this.novaRegra = { fornecedor: '', tipo_despesa_id: null };
+          this.regraEmEdicao = null;
 
           // Recarregar lista
           await this.carregarRegras();
+
+          // Limpar mensagem após 3 segundos
+          setTimeout(() => {
+            this.mensagemRegras = '';
+          }, 3000);
         } catch (error) {
-          console.error('Erro:', error);
-          alert('❌ Erro ao salvar regra');
+          console.error('❌ Erro ao salvar regra:', error);
+          this.mensagemRegras = error.response?.data?.error || '❌ Erro ao salvar regra';
+          this.tipoMensagemRegras = 'erro';
+        } finally {
+          this.carregandoRegras = false;
         }
       },
 
       editarRegra(regra) {
+        this.regraEmEdicao = regra;
         this.novaRegra = {
-          fornecedor: regra.fornecedor_nome,
+          fornecedor: regra.fornecedor_nome || regra.fornecedor,
           tipo_despesa_id: regra.tipo_despesa_id
         };
       },
 
       async deletarRegra(id) {
-        if (!confirm('Tem certeza que deseja deletar esta regra?')) {
+        if (!confirm('🗑️ Tem certeza que deseja deletar esta regra?')) {
           return;
         }
 
         try {
-          await api.deletarRegra(id);
-          alert('✅ Regra deletada com sucesso!');
+          this.carregandoRegras = true;
+          const response = await api.deletarRegra(id);
+          this.mensagemRegras = '✅ Regra deletada com sucesso!';
+          this.tipoMensagemRegras = 'sucesso';
+
+          // Recarregar lista
           await this.carregarRegras();
+
+          // Limpar mensagem após 3 segundos
+          setTimeout(() => {
+            this.mensagemRegras = '';
+          }, 3000);
         } catch (error) {
-          alert('❌ Erro ao deletar regra');
+          console.error('❌ Erro ao deletar regra:', error);
+          this.mensagemRegras = '❌ Erro ao deletar regra';
+          this.tipoMensagemRegras = 'erro';
+        } finally {
+          this.carregandoRegras = false;
         }
       },
 
