@@ -3007,14 +3007,19 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               this.mensagemRegrasAplicadas = `✅ ${processadas} de ${total} nota(s) processada(s) com sucesso!`;
               console.log('✅ Regras aplicadas:', resultado);
 
-              // Recarregar notas após 3 segundos
-              setTimeout(() => {
+              // Recarregar notas e indicadores após 3 segundos
+              setTimeout(async () => {
                 if (this.carregarNotasPendentes) {
-                  this.carregarNotasPendentes();
+                  await this.carregarNotasPendentes();
                 } else {
                   console.warn('⚠️ carregarNotasPendentes não está disponível');
                   location.reload(); // Reload como fallback
                 }
+
+                // ✅ Recalcular indicadores (Total Receita, Total Despesa, etc)
+                await this.atualizarPeriodo();
+                await this.carregarDadosCMV();
+
                 this.mensagemRegrasAplicadas = '';
               }, 3000);
             } else {
