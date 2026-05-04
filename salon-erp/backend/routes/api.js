@@ -2941,6 +2941,10 @@ router.post('/notas-fiscais/aplicar-regras', async (req, res) => {
     const notas = notasResult.rows;
     console.log(`📋 Encontradas ${notas.length} notas pendentes`);
 
+    if (notas.length === 0) {
+      console.log('ℹ️ Nenhuma nota pendente para processar');
+    }
+
     let processadas = 0;
     let comRegra = 0;
     let semRegra = 0;
@@ -2973,24 +2977,35 @@ router.post('/notas-fiscais/aplicar-regras', async (req, res) => {
         const regra = regraResult.rows[0];
         const tipoDespesaId = regra.tipo_despesa_id;
 
+        console.log(`  📝 Processando: NF=${nota.numero_nf}, Fornecedor=${nota.fornecedor_nome}, Regra=${regra.subcategoria}, TipoDespesaId=${tipoDespesaId}`);
+
         // 3. Criar entrada em faturamento (como despesa)
         const dataFaturamento = nota.data_vencimento || new Date().toISOString().split('T')[0];
 
-        const faturamentoResult = await client.query(
-          `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-           RETURNING id`,
-          [
-            dataFaturamento,
-            parseFloat(nota.valor_total) || 0,
-            'Salão',
-            'despesa',
-            tipoDespesaId,
-            regra.classificacao || 'Despesa'
-          ]
-        );
+        let faturamentoId;
+        try {
+          const faturamentoResult = await client.query(
+            `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+             RETURNING id`,
+            [
+              dataFaturamento,
+              parseFloat(nota.valor_total) || 0,
+              'Salão',
+              'despesa',
+              tipoDespesaId,
+              regra.classificacao || 'Despesa',
+              false  // 🔧 FIXED: status é BOOLEAN na tabela faturamento
+            ]
+          );
 
-        const faturamentoId = faturamentoResult.rows[0].id;
+          faturamentoId = faturamentoResult.rows[0].id;
+          console.log(`  ✅ Faturamento criado: ID=${faturamentoId}, valor=${parseFloat(nota.valor_total)}`);
+        } catch (faturamentoError) {
+          console.error(`  ❌ Erro ao criar faturamento:`, faturamentoError.message);
+          console.error(`     Data: ${dataFaturamento}, Total: ${nota.valor_total}, TipoDespesaId: ${tipoDespesaId}`);
+          throw faturamentoError;
+        }
 
         // 4. Marcar nota como processado
         await client.query(
