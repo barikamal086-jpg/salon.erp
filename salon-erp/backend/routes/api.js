@@ -2772,8 +2772,6 @@ router.get('/debug/verificar-duplicatas', async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // ==================== REGRAS CATEGORIA FORNECEDOR ====================
 
 const RegrasCategoriaFornecedor = require('../models/RegrasCategoriaFornecedor');
@@ -3058,3 +3056,6 @@ router.post('/notas-fiscais/aplicar-regras', async (req, res) => {
     client.release();
   }
 });
+
+// ==================== EXPORT ====================
+module.exports = router;
