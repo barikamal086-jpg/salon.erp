@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ Gerenciar Regras por Fornecedor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <!-- Header -->
+        <div class="bg-blue-600 text-white p-6 shadow-lg">
+            <div class="max-w-6xl mx-auto flex justify-between items-center">
+                <h1 class="text-3xl font-bold">⚙️ Gerenciar Regras por Fornecedor</h1>
+                <a href="index.html" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100">
+                    ← Voltar para Notas
+                </a>
+            </div>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="max-w-6xl mx-auto p-6">
+            <!-- Formulário -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">➕ Cadastrar Nova Regra</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <!-- Fornecedor -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">🏪 Nome do Fornecedor</label>
+                        <input
+                            v-model="formulario.fornecedor"
+                            type="text"
+                            placeholder="Ex: MAXIS, Padaria São João"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">Nome exato do fornecedor no XML</p>
+                    </div>
+
+                    <!-- Categoria -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">📊 Categoria</label>
+                        <select
+                            v-model.number="formulario.tipo_despesa_id"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Selecione --</option>
+                            <optgroup v-for="(subcats, classificacao) in categorias" :label="classificacao" :key="classificacao">
+                                <option v-for="subcat in subcats" :key="subcat.id" :value="subcat.id">
+                                    {{ subcat.subcategoria }}
+                                </option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Botão -->
+                    <div class="flex items-end">
+                        <button
+                            @click="salvarRegra"
+                            :disabled="!formulario.fornecedor || !formulario.tipo_despesa_id || carregando"
+                            class="w-full px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400">
+                            {{ carregando ? '⏳ Salvando...' : '💾 Salvar' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mensagem -->
+                <div v-if="mensagem" class="p-3 rounded-lg" :class="tipoMensagem === 'sucesso' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                    {{ mensagem }}
+                </div>
+            </div>
+
+            <!-- Listagem -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">📋 Regras Cadastradas ({{ regras.length }})</h2>
+
+                <div v-if="regras.length === 0" class="text-center py-8 text-gray-500">
+                    <p>ℹ️ Nenhuma regra cadastrada ainda</p>
+                    <p class="text-sm mt-2">Use o formulário acima para criar a primeira regra</p>
+                </div>
+
+                <div v-else class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50 border-b">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">🏪 Fornecedor</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">📊 Categoria</th>
+                                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Classificação</th>
+                                <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="regra in regras" :key="regra.id" class="border-b hover:bg-gray-50">
+                                <td class="px-6 py-3 text-gray-900">{{ regra.fornecedor_nome }}</td>
+                                <td class="px-6 py-3 text-gray-600">{{ regra.subcategoria }}</td>
+                                <td class="px-6 py-3 text-gray-600">{{ regra.classificacao }}</td>
+                                <td class="px-6 py-3 text-right">
+                                    <button
+                                        @click="deletarRegra(regra.id)"
+                                        :disabled="carregando"
+                                        class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm font-medium disabled:bg-gray-400">
+                                        🗑️ Deletar
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/api.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    formulario: {
+                        fornecedor: '',
+                        tipo_despesa_id: null
+                    },
+                    regras: [],
+                    categorias: {},
+                    carregando: false,
+                    mensagem: '',
+                    tipoMensagem: 'sucesso'
+                };
+            },
+
+            mounted() {
+                this.carregarCategorias();
+                this.carregarRegras();
+            },
+
+            methods: {
+                async carregarCategorias() {
+                    try {
+                        const response = await axios.get('/api/tipo-despesa/agrupado');
+                        this.categorias = response.data.data || {};
+                    } catch (error) {
+                        console.error('Erro ao carregar categorias:', error);
+                    }
+                },
+
+                async carregarRegras() {
+                    try {
+                        const response = await axios.get('/api/regras-categoria');
+                        this.regras = response.data.regras || [];
+                    } catch (error) {
+                        console.error('Erro ao carregar regras:', error);
+                        this.regras = [];
+                    }
+                },
+
+                async salvarRegra() {
+                    if (!this.formulario.fornecedor || !this.formulario.tipo_despesa_id) {
+                        this.mensagem = '⚠️ Preencha todos os campos';
+                        this.tipoMensagem = 'erro';
+                        return;
+                    }
+
+                    try {
+                        this.carregando = true;
+                        await axios.post('/api/regras-categoria', {
+                            fornecedor_nome: this.formulario.fornecedor,
+                            tipo_despesa_id: this.formulario.tipo_despesa_id
+                        });
+
+                        this.mensagem = `✅ Regra cadastrada: "${this.formulario.fornecedor}"`;
+                        this.tipoMensagem = 'sucesso';
+                        this.formulario = { fornecedor: '', tipo_despesa_id: null };
+
+                        await this.carregarRegras();
+
+                        setTimeout(() => this.mensagem = '', 3000);
+                    } catch (error) {
+                        this.mensagem = '❌ Erro ao salvar regra';
+                        this.tipoMensagem = 'erro';
+                        console.error('Erro:', error);
+                    } finally {
+                        this.carregando = false;
+                    }
+                },
+
+                async deletarRegra(id) {
+                    if (!confirm('Tem certeza que deseja deletar esta regra?')) return;
+
+                    try {
+                        this.carregando = true;
+                        await axios.delete(`/api/regras-categoria/${id}`);
+
+                        this.mensagem = '✅ Regra deletada com sucesso!';
+                        this.tipoMensagem = 'sucesso';
+
+                        await this.carregarRegras();
+
+                        setTimeout(() => this.mensagem = '', 3000);
+                    } catch (error) {
+                        this.mensagem = '❌ Erro ao deletar regra';
+                        this.tipoMensagem = 'erro';
+                        console.error('Erro:', error);
+                    } finally {
+                        this.carregando = false;
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

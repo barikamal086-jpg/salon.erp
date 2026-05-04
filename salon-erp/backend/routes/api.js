@@ -2924,3 +2924,122 @@ router.post('/debug/init-regras', async (req, res) => {
     });
   }
 });
+
+// POST /api/notas-fiscais/aplicar-regras - Aplicar regras às notas pendentes
+router.post('/notas-fiscais/aplicar-regras', async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    console.log('\n🤖 Iniciando aplicação de regras às notas pendentes...\n');
+
+    // 1. Obter todas as notas pendentes
+    const notasResult = await client.query(
+      'SELECT id, fornecedor_nome, valor_total, data_vencimento, numero_nf, descricao FROM notas_fiscais WHERE status = $1',
+      ['pendente']
+    );
+
+    const notas = notasResult.rows;
+    console.log(`📋 Encontradas ${notas.length} notas pendentes`);
+
+    let processadas = 0;
+    let comRegra = 0;
+    let semRegra = 0;
+    const detalhes = [];
+
+    // 2. Para cada nota, buscar regra correspondente
+    for (const nota of notas) {
+      try {
+        // Buscar regra pelo nome do fornecedor (case-insensitive)
+        const regraResult = await client.query(
+          `SELECT rc.id, rc.tipo_despesa_id, td.subcategoria, td.classificacao
+           FROM regras_categoria_fornecedor rc
+           LEFT JOIN tipo_despesa td ON rc.tipo_despesa_id = td.id
+           WHERE LOWER(rc.fornecedor_nome) = LOWER($1)`,
+          [nota.fornecedor_nome]
+        );
+
+        if (regraResult.rows.length === 0) {
+          console.log(`⏭️  Nota ${nota.numero_nf} (${nota.fornecedor_nome}) - SEM REGRA CADASTRADA`);
+          semRegra++;
+          detalhes.push({
+            numero_nf: nota.numero_nf,
+            fornecedor: nota.fornecedor_nome,
+            status: 'sem_regra',
+            motivo: 'Nenhuma regra cadastrada para este fornecedor'
+          });
+          continue;
+        }
+
+        const regra = regraResult.rows[0];
+        const tipoDespesaId = regra.tipo_despesa_id;
+
+        // 3. Criar entrada em faturamento (como despesa)
+        const dataFaturamento = nota.data_vencimento || new Date().toISOString().split('T')[0];
+
+        const faturamentoResult = await client.query(
+          `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+           RETURNING id`,
+          [
+            dataFaturamento,
+            parseFloat(nota.valor_total) || 0,
+            'Salão',
+            'despesa',
+            tipoDespesaId,
+            regra.classificacao || 'Despesa'
+          ]
+        );
+
+        const faturamentoId = faturamentoResult.rows[0].id;
+
+        // 4. Marcar nota como processado
+        await client.query(
+          'UPDATE notas_fiscais SET status = $1, faturamento_id = $2, processado_em = NOW() WHERE id = $3',
+          ['processado', faturamentoId, nota.id]
+        );
+
+        console.log(`✅ Nota ${nota.numero_nf} (${nota.fornecedor_nome}) → ${regra.subcategoria} (${regra.classificacao})`);
+        processadas++;
+        comRegra++;
+        detalhes.push({
+          numero_nf: nota.numero_nf,
+          fornecedor: nota.fornecedor_nome,
+          status: 'processada',
+          categoria: regra.subcategoria,
+          classificacao: regra.classificacao,
+          valor: nota.valor_total
+        });
+
+      } catch (erro) {
+        console.error(`❌ Erro ao processar nota ${nota.numero_nf}:`, erro.message);
+        detalhes.push({
+          numero_nf: nota.numero_nf,
+          fornecedor: nota.fornecedor_nome,
+          status: 'erro',
+          erro: erro.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      resumo: {
+        total_pendentes: notas.length,
+        processadas,
+        com_regra: comRegra,
+        sem_regra: semRegra,
+        com_erro: notas.length - processadas - semRegra
+      },
+      detalhes
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao aplicar regras:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});

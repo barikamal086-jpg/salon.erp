@@ -534,6 +534,36 @@
               </div>
             </div>
 
+            <!-- Aplicar Regras às Pendentes -->
+            <div class="mb-6 pt-4 border-t border-gray-200">
+              <p class="text-sm font-semibold text-gray-700 mb-3">🤖 Aplicar Regras Automáticas</p>
+              <p class="text-xs text-gray-500 mb-3">Categoriza automaticamente notas com fornecedores cadastrados em Regras</p>
+              <div class="flex gap-2">
+                <button
+                  @click="aplicarRegrasAsPendentes"
+                  :disabled="aplicandoRegras"
+                  class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm disabled:bg-gray-400">
+                  {{ aplicandoRegras ? '⏳ Processando...' : '⚡ Processar Pendentes' }}
+                </button>
+                <a
+                  href="regras-fornecedor.html"
+                  target="_self"
+                  class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm text-center">
+                  ⚙️ Gerenciar Regras
+                </a>
+              </div>
+              <div v-if="mensagemRegrasAplicadas" class="mt-3 p-3 rounded-lg" :class="regrasAplicadasSucesso ? 'bg-green-100 border border-green-300' : 'bg-red-100 border border-red-300'">
+                <p :class="regrasAplicadasSucesso ? 'text-green-700' : 'text-red-700'" class="text-sm">
+                  {{ mensagemRegrasAplicadas }}
+                </p>
+                <div v-if="resumoRegras && regrasAplicadasSucesso" class="text-xs mt-2 text-gray-700">
+                  <p>📊 <strong>{{ resumoRegras.processadas }}</strong> nota(s) processada(s)</p>
+                  <p v-if="resumoRegras.com_regra > 0">✅ <strong>{{ resumoRegras.com_regra }}</strong> com regra aplicada</p>
+                  <p v-if="resumoRegras.sem_regra > 0">⏭️ <strong>{{ resumoRegras.sem_regra }}</strong> sem regra cadastrada</p>
+                </div>
+              </div>
+            </div>
+
             <!-- Exportar Notas -->
             <div class="mb-6 pt-4 border-t border-gray-200">
               <p class="text-sm font-semibold text-gray-700 mb-3">⬇️ Exportar Notas</p>
@@ -1641,6 +1671,11 @@
           importandoContaAzul: false,
           mensagemImportacao: '',
           importacaoSucesso: false,
+          // Aplicar Regras
+          aplicandoRegras: false,
+          mensagemRegrasAplicadas: '',
+          regrasAplicadasSucesso: false,
+          resumoRegras: null,
           // Gráfico Mensal
           graficoMes: String(new Date().getMonth() + 1).padStart(2, '0'),
           graficoAno: new Date().getFullYear(),
@@ -2942,6 +2977,51 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             console.error('❌ Erro ao importar Conta Azul:', error);
           } finally {
             this.importandoContaAzul = false;
+          }
+        },
+
+        // ==================== APLICAR REGRAS ====================
+
+        async aplicarRegrasAsPendentes() {
+          try {
+            this.aplicandoRegras = true;
+            this.mensagemRegrasAplicadas = '';
+            this.resumoRegras = null;
+
+            console.log('🤖 Iniciando aplicação de regras às notas pendentes...');
+
+            const response = await fetch('/api/notas-fiscais/aplicar-regras', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            });
+
+            const resultado = await response.json();
+
+            if (resultado.success) {
+              this.regrasAplicadasSucesso = true;
+              this.resumoRegras = resultado.resumo;
+
+              const total = resultado.resumo.total_pendentes;
+              const processadas = resultado.resumo.processadas;
+
+              this.mensagemRegrasAplicadas = `✅ ${processadas} de ${total} nota(s) processada(s) com sucesso!`;
+              console.log('✅ Regras aplicadas:', resultado);
+
+              // Recarregar notas após 2 segundos
+              setTimeout(() => {
+                this.obterNotasHistorico();
+                this.mensagemRegrasAplicadas = '';
+              }, 3000);
+            } else {
+              this.regrasAplicadasSucesso = false;
+              this.mensagemRegrasAplicadas = `❌ Erro: ${resultado.error || 'Falha ao aplicar regras'}`;
+            }
+          } catch (error) {
+            this.regrasAplicadasSucesso = false;
+            this.mensagemRegrasAplicadas = `❌ Erro ao aplicar regras: ${error.message}`;
+            console.error('❌ Erro:', error);
+          } finally {
+            this.aplicandoRegras = false;
           }
         },
 
