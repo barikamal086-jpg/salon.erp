@@ -2779,18 +2779,26 @@ const RegrasCategoriaFornecedor = require('../models/RegrasCategoriaFornecedor')
 // POST /api/regras-categoria - Cadastrar/atualizar regra
 router.post('/regras-categoria', async (req, res) => {
   try {
+    console.log('\n📥 [POST /api/regras-categoria] Recebido:', JSON.stringify(req.body, null, 2));
+
     const { fornecedor_nome, tipo_despesa_id } = req.body;
 
+    console.log(`  📝 fornecedor_nome: "${fornecedor_nome}" (tipo: ${typeof fornecedor_nome})`);
+    console.log(`  📝 tipo_despesa_id: "${tipo_despesa_id}" (tipo: ${typeof tipo_despesa_id})`);
+
     if (!fornecedor_nome || !tipo_despesa_id) {
+      console.error('  ❌ Validação falhou - campos obrigatórios faltando');
       return res.status(400).json({
         success: false,
         error: 'fornecedor_nome e tipo_despesa_id são obrigatórios'
       });
     }
 
-    console.log(`📋 [POST] Cadastrando regra: ${fornecedor_nome} → tipo_despesa_id ${tipo_despesa_id}`);
+    console.log(`  ✅ Validação OK - Cadastrando regra: ${fornecedor_nome} → tipo_despesa_id ${tipo_despesa_id}`);
 
     const regra = await RegrasCategoriaFornecedor.criar(fornecedor_nome, tipo_despesa_id);
+
+    console.log(`  ✅ Regra criada com sucesso:`, regra);
 
     res.status(201).json({
       success: true,
@@ -2798,10 +2806,15 @@ router.post('/regras-categoria', async (req, res) => {
       regra
     });
   } catch (error) {
-    console.error('❌ Erro ao cadastrar regra:', error.message);
+    console.error('\n❌ Erro ao cadastrar regra:');
+    console.error(`  Nome: ${error.name}`);
+    console.error(`  Mensagem: ${error.message}`);
+    console.error(`  Detalhes: ${JSON.stringify(error, null, 2)}`);
+
     res.status(400).json({
       success: false,
-      error: error.message
+      error: error.message,
+      details: error.detail || error.code
     });
   }
 });

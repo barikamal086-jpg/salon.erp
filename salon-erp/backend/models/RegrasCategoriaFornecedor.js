@@ -30,17 +30,32 @@ class RegrasCategoriaFornecedor {
   // Cadastrar regra
   static async criar(fornecedorNome, tipoDespesaId) {
     try {
-      const result = await pool.query(`
+      console.log('\n  🔧 [Model] Iniciando criar() regra');
+      console.log(`    Fornecedor: "${fornecedorNome}"`);
+      console.log(`    TipoDespesaId: ${tipoDespesaId}`);
+
+      const query = `
         INSERT INTO regras_categoria_fornecedor (fornecedor_nome, tipo_despesa_id, ativo)
         VALUES ($1, $2, true)
-        ON CONFLICT (fornecedor_nome) 
+        ON CONFLICT (fornecedor_nome)
         DO UPDATE SET tipo_despesa_id = $2, updated_at = NOW()
         RETURNING *
-      `, [fornecedorNome.trim(), tipoDespesaId]);
+      `;
 
+      const params = [fornecedorNome.trim(), tipoDespesaId];
+      console.log(`    Query: ${query.substring(0, 80)}...`);
+      console.log(`    Params: [${params.join(', ')}]`);
+
+      const result = await pool.query(query, params);
+
+      console.log(`    ✅ Resultado: ${JSON.stringify(result.rows[0])}`);
       return result.rows[0];
     } catch (error) {
-      console.error('❌ Erro ao criar regra:', error.message);
+      console.error('  ❌ Erro em criar():');
+      console.error(`    Nome do erro: ${error.name}`);
+      console.error(`    Mensagem: ${error.message}`);
+      console.error(`    Code: ${error.code}`);
+      console.error(`    Detail: ${error.detail}`);
       throw error;
     }
   }
