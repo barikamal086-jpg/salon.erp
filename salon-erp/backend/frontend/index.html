@@ -3420,6 +3420,12 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
       // ==================== REGRAS POR FORNECEDOR ====================
 
+      // TEST: Função simples para verificar se methods está funcionando
+      salvarRegra() {
+        alert('✅ Função salvarRegra chamada!');
+        console.log('✅ salvarRegra está registrada!');
+      },
+
       async carregarRegras() {
         try {
           this.carregandoRegras = true;
