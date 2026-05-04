@@ -471,7 +471,7 @@
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-bold text-gray-900">📄 Processar Notas Fiscais</h3>
               <button
-                @click="mostrarModalRegras = true"
+                @click="modalAberto = true"
                 class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm">
                 ⚙️ Gerenciar Regras por Fornecedor
               </button>
@@ -1524,11 +1524,11 @@
     </div>
 
     <!-- Modal: Gerenciar Regras por Fornecedor -->
-    <div v-if="mostrarModalRegras" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+    <div v-if="modalAberto" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl my-8">
         <div class="flex justify-between items-center mb-6">
           <h3 class="text-lg font-bold text-gray-900">⚙️ Gerenciar Regras por Fornecedor</h3>
-          <button @click="mostrarModalRegras = false" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+          <button @click="modalAberto = false" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
         </div>
 
         <!-- Formulário Nova Regra -->
@@ -1583,15 +1583,15 @@
 
         <!-- Lista de Regras -->
         <div>
-          <h4 class="text-sm font-semibold text-gray-700 mb-4">📋 Regras Cadastradas ({{ regrasLista.length }})</h4>
+          <h4 class="text-sm font-semibold text-gray-700 mb-4">📋 Regras Cadastradas ({{ listaRegras.length }})</h4>
 
-          <div v-if="regrasLista.length === 0" class="text-center py-6">
+          <div v-if="listaRegras.length === 0" class="text-center py-6">
             <p class="text-gray-500">ℹ️ Nenhuma regra cadastrada ainda</p>
             <p class="text-xs text-gray-400 mt-1">Cadastre a primeira regra usando o formulário acima</p>
           </div>
 
           <div v-else class="space-y-3 max-h-96 overflow-y-auto">
-            <div v-for="regra in regrasLista" :key="regra.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
+            <div v-for="regra in listaRegras" :key="regra.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
               <div class="flex-1">
                 <p class="font-medium text-gray-900">🏪 {{ regra.fornecedor_nome }}</p>
                 <p class="text-sm text-gray-600">📊 {{ regra.subcategoria }} ({{ regra.classificacao }})</p>
@@ -1628,7 +1628,7 @@
             🔄 Recarregar
           </button>
           <button
-            @click="mostrarModalRegras = false"
+            @click="modalAberto = false"
             class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium">
             ❌ Fechar
           </button>
@@ -1782,12 +1782,12 @@
             porPagina: 10
           },
           // Regras por Fornecedor
-          mostrarModalRegras: false,
+          modalAberto: false,
+          listaRegras: [],
           novaRegra: {
-            fornecedor_nome: '',
+            fornecedor: '',
             tipo_despesa_id: null
           },
-          regrasLista: [],
           carregandoRegras: false,
           mensagemRegras: '',
           tipoMensagemRegras: 'sucesso',
@@ -1805,13 +1805,13 @@
           },
           deep: true
         },
-        mostrarModalRegras(newVal) {
+        modalAberto(newVal) {
           if (newVal) {
             // Carregar regras quando modal abre
             this.carregarRegras();
           } else {
             // Limpar formulário quando modal fecha
-            this.novaRegra = { fornecedor_nome: '', tipo_despesa_id: null };
+            this.novaRegra = { fornecedor: '', tipo_despesa_id: null };
             this.regraEmEdicao = null;
             this.mensagemRegras = '';
           }
@@ -3424,8 +3424,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         try {
           this.carregandoRegras = true;
           const response = await api.listarRegras();
-          this.regrasLista = response.data.regras || [];
-          console.log('✅ Regras carregadas:', this.regrasLista.length);
+          this.listaRegras = response.data.regras || [];
+          console.log('✅ Regras carregadas:', this.listaRegras.length);
         } catch (error) {
           console.error('❌ Erro ao carregar regras:', error);
 
@@ -3437,7 +3437,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               console.log('✅ Tabela inicializada:', initResponse.data);
               // Tentar carregar novamente
               const retryResponse = await api.listarRegras();
-              this.regrasLista = retryResponse.data.regras || [];
+              this.listaRegras = retryResponse.data.regras || [];
               this.mensagemRegras = '✅ Tabela criada com sucesso!';
               this.tipoMensagemRegras = 'sucesso';
             } catch (initError) {
@@ -3455,7 +3455,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
       },
 
       async salvarRegra() {
-        if (!this.novaRegra.fornecedor_nome || !this.novaRegra.tipo_despesa_id) {
+        if (!this.novaRegra.fornecedor || !this.novaRegra.tipo_despesa_id) {
           this.mensagemRegras = '⚠️ Preencha todos os campos';
           this.tipoMensagemRegras = 'erro';
           return;
@@ -3471,16 +3471,16 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           } else {
             // Criar nova regra
             const response = await api.cadastrarRegra(
-              this.novaRegra.fornecedor_nome,
+              this.novaRegra.fornecedor,
               this.novaRegra.tipo_despesa_id
             );
-            this.mensagemRegras = `✅ Regra cadastrada: "${this.novaRegra.fornecedor_nome}"`;
+            this.mensagemRegras = `✅ Regra cadastrada: "${this.novaRegra.fornecedor}"`;
           }
 
           this.tipoMensagemRegras = 'sucesso';
 
           // Limpar formulário
-          this.novaRegra = { fornecedor_nome: '', tipo_despesa_id: null };
+          this.novaRegra = { fornecedor: '', tipo_despesa_id: null };
           this.regraEmEdicao = null;
 
           // Recarregar lista
@@ -3502,7 +3502,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
       editarRegra(regra) {
         this.regraEmEdicao = regra;
         this.novaRegra = {
-          fornecedor_nome: regra.fornecedor_nome,
+          fornecedor: regra.fornecedor_nome || regra.fornecedor,
           tipo_despesa_id: regra.tipo_despesa_id
         };
       },
