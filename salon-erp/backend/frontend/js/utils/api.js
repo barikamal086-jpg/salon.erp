@@ -160,6 +160,38 @@ const api = {
         'Content-Type': 'multipart/form-data'
       }
     });
+  },
+
+  // ==================== REGRAS CATEGORIA FORNECEDOR ====================
+
+  // POST /api/regras-categoria - Cadastrar regra
+  cadastrarRegra(fornecedor_nome, tipo_despesa_id) {
+    return axios.post(`${API_BASE}/regras-categoria`, {
+      fornecedor_nome,
+      tipo_despesa_id
+    });
+  },
+
+  // GET /api/regras-categoria - Listar todas as regras
+  listarRegras() {
+    return axios.get(`${API_BASE}/regras-categoria`);
+  },
+
+  // GET /api/regras-categoria/buscar/:fornecedor - Buscar regra por fornecedor
+  obterRegraPorFornecedor(fornecedor) {
+    return axios.get(`${API_BASE}/regras-categoria/buscar/${encodeURIComponent(fornecedor)}`);
+  },
+
+  // PUT /api/regras-categoria/:id - Atualizar regra
+  atualizarRegra(id, tipo_despesa_id) {
+    return axios.put(`${API_BASE}/regras-categoria/${id}`, {
+      tipo_despesa_id
+    });
+  },
+
+  // DELETE /api/regras-categoria/:id - Deletar regra
+  deletarRegra(id) {
+    return axios.delete(`${API_BASE}/regras-categoria/${id}`);
   }
 };
 

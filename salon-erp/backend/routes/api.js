@@ -2773,3 +2773,154 @@ router.get('/debug/verificar-duplicatas', async (req, res) => {
 });
 
 module.exports = router;
+
+// ==================== REGRAS CATEGORIA FORNECEDOR ====================
+
+const RegrasCategoriaFornecedor = require('../models/RegrasCategoriaFornecedor');
+
+// POST /api/regras-categoria - Cadastrar/atualizar regra
+router.post('/regras-categoria', async (req, res) => {
+  try {
+    const { fornecedor_nome, tipo_despesa_id } = req.body;
+
+    if (!fornecedor_nome || !tipo_despesa_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'fornecedor_nome e tipo_despesa_id são obrigatórios'
+      });
+    }
+
+    console.log(`📋 [POST] Cadastrando regra: ${fornecedor_nome} → tipo_despesa_id ${tipo_despesa_id}`);
+
+    const regra = await RegrasCategoriaFornecedor.criar(fornecedor_nome, tipo_despesa_id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Regra cadastrada com sucesso',
+      regra
+    });
+  } catch (error) {
+    console.error('❌ Erro ao cadastrar regra:', error.message);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/regras-categoria - Listar todas as regras
+router.get('/regras-categoria', async (req, res) => {
+  try {
+    console.log('🔍 [GET] Listando regras de categoria...');
+
+    const regras = await RegrasCategoriaFornecedor.listar();
+
+    res.json({
+      success: true,
+      quantidade: regras.length,
+      regras
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// GET /api/regras-categoria/buscar/:fornecedor - Buscar regra por fornecedor
+router.get('/regras-categoria/buscar/:fornecedor', async (req, res) => {
+  try {
+    const { fornecedor } = req.params;
+    console.log(`🔍 [GET] Buscando regra para: ${fornecedor}`);
+
+    const regra = await RegrasCategoriaFornecedor.obterPorFornecedor(fornecedor);
+
+    if (!regra) {
+      return res.json({
+        success: false,
+        message: 'Nenhuma regra cadastrada para este fornecedor'
+      });
+    }
+
+    res.json({
+      success: true,
+      regra
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// PUT /api/regras-categoria/:id - Atualizar regra
+router.put('/regras-categoria/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tipo_despesa_id } = req.body;
+
+    if (!tipo_despesa_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'tipo_despesa_id é obrigatório'
+      });
+    }
+
+    console.log(`✏️  [PUT] Atualizando regra ${id}...`);
+
+    const regra = await RegrasCategoriaFornecedor.atualizar(id, tipo_despesa_id);
+
+    res.json({
+      success: true,
+      message: 'Regra atualizada com sucesso',
+      regra
+    });
+  } catch (error) {
+    console.error('❌ Erro ao atualizar regra:', error.message);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// DELETE /api/regras-categoria/:id - Deletar regra
+router.delete('/regras-categoria/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🗑️  [DELETE] Deletando regra ${id}...`);
+
+    await RegrasCategoriaFornecedor.deletar(id);
+
+    res.json({
+      success: true,
+      message: 'Regra deletada com sucesso'
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// POST /api/debug/init-regras - Inicializar tabela de regras
+router.post('/debug/init-regras', async (req, res) => {
+  try {
+    console.log('\n🔧 Inicializando tabela de regras...\n');
+
+    await RegrasCategoriaFornecedor.inicializar();
+
+    res.json({
+      success: true,
+      message: 'Tabela de regras inicializada com sucesso'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
