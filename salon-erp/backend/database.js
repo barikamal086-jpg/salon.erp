@@ -117,7 +117,26 @@ async function initializeDatabase() {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notas_status ON notas_fiscais(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notas_created ON notas_fiscais(created_at DESC)`);
 
-    // 5. Inserir dados padrão
+    // 5. Criar tabela regras_categoria_fornecedor
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS regras_categoria_fornecedor (
+        id SERIAL PRIMARY KEY,
+        fornecedor_nome VARCHAR(255) UNIQUE NOT NULL,
+        tipo_despesa_id INTEGER NOT NULL REFERENCES tipo_despesa(id),
+        ativo BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Tabela regras_categoria_fornecedor criada/verificada');
+
+    // Criar índice para busca rápida por fornecedor
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_regra_fornecedor
+      ON regras_categoria_fornecedor(LOWER(fornecedor_nome))
+    `);
+
+    // 6. Inserir dados padrão
     await insertDefaultRestaurantes();
     await insertDefaultTiposDespesa();
 
