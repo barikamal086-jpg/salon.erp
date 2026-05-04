@@ -2964,7 +2964,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
               // Recarregar notas após 2 segundos
               setTimeout(() => {
-                this.obterNotasHistorico();
+                this.carregarNotasPendentes();
                 this.mensagemImportacao = '';
               }, 2000);
             } else {
@@ -3007,9 +3007,9 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               this.mensagemRegrasAplicadas = `✅ ${processadas} de ${total} nota(s) processada(s) com sucesso!`;
               console.log('✅ Regras aplicadas:', resultado);
 
-              // Recarregar notas após 2 segundos
+              // Recarregar notas após 3 segundos
               setTimeout(() => {
-                this.obterNotasHistorico();
+                this.carregarNotasPendentes();
                 this.mensagemRegrasAplicadas = '';
               }, 3000);
             } else {
