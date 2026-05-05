@@ -648,6 +648,133 @@ router.get('/faturamentos/auditoria-alocacao', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/auditoria-debug - Debug: comparar notas fiscais vs faturamentos processados
+router.get('/faturamentos/auditoria-debug', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    console.log(`🔍 [Auditoria Debug] Iniciando análise...`);
+
+    // 1. Get ALL notas fiscais (total no sistema)
+    const todasNotas = await allAsync(`
+      SELECT id, numero_nf, fornecedor, valor, status, data_criacao, descricao
+      FROM notas_fiscais
+      ORDER BY data_criacao DESC
+    `, []);
+
+    console.log(`📄 Total de notas fiscais no sistema: ${todasNotas.length}`);
+
+    // 2. Get ALL faturamentos (processados)
+    const todosFaturamentos = await allAsync(`
+      SELECT id, numero_nf, fornecedor, total, categoria, tipo, status, data, nota_fiscal_id
+      FROM faturamento
+      ORDER BY data DESC
+    `, []);
+
+    console.log(`💰 Total de faturamentos processados: ${todosFaturamentos.length}`);
+
+    // 3. Build set of notas já processadas
+    const notasProcessadas = new Set();
+    const notasComFaturamento = {};
+
+    todosFaturamentos.forEach(f => {
+      if (f.nota_fiscal_id) {
+        notasProcessadas.add(f.nota_fiscal_id);
+        if (!notasComFaturamento[f.nota_fiscal_id]) {
+          notasComFaturamento[f.nota_fiscal_id] = [];
+        }
+        notasComFaturamento[f.nota_fiscal_id].push({
+          categoria: f.categoria,
+          tipo: f.tipo,
+          valor: f.total,
+          status: f.status
+        });
+      }
+    });
+
+    // 4. Find missing notes
+    const notasFaltando = todasNotas.filter(n => !notasProcessadas.has(n.id));
+
+    console.log(`🚨 Notas faltando (sem faturamento): ${notasFaltando.length}`);
+
+    // 5. Find processed notes NOT in auditoria period
+    let notasEmOutroPeriodo = [];
+    if (from && to) {
+      notasEmOutroPeriodo = todasNotas.filter(n => {
+        const dataNota = new Date(n.data_criacao);
+        const dataFrom = new Date(from);
+        const dataTo = new Date(to);
+        const isProcessed = notasProcessadas.has(n.id);
+        const isOutOfPeriod = dataNota < dataFrom || dataNota > dataTo;
+        return isProcessed && isOutOfPeriod;
+      });
+
+      console.log(`📅 Notas processadas mas fora do período ${from} a ${to}: ${notasEmOutroPeriodo.length}`);
+    }
+
+    // 6. Build detailed missing notes list
+    const detalheFaltando = notasFaltando.map(n => {
+      const faturamentosRelacionados = notasComFaturamento[n.id] || [];
+      return {
+        id: n.id,
+        numero_nf: n.numero_nf,
+        fornecedor: n.fornecedor,
+        valor: parseFloat(n.valor || 0),
+        status: n.status,
+        data_criacao: n.data_criacao,
+        descricao: n.descricao,
+        faturamentos_relacionados: faturamentosRelacionados.length > 0 ? faturamentosRelacionados : null,
+        motivo_provavel: n.status === 'pendente' ? 'Nota não foi processada ainda' :
+                         faturamentosRelacionados.length > 0 ? 'Processada, mas com múltiplos faturamentos' :
+                         'Nota existe mas sem faturamento correspondente - verificar manual'
+      };
+    });
+
+    // 7. Count by status
+    const notasPorStatus = {};
+    todasNotas.forEach(n => {
+      if (!notasPorStatus[n.status]) {
+        notasPorStatus[n.status] = 0;
+      }
+      notasPorStatus[n.status]++;
+    });
+
+    console.log(`✅ Debug completo`);
+
+    res.json({
+      success: true,
+      data: {
+        resumo: {
+          notas_totais: todasNotas.length,
+          notas_processadas: notasProcessadas.size,
+          notas_faltando: notasFaltando.length,
+          percentual_processadas: ((notasProcessadas.size / todasNotas.length) * 100).toFixed(1) + '%'
+        },
+        notas_por_status: notasPorStatus,
+        notas_faltando: detalheFaltando,
+        notas_em_outro_periodo: notasEmOutroPeriodo.map(n => ({
+          id: n.id,
+          numero_nf: n.numero_nf,
+          fornecedor: n.fornecedor,
+          valor: parseFloat(n.valor || 0),
+          data_criacao: n.data_criacao
+        })),
+        dicas: {
+          notasPendentes: 'Notas com status=pendente não foram processadas. Acesse a aba "Notas Fiscais".',
+          notasOutroPeriodo: `Notas processadas fora do período ${from || 'N/A'} a ${to || 'N/A'}. Ajuste as datas do filtro.`,
+          notasSemFaturamento: 'Notas que não geraram faturamento. Pode ser erro de processamento ou deleção posterior.'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao gerar debug auditoria:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {

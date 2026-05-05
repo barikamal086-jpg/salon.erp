@@ -80,6 +80,15 @@ const api = {
     return axios.get(`${API_BASE}/faturamentos/auditoria-alocacao?from=${from}&to=${to}`);
   },
 
+  // GET /api/faturamentos/auditoria-debug - Debug: comparar notas vs faturamentos
+  obterAuditoriaDebug(from, to) {
+    let url = `${API_BASE}/faturamentos/auditoria-debug`;
+    if (from && to) {
+      url += `?from=${from}&to=${to}`;
+    }
+    return axios.get(url);
+  },
+
   // ==================== NOTAS FISCAIS ====================
 
   // GET /api/notas-fiscais - Listar notas fiscais

@@ -365,11 +365,18 @@
             <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0;">
               📋 Auditoria de Alocação de Despesas
             </h3>
-            <button
-              @click="carregarAuditoriaAlocacao"
-              style="padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-              🔄 Atualizar Auditoria
-            </button>
+            <div style="display: flex; gap: 8px;">
+              <button
+                @click="carregarAuditoriaAlocacao"
+                style="padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                🔄 Atualizar Auditoria
+              </button>
+              <button
+                @click="carregarAuditoriaDebug"
+                style="padding: 8px 16px; background: #8B5CF6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                🔍 Ver Debug
+              </button>
+            </div>
           </div>
 
           <div v-if="!auditoriaAlocacao" style="padding: 24px; text-align: center; color: var(--text-secondary);">
@@ -528,6 +535,122 @@
                 Diferença (rounding): R$ {{ parseFloat(auditoriaAlocacao.resumo.naoAlocado).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }} ✓
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- DEBUG: COMPARAÇÃO NOTAS VS FATURAMENTOS -->
+        <div v-if="mostraDebug && auditoriaDebug" style="margin-top: 48px; padding: 24px; background: #F3E8FF; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #8B5CF6;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #6B21A8; margin: 0;">
+              🔍 Debug: Notas Fiscais vs Faturamentos
+            </h3>
+            <button
+              @click="mostraDebug = false"
+              style="padding: 8px 16px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+              ✕ Fechar
+            </button>
+          </div>
+
+          <!-- RESUMO GERAL -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+            <div style="padding: 16px; background: #FEE2E2; border-radius: 8px; border-left: 4px solid #EF4444;">
+              <div style="font-size: 0.875rem; color: #991B1B; margin-bottom: 4px; font-weight: 600;">Total de Notas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #DC2626;">
+                {{ auditoriaDebug.resumo.notas_totais }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #DBEAFE; border-radius: 8px; border-left: 4px solid #3B82F6;">
+              <div style="font-size: 0.875rem; color: #1E40AF; margin-bottom: 4px; font-weight: 600;">Notas Processadas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #2563EB;">
+                {{ auditoriaDebug.resumo.notas_processadas }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #FFEDD5; border-radius: 8px; border-left: 4px solid #F97316;">
+              <div style="font-size: 0.875rem; color: #92400E; margin-bottom: 4px; font-weight: 600;">Notas Faltando</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #EA580C;">
+                {{ auditoriaDebug.resumo.notas_faltando }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #F3E8FF; border-radius: 8px; border-left: 4px solid #8B5CF6;">
+              <div style="font-size: 0.875rem; color: #581C87; margin-bottom: 4px; font-weight: 600;">% Processadas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #7C3AED;">
+                {{ auditoriaDebug.resumo.percentual_processadas }}
+              </div>
+            </div>
+          </div>
+
+          <!-- NOTAS POR STATUS -->
+          <div style="margin-bottom: 32px;">
+            <h4 style="font-size: 1rem; font-weight: 600; color: #6B21A8; margin: 0 0 16px 0;">📊 Distribuição por Status</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+              <div v-for="(count, status) in auditoriaDebug.notas_por_status" :key="status"
+                   style="padding: 12px; background: white; border-radius: 8px; border: 1px solid #E9D5FF; text-align: center;">
+                <div style="font-size: 0.75rem; color: #6B21A8; font-weight: 600; text-transform: uppercase;">{{ status }}</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #8B5CF6; margin-top: 4px;">{{ count }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NOTAS FALTANDO (DETALHADO) -->
+          <div v-if="auditoriaDebug.notas_faltando.length > 0" style="margin-bottom: 32px;">
+            <h4 style="font-size: 1rem; font-weight: 600; color: #DC2626; margin: 0 0 16px 0;">
+              ⚠️ {{ auditoriaDebug.notas_faltando.length }} Notas Sem Faturamento
+            </h4>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: white;">
+                <thead style="background: #FEE2E2;">
+                  <tr>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EF4444;">ID</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EF4444;">Número NF</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EF4444;">Fornecedor</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #EF4444;">Valor</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EF4444;">Status</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EF4444;">Motivo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(nota, idx) in auditoriaDebug.notas_faltando" :key="idx" style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px; font-size: 0.875rem;">{{ nota.id }}</td>
+                    <td style="padding: 12px; font-weight: 500;">{{ nota.numero_nf }}</td>
+                    <td style="padding: 12px;">{{ nota.fornecedor }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 500;">
+                      R$ {{ parseFloat(nota.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                    </td>
+                    <td style="padding: 12px;">
+                      <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;"
+                            :style="nota.status === 'pendente' ? 'background: #FEE2E2; color: #991B1B;' : 'background: #DBEAFE; color: #1E40AF;'">
+                        {{ nota.status }}
+                      </span>
+                    </td>
+                    <td style="padding: 12px; font-size: 0.875rem; color: var(--text-secondary);">{{ nota.motivo_provavel }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- NOTAS EM OUTRO PERÍODO -->
+          <div v-if="auditoriaDebug.notas_em_outro_periodo.length > 0" style="padding: 16px; background: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B; margin-bottom: 32px;">
+            <div style="font-weight: 600; color: #92400E; margin-bottom: 8px;">⏰ {{ auditoriaDebug.notas_em_outro_periodo.length }} Notas Processadas Fora do Período</div>
+            <div style="font-size: 0.875rem; color: #78350F;">
+              <div v-for="(nota, idx) in auditoriaDebug.notas_em_outro_periodo" :key="idx" style="padding: 4px 0;">
+                NF {{ nota.numero_nf }} ({{ nota.fornecedor }}) - R$ {{ parseFloat(nota.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }} em {{ nota.data_criacao?.split('T')[0] }}
+              </div>
+            </div>
+          </div>
+
+          <!-- DICAS -->
+          <div style="padding: 16px; background: white; border-radius: 8px; border: 1px solid #E9D5FF;">
+            <div style="font-weight: 600; color: #6B21A8; margin-bottom: 8px;">💡 O que isso significa:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.875rem; color: var(--text-secondary);">
+              <li><strong>Notas Processadas:</strong> Foram convertidas em faturamentos (receita ou despesa)</li>
+              <li><strong>Notas Faltando:</strong> Ainda pendentes OU deletadas do banco</li>
+              <li><strong>Status "Pendente":</strong> Não foi processada ainda (acesse "Notas Fiscais")</li>
+              <li><strong>Fora do Período:</strong> Foi processada em data diferente do filtro selecionado</li>
+            </ul>
           </div>
         </div>
 
@@ -1800,6 +1923,9 @@
             dataInicio: '',
             dataFim: ''
           },
+          // Auditoria Debug (comparar notas vs faturamentos)
+          auditoriaDebug: null,
+          mostraDebug: false,
           outraCategoria: '',
           receitas: [],
           novaReceita: {
@@ -2580,6 +2706,27 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             }
           } catch (error) {
             console.error('❌ Erro ao carregar auditoria:', error);
+          }
+        },
+
+        async carregarAuditoriaDebug() {
+          try {
+            console.log('🔍 Carregando auditoria debug...', {
+              dataInicio: this.auditoriaPeriodo.dataInicio,
+              dataFim: this.auditoriaPeriodo.dataFim
+            });
+            const response = await api.obterAuditoriaDebug(
+              this.auditoriaPeriodo.dataInicio,
+              this.auditoriaPeriodo.dataFim
+            );
+
+            if (response.data.success) {
+              this.auditoriaDebug = response.data.data;
+              this.mostraDebug = true;
+              console.log('✅ Debug carregado:', this.auditoriaDebug);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar debug:', error);
           }
         },
 
