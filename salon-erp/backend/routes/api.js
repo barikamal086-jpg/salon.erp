@@ -515,6 +515,139 @@ router.get('/faturamentos/despesas-alocadas', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/auditoria-alocacao - Auditoria detalhada de como despesas são alocadas
+// Mostra: despesas Salão, receita de cada canal, proporção, e cálculo de alocação
+router.get('/faturamentos/auditoria-alocacao', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    console.log(`📋 [Auditoria Alocação] Período: ${from} a ${to}`);
+
+    // 1. Get all Salão expenses (the "pool" to allocate)
+    const despesasSalao = await allAsync(`
+      SELECT id, data, total, tipo_despesa_id, created_at
+      FROM faturamento
+      WHERE data >= ? AND data <= ?
+        AND categoria = 'Salão'
+        AND tipo = 'despesa'
+      ORDER BY data DESC
+    `, [from, to]);
+
+    const totalDespesaSalao = despesasSalao.reduce((sum, d) => sum + parseFloat(d.total || 0), 0);
+
+    console.log(`  📊 Despesas Salão encontradas: ${despesasSalao.length} linhas, Total: R$ ${totalDespesaSalao.toFixed(2)}`);
+
+    // 2. Get revenues for each category (to calculate proportions)
+    const receitas = await allAsync(`
+      SELECT categoria, SUM(total) as receita_total
+      FROM faturamento
+      WHERE data >= ? AND data <= ?
+        AND tipo = 'receita'
+        AND categoria IN ('Salão', 'iFood', 'Keeta', '99Food')
+      GROUP BY categoria
+    `, [from, to]);
+
+    const totalReceitaGeral = receitas.reduce((sum, r) => sum + parseFloat(r.receita_total || 0), 0);
+
+    console.log(`  💰 Receitas por categoria carregadas. Total: R$ ${totalReceitaGeral.toFixed(2)}`);
+
+    // 3. Calculate allocation for each channel
+    const alocacoes = {};
+    const canais = ['Salão', 'iFood', 'Keeta', '99Food'];
+
+    canais.forEach(canal => {
+      const receitaCanal = receitas.find(r => r.categoria === canal);
+      const receita = parseFloat(receitaCanal?.receita_total || 0);
+      const proporcao = totalReceitaGeral > 0 ? (receita / totalReceitaGeral) : 0;
+      const alocado = totalDespesaSalao * proporcao;
+
+      alocacoes[canal] = {
+        canal,
+        receita: receita,
+        proporcao: proporcao,
+        percentual: (proporcao * 100).toFixed(2),
+        alocado: alocado.toFixed(2)
+      };
+
+      console.log(`    ${canal}: receita R$ ${receita.toFixed(2)} (${(proporcao*100).toFixed(1)}%), alocado R$ ${alocado.toFixed(2)}`);
+    });
+
+    // 4. Return audit trail
+    const totalAlocado = parseFloat(alocacoes['iFood'].alocado) +
+                          parseFloat(alocacoes['Keeta'].alocado) +
+                          parseFloat(alocacoes['99Food'].alocado);
+    const naoAlocado = totalDespesaSalao - totalAlocado;
+
+    console.log(`  ✅ Auditoria gerada: Total alocado R$ ${totalAlocado.toFixed(2)}, Rounding error R$ ${naoAlocado.toFixed(2)}`);
+
+    res.json({
+      success: true,
+      data: {
+        periodo: { from, to },
+        despesaSalao: {
+          total: parseFloat(totalDespesaSalao.toFixed(2)),
+          quantidade: despesasSalao.length,
+          linhas: despesasSalao.map(d => ({
+            id: d.id,
+            data: d.data,
+            total: parseFloat(d.total || 0),
+            tipoDespesaId: d.tipo_despesa_id
+          }))
+        },
+        receitas: {
+          salao: parseFloat(alocacoes['Salão'].receita.toFixed(2)),
+          ifood: parseFloat(alocacoes['iFood'].receita.toFixed(2)),
+          keeta: parseFloat(alocacoes['Keeta'].receita.toFixed(2)),
+          '99food': parseFloat(alocacoes['99Food'].receita.toFixed(2)),
+          total: parseFloat(totalReceitaGeral.toFixed(2))
+        },
+        alocacoes: {
+          salao: {
+            proporcao: alocacoes['Salão'].percentual + '%',
+            recebeu: 0,
+            notas: 'Salão não recebe alocação (já tem suas despesas)'
+          },
+          ifood: {
+            proporcao: alocacoes['iFood'].percentual + '%',
+            recebeu: parseFloat(alocacoes['iFood'].alocado),
+            receita: parseFloat(alocacoes['iFood'].receita.toFixed(2))
+          },
+          keeta: {
+            proporcao: alocacoes['Keeta'].percentual + '%',
+            recebeu: parseFloat(alocacoes['Keeta'].alocado),
+            receita: parseFloat(alocacoes['Keeta'].receita.toFixed(2))
+          },
+          '99food': {
+            proporcao: alocacoes['99Food'].percentual + '%',
+            recebeu: parseFloat(alocacoes['99Food'].alocado),
+            receita: parseFloat(alocacoes['99Food'].receita.toFixed(2))
+          }
+        },
+        resumo: {
+          totalDespesaSalao: parseFloat(totalDespesaSalao.toFixed(2)),
+          totalReceitaGeral: parseFloat(totalReceitaGeral.toFixed(2)),
+          totalAlocado: parseFloat(totalAlocado.toFixed(2)),
+          naoAlocado: parseFloat(naoAlocado.toFixed(2)),
+          verificacao: 'Se naoAlocado ≈ 0, cálculo está correto'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao gerar auditoria de alocação:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {

@@ -75,6 +75,11 @@ const api = {
     return axios.get(`${API_BASE}/faturamentos/despesas-alocadas?from=${from}&to=${to}`);
   },
 
+  // GET /api/faturamentos/auditoria-alocacao
+  obterAuditoriaAlocacao(from, to) {
+    return axios.get(`${API_BASE}/faturamentos/auditoria-alocacao?from=${from}&to=${to}`);
+  },
+
   // ==================== NOTAS FISCAIS ====================
 
   // GET /api/notas-fiscais - Listar notas fiscais

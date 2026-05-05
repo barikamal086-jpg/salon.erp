@@ -359,6 +359,178 @@
           </div>
         </div>
 
+        <!-- AUDITORIA DE ALOCAÇÃO -->
+        <div style="margin-top: 48px; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0;">
+              📋 Auditoria de Alocação de Despesas
+            </h3>
+            <button
+              @click="carregarAuditoriaAlocacao"
+              style="padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+              🔄 Atualizar Auditoria
+            </button>
+          </div>
+
+          <div v-if="!auditoriaAlocacao" style="padding: 24px; text-align: center; color: var(--text-secondary);">
+            Clique em "Atualizar Auditoria" para visualizar o detalhamento de como as despesas foram alocadas
+          </div>
+
+          <div v-else>
+            <!-- RESUMO: 4 Cards -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+              <div style="padding: 16px; background: #F0F9FF; border-radius: 8px; border-left: 4px solid #3B82F6;">
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">Total Despesa Salão</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #EF4444;">
+                  R$ {{ parseFloat(auditoriaAlocacao.resumo.totalDespesaSalao).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                </div>
+              </div>
+
+              <div style="padding: 16px; background: #F0FDF4; border-radius: 8px; border-left: 4px solid #10B981;">
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">Total Receita</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #10B981;">
+                  R$ {{ parseFloat(auditoriaAlocacao.resumo.totalReceitaGeral).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                </div>
+              </div>
+
+              <div style="padding: 16px; background: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">Total Alocado</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #F59E0B;">
+                  R$ {{ parseFloat(auditoriaAlocacao.resumo.totalAlocado).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                </div>
+              </div>
+
+              <div style="padding: 16px; background: #FDF2F8; border-radius: 8px; border-left: 4px solid #EC4899;">
+                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">Rounding Error</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #EC4899;">
+                  R$ {{ parseFloat(auditoriaAlocacao.resumo.naoAlocado).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- DESPESAS SALÃO -->
+            <div style="margin-bottom: 32px;">
+              <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">
+                1️⃣ Despesas do Salão (R$ {{ parseFloat(auditoriaAlocacao.despesaSalao.total).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }})
+              </h4>
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border);">
+                <thead style="background: var(--bg-secondary);">
+                  <tr>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Data</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border);">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(linha, idx) in auditoriaAlocacao.despesaSalao.linhas" :key="idx" style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px;">{{ linha.data }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 500;">
+                      R$ {{ parseFloat(linha.total).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- RECEITAS POR CANAL -->
+            <div style="margin-bottom: 32px;">
+              <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">
+                2️⃣ Receita de Cada Canal
+              </h4>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+                <div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
+                  <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">Salão</div>
+                  <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">
+                    R$ {{ parseFloat(auditoriaAlocacao.receitas.salao || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                  </div>
+                  <div style="font-size: 0.75rem; color: #10B981; font-weight: 600;">
+                    {{ ((parseFloat(auditoriaAlocacao.receitas.salao || 0) / parseFloat(auditoriaAlocacao.receitas.total)) * 100).toFixed(1) }}% do total
+                  </div>
+                </div>
+                <div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
+                  <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">iFood</div>
+                  <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">
+                    R$ {{ parseFloat(auditoriaAlocacao.receitas.ifood || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                  </div>
+                  <div style="font-size: 0.75rem; color: #10B981; font-weight: 600;">
+                    {{ ((parseFloat(auditoriaAlocacao.receitas.ifood || 0) / parseFloat(auditoriaAlocacao.receitas.total)) * 100).toFixed(1) }}% do total
+                  </div>
+                </div>
+                <div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
+                  <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">Keeta</div>
+                  <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">
+                    R$ {{ parseFloat(auditoriaAlocacao.receitas.keeta || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                  </div>
+                  <div style="font-size: 0.75rem; color: #10B981; font-weight: 600;">
+                    {{ ((parseFloat(auditoriaAlocacao.receitas.keeta || 0) / parseFloat(auditoriaAlocacao.receitas.total)) * 100).toFixed(1) }}% do total
+                  </div>
+                </div>
+                <div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px;">
+                  <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500;">99Food</div>
+                  <div style="font-size: 1.25rem; font-weight: 700; margin-bottom: 8px;">
+                    R$ {{ parseFloat(auditoriaAlocacao.receitas['99food'] || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                  </div>
+                  <div style="font-size: 0.75rem; color: #10B981; font-weight: 600;">
+                    {{ ((parseFloat(auditoriaAlocacao.receitas['99food'] || 0) / parseFloat(auditoriaAlocacao.receitas.total)) * 100).toFixed(1) }}% do total
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ALOCAÇÕES -->
+            <div>
+              <h4 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 16px 0;">
+                3️⃣ Cálculo de Alocação (Despesa Salão ÷ Proporção de Receita)
+              </h4>
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border);">
+                <thead style="background: var(--bg-secondary);">
+                  <tr>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Canal</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border);">Proporção</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border);">Recebeu</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Cálculo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px; font-weight: 500;">Salão</td>
+                    <td style="padding: 12px; text-align: right;">{{ auditoriaAlocacao.alocacoes.salao.proporcao }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700;">R$ 0,00</td>
+                    <td style="padding: 12px; color: var(--text-secondary); font-size: 0.875rem;">Não recebe alocação</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px; font-weight: 500;">iFood</td>
+                    <td style="padding: 12px; text-align: right;">{{ auditoriaAlocacao.alocacoes.ifood.proporcao }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700;">R$ {{ parseFloat(auditoriaAlocacao.alocacoes.ifood.recebeu || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</td>
+                    <td style="padding: 12px; color: var(--text-secondary); font-size: 0.875rem;">R$ {{ auditoriaAlocacao.resumo.totalDespesaSalao }} × {{ auditoriaAlocacao.alocacoes.ifood.proporcao }}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px; font-weight: 500;">Keeta</td>
+                    <td style="padding: 12px; text-align: right;">{{ auditoriaAlocacao.alocacoes.keeta.proporcao }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700;">R$ {{ parseFloat(auditoriaAlocacao.alocacoes.keeta.recebeu || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</td>
+                    <td style="padding: 12px; color: var(--text-secondary); font-size: 0.875rem;">R$ {{ auditoriaAlocacao.resumo.totalDespesaSalao }} × {{ auditoriaAlocacao.alocacoes.keeta.proporcao }}</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 12px; font-weight: 500;">99Food</td>
+                    <td style="padding: 12px; text-align: right;">{{ auditoriaAlocacao.alocacoes['99food'].proporcao }}</td>
+                    <td style="padding: 12px; text-align: right; font-weight: 700;">R$ {{ parseFloat(auditoriaAlocacao.alocacoes['99food'].recebeu || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</td>
+                    <td style="padding: 12px; color: var(--text-secondary); font-size: 0.875rem;">R$ {{ auditoriaAlocacao.resumo.totalDespesaSalao }} × {{ auditoriaAlocacao.alocacoes['99food'].proporcao }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- VERIFICAÇÃO -->
+            <div style="margin-top: 24px; padding: 16px; background: #F0F9FF; border-radius: 8px; border-left: 4px solid #3B82F6;">
+              <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">✓ Verificação</div>
+              <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                Total Despesa Salão: R$ {{ parseFloat(auditoriaAlocacao.resumo.totalDespesaSalao).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}<br>
+                Total Alocado: R$ {{ parseFloat(auditoriaAlocacao.resumo.totalAlocado).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}<br>
+                Diferença (rounding): R$ {{ parseFloat(auditoriaAlocacao.resumo.naoAlocado).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }} ✓
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Gráfico Mensal - INLINE -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
           <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📊 Receitas vs Despesas por Dia</h3>
@@ -1622,6 +1794,12 @@
           filtroCategoria: '',
           categoriasFiltradas: [],
           categoriasDisponiveis: ['Todos (Grupo)', 'Salão', 'iFood', '99Food', 'Keeta'],
+          // Auditoria de Alocação
+          auditoriaAlocacao: null,
+          auditoriaPeriodo: {
+            dataInicio: '',
+            dataFim: ''
+          },
           outraCategoria: '',
           receitas: [],
           novaReceita: {
@@ -2383,6 +2561,26 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           }
           console.log('🔍 Categorias filtradas:', this.categoriasFiltradas);
           this.$forceUpdate();
+        },
+
+        async carregarAuditoriaAlocacao() {
+          try {
+            console.log('📋 Carregando auditoria de alocação...', {
+              dataInicio: this.auditoriaPeriodo.dataInicio,
+              dataFim: this.auditoriaPeriodo.dataFim
+            });
+            const response = await api.obterAuditoriaAlocacao(
+              this.auditoriaPeriodo.dataInicio,
+              this.auditoriaPeriodo.dataFim
+            );
+
+            if (response.data.success) {
+              this.auditoriaAlocacao = response.data.data;
+              console.log('✅ Auditoria carregada:', this.auditoriaAlocacao);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar auditoria:', error);
+          }
         },
 
         async carregarReceitas() {
@@ -3538,6 +3736,10 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         this.renderizarGraficoMensal(); // Renderizar gráfico mensal inline
         this.carregarNotasPendentes();
         this.carregarDadosCMV(); // Carregar dados de CMV ao iniciar
+
+        // Inicializar período da auditoria
+        this.auditoriaPeriodo.dataInicio = this.periodo.dataInicio;
+        this.auditoriaPeriodo.dataFim = this.periodo.dataFim;
 
         // Recarregar notas a cada 5 segundos
         setInterval(() => {
