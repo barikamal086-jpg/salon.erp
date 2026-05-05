@@ -1161,6 +1161,122 @@ router.get('/faturamentos/auditoria-cmv-totais', async (req, res) => {
   }
 });
 
+// 🔍 PHASE 3: NEW ENDPOINT - Validação de Importação
+// GET /api/faturamentos/validar-importacao?from=YYYY-MM-DD&to=YYYY-MM-DD
+// Mostra o status detalhado de cada nota importada
+router.get('/faturamentos/validar-importacao', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    console.log(`\n📋 [Validação de Importação] Analisando status das notas...\n`);
+
+    // 1. Contar todas as notas por situacao_processamento
+    const totalNotasRes = await pool.query(`
+      SELECT COUNT(*) as total FROM notas_fiscais
+      ${from && to ? `WHERE created_at >= $1 AND created_at <= $2` : ''}
+    `, from && to ? [from, to] : []);
+    const totalNotas = parseInt(totalNotasRes.rows[0].total);
+
+    const pendenteRes = await pool.query(`
+      SELECT COUNT(*) as total FROM notas_fiscais
+      WHERE situacao_processamento = 'pendente'
+      ${from && to ? `AND created_at >= $1 AND created_at <= $2` : ''}
+    `, from && to ? [from, to] : []);
+    const totalPendentes = parseInt(pendenteRes.rows[0].total);
+
+    const processadaRes = await pool.query(`
+      SELECT COUNT(*) as total FROM notas_fiscais
+      WHERE situacao_processamento = 'processada'
+      ${from && to ? `AND created_at >= $1 AND created_at <= $2` : ''}
+    `, from && to ? [from, to] : []);
+    const totalProcessadas = parseInt(processadaRes.rows[0].total);
+
+    const duplicadaRes = await pool.query(`
+      SELECT COUNT(*) as total FROM notas_fiscais
+      WHERE situacao_processamento = 'duplicada'
+      ${from && to ? `AND created_at >= $1 AND created_at <= $2` : ''}
+    `, from && to ? [from, to] : []);
+    const totalDuplicatas = parseInt(duplicadaRes.rows[0].total);
+
+    const erroRes = await pool.query(`
+      SELECT COUNT(*) as total FROM notas_fiscais
+      WHERE situacao_processamento = 'erro'
+      ${from && to ? `AND created_at >= $1 AND created_at <= $2` : ''}
+    `, from && to ? [from, to] : []);
+    const totalErros = parseInt(erroRes.rows[0].total);
+
+    // 2. Get detailed lists
+    const duplicatasList = await pool.query(`
+      SELECT id, numero_nf, fornecedor_nome, valor_total, tipo, motivo_exclusao, created_at
+      FROM notas_fiscais
+      WHERE situacao_processamento = 'duplicada'
+      ${from && to ? `AND created_at >= $1 AND created_at <= $2` : ''}
+      ORDER BY created_at DESC
+    `, from && to ? [from, to] : []);
+
+    const errosList = await pool.query(`
+      SELECT id, numero_nf, fornecedor_nome, valor_total, tipo, motivo_exclusao, created_at
+      FROM notas_fiscais
+      WHERE situacao_processamento = 'erro'
+      ${from && to ? `AND created_at >= $1 AND created_at <= $2` : ''}
+      ORDER BY created_at DESC
+    `, from && to ? [from, to] : []);
+
+    console.log(`✅ Total de notas: ${totalNotas}`);
+    console.log(`   ├─ Pendentes:   ${totalPendentes}`);
+    console.log(`   ├─ Processadas: ${totalProcessadas}`);
+    console.log(`   ├─ Duplicatas:  ${totalDuplicatas}`);
+    console.log(`   └─ Erros:       ${totalErros}`);
+    console.log(`\n🔍 Verificação: ${totalPendentes + totalProcessadas + totalDuplicatas + totalErros} = ${totalNotas}`);
+
+    res.json({
+      success: true,
+      periodo: { from, to },
+      resumo: {
+        total: totalNotas,
+        pendentes: totalPendentes,
+        processadas: totalProcessadas,
+        duplicatas: totalDuplicatas,
+        erros: totalErros,
+        percentual_processado: totalNotas > 0 ? ((totalProcessadas / totalNotas) * 100).toFixed(2) + '%' : '0%',
+        verificacao: `${totalPendentes + totalProcessadas + totalDuplicatas + totalErros} = ${totalNotas} ✓`
+      },
+      detalhamento_duplicatas: duplicatasList.rows.map(d => ({
+        id: d.id,
+        numero_nf: d.numero_nf,
+        fornecedor: d.fornecedor_nome,
+        valor: parseFloat(d.valor_total).toFixed(2),
+        tipo: d.tipo,
+        motivo: d.motivo_exclusao,
+        data_criacao: d.created_at
+      })),
+      detalhamento_erros: errosList.rows.map(e => ({
+        id: e.id,
+        numero_nf: e.numero_nf,
+        fornecedor: e.fornecedor_nome,
+        valor: parseFloat(e.valor_total).toFixed(2),
+        tipo: e.tipo,
+        motivo: e.motivo_exclusao,
+        data_criacao: e.created_at
+      })),
+      insights: {
+        status: totalErros === 0 && totalDuplicatas === 0
+          ? '✅ Todas as notas foram processadas com sucesso!'
+          : `⚠️  ${totalDuplicatas} duplicatas e ${totalErros} erros encontrados`,
+        acao_recomendada: totalDuplicatas + totalErros > 0
+          ? 'Revise a lista de duplicatas e erros acima'
+          : 'Nenhuma ação necessária'
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao validar importação:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {
@@ -2114,6 +2230,7 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
     await client.query('BEGIN');
     console.log('   ✅ Transação iniciada');
 
+    const rastreamento = [];  // 🔍 PHASE 2: Track every nota's fate
     const importados = [];
     const erros = [];
     const duplicados = [];
@@ -2125,15 +2242,41 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
         const dados = ContaAzulMapper.processarLinhaExcel(linha, i + 1);
 
         if (!dados.valid) {
+          console.log(`   ❌ Erro na linha ${i + 1}: ${dados.erro}`);
           erros.push({
             linha: i + 1,
-            erro: dados.erro
+            numero_nf: `CA-${i + 1}`,
+            fornecedor: linha.Fornecedor || 'N/A',
+            valor: linha.Valor || 0,
+            tipo: linha.Tipo || 'despesa',
+            motivo: dados.erro
+          });
+          // 🔍 Track: erro de parsing
+          rastreamento.push({
+            numero_linha: i + 1,
+            numero_nf: `CA-${i + 1}`,
+            fornecedor: linha.Fornecedor || 'N/A',
+            valor: parseFloat(linha.Valor || 0),
+            tipo: linha.Tipo || 'despesa',
+            status: 'erro',
+            motivo: dados.erro
           });
           continue;
         }
 
         // Gerar numero_nf único (usando código de referência do Conta Azul ou timestamp)
         const numeroNF = `CA-${dados.identificador}`;
+
+        // 🔍 Track: received
+        rastreamento.push({
+          numero_linha: i + 1,
+          numero_nf: numeroNF,
+          fornecedor: dados.fornecedor_nome,
+          valor: parseFloat(dados.total),
+          tipo: dados.tipo || 'despesa',  // receita ou despesa
+          status: 'processando',
+          motivo: null
+        });
 
         // Verificar duplicata 1: numero_nf exato
         console.log(`   Verificando duplicata para ${numeroNF}...`);
@@ -2146,10 +2289,18 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
           console.log(`   ⚠️  Duplicada (numero_nf): ${numeroNF}`);
           duplicados.push({
             linha: i + 1,
-            descricao: dados.descricao,
             numero_nf: numeroNF,
-            motivo: 'numero_nf duplicado'
+            fornecedor: dados.fornecedor_nome,
+            valor: dados.total,
+            tipo: dados.tipo || 'despesa',
+            motivo: 'numero_nf duplicado (exato match)'
           });
+          // 🔍 Update track: duplicata
+          const idx = rastreamento.findIndex(r => r.numero_nf === numeroNF);
+          if (idx >= 0) {
+            rastreamento[idx].status = 'duplicada';
+            rastreamento[idx].motivo = 'numero_nf duplicado (exato match)';
+          }
           continue;
         }
 
@@ -2166,18 +2317,27 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
           console.log(`   ⚠️  Duplicada (inteligente): ${dupCheck.similarNota.numero_nf}`);
           duplicados.push({
             linha: i + 1,
-            descricao: dados.descricao,
             numero_nf: numeroNF,
-            motivo: `Nota similar já existe (${dupCheck.similarNota.numero_nf}): mesmo fornecedor, descrição e valor`,
+            fornecedor: dados.fornecedor_nome,
+            valor: dados.total,
+            tipo: dados.tipo || 'despesa',
+            motivo: `Nota similar já existe: ${dupCheck.similarNota.numero_nf}`,
             notaSimilar: {
               numero_nf: dupCheck.similarNota.numero_nf,
               data_emissao: dupCheck.similarNota.data_emissao,
               valor: dupCheck.similarNota.valor_total
             }
           });
+          // 🔍 Update track: duplicata inteligente
+          const idx = rastreamento.findIndex(r => r.numero_nf === numeroNF);
+          if (idx >= 0) {
+            rastreamento[idx].status = 'duplicada';
+            rastreamento[idx].motivo = `Nota similar: ${dupCheck.similarNota.numero_nf}`;
+          }
           continue;
         }
 
+        // 🔍 PHASE 2: INSERT com tipo e situacao_processamento
         // Inserir como nota fiscal (status='pendente' para processamento posterior)
         const insertResult = await client.query(
           `INSERT INTO notas_fiscais (
@@ -2189,8 +2349,10 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
             descricao,
             classificacao_sugerida,
             status,
+            tipo,
+            situacao_processamento,
             created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
           RETURNING id`,
           [
             numeroNF,
@@ -2200,7 +2362,9 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
             dados.total,
             dados.descricao,
             dados.classificacao,  // CMV / Operacional / Administrativa / Financeira
-            'pendente'  // Status pendente para revisão
+            'pendente',  // Status pendente para revisão
+            dados.tipo || 'despesa',  // 🔍 Store tipo (receita/despesa)
+            'pendente'  // 🔍 situacao_processamento = pendente (waiting to be processed)
           ]
         );
 
@@ -2211,9 +2375,17 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
           descricao: dados.descricao,
           fornecedor: dados.fornecedor_nome,
           valor: dados.total,
+          tipo: dados.tipo || 'despesa',  // 🔍 Include tipo in response
           classificacao: dados.classificacao,
           categoria_ca: dados.categoria_conta_azul
         });
+
+        // 🔍 Update track: processada
+        const idx = rastreamento.findIndex(r => r.numero_nf === numeroNF);
+        if (idx >= 0) {
+          rastreamento[idx].status = 'processada';
+          rastreamento[idx].motivo = null;
+        }
 
         if ((i + 1) % 20 === 0) {
           console.log(`   ✅ Processadas ${i + 1}/${linhas.length} linhas...`);
@@ -2222,7 +2394,8 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
         console.error(`❌ Erro na linha ${i + 1}:`, erro.message);
         erros.push({
           linha: i + 1,
-          erro: erro.message
+          numero_nf: `CA-${i + 1}`,
+          motivo: erro.message
         });
       }
     }
@@ -2232,19 +2405,57 @@ router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, r
     console.log(`✅ Importação concluída: ${importados.length} notas inseridas como "pendentes"`);
     console.log(`   Próximo passo: processar as notas via UI ou API\n`);
 
+    // 🔍 PHASE 2: Build detailed response with resumo and detalhes breakdown
+    const totalRecebidas = rastreamento.length;
+    const totalProcessadas = importados.length;
+    const totalDuplicatas = duplicados.length;
+    const totalErros = erros.length;
+
+    console.log(`\n📊 RESUMO DA IMPORTAÇÃO:`);
+    console.log(`   Total Recebidas:  ${totalRecebidas}`);
+    console.log(`   Processadas ✅:   ${totalProcessadas}`);
+    console.log(`   Duplicatas ⚠️:    ${totalDuplicatas}`);
+    console.log(`   Erros ❌:         ${totalErros}`);
+    console.log(`   Verificação:      ${totalProcessadas + totalDuplicatas + totalErros} = ${totalRecebidas}`);
+
     res.status(201).json({
       success: importados.length > 0,
-      message: `${importados.length} nota(s) importada(s) como pendente(s), ${duplicados.length} duplicada(s), ${erros.length} erro(s)`,
-      dados: {
-        importados: importados.length,
-        duplicados: duplicados.length,
-        erros: erros.length,
-        detalhes: {
-          importados: importados.slice(0, 10),
-          duplicados: duplicados.slice(0, 5),
-          erros: erros.slice(0, 5)
-        }
-      }
+      message: `${totalRecebidas} recebidas → ${totalProcessadas} processadas + ${totalDuplicatas} duplicatas + ${totalErros} erros`,
+      resumo: {
+        total_recebidas: totalRecebidas,
+        total_inseridas: totalProcessadas,
+        total_duplicatas: totalDuplicatas,
+        total_erros: totalErros,
+        percentual_sucesso: totalRecebidas > 0 ? ((totalProcessadas / totalRecebidas) * 100).toFixed(2) + '%' : '0%'
+      },
+      detalhes: {
+        processadas: importados.map(imp => ({
+          numero_nf: imp.numero_nf,
+          fornecedor: imp.fornecedor,
+          data: imp.data,
+          valor: parseFloat(imp.valor).toFixed(2),
+          tipo: imp.tipo,
+          classificacao: imp.classificacao,
+          motivo: 'Inserida com sucesso'
+        })),
+        duplicatas: duplicados.map(dup => ({
+          numero_nf: dup.numero_nf,
+          fornecedor: dup.fornecedor,
+          valor: parseFloat(dup.valor).toFixed(2),
+          tipo: dup.tipo,
+          motivo: dup.motivo,
+          notaSimilar: dup.notaSimilar || null
+        })),
+        erros: erros.map(err => ({
+          linha: err.linha,
+          numero_nf: err.numero_nf,
+          fornecedor: err.fornecedor,
+          valor: parseFloat(err.valor).toFixed(2),
+          tipo: err.tipo,
+          motivo: err.motivo
+        }))
+      },
+      rastreamento: rastreamento  // Full tracking array for debugging
     });
   } catch (err) {
     console.error('\n❌ ERRO NA IMPORTAÇÃO:');

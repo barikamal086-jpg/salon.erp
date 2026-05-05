@@ -106,16 +106,60 @@ async function initializeDatabase() {
         pdf_filename VARCHAR(255),
         tipo_despesa_id INTEGER REFERENCES tipo_despesa(id),
         faturamento_id INTEGER REFERENCES faturamento(id),
+        tipo VARCHAR(20) DEFAULT 'despesa',
+        situacao_processamento VARCHAR(50) DEFAULT 'pendente',
+        motivo_exclusao TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         processado_em TIMESTAMP
       )
     `);
     console.log('✅ Tabela notas_fiscais criada/verificada');
 
+    // 🔧 PHASE 1: ADD MISSING COLUMNS (for existing tables)
+    // Adicionar coluna tipo se não existir
+    try {
+      await pool.query(`
+        ALTER TABLE notas_fiscais
+        ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) DEFAULT 'despesa'
+      `);
+      console.log('✅ Coluna tipo adicionada/verificada em notas_fiscais');
+    } catch (err) {
+      if (err.code !== '42701') { // 42701 = column already exists
+        console.warn('⚠️  Erro ao adicionar coluna tipo:', err.message);
+      }
+    }
+
+    // Adicionar coluna situacao_processamento se não existir
+    try {
+      await pool.query(`
+        ALTER TABLE notas_fiscais
+        ADD COLUMN IF NOT EXISTS situacao_processamento VARCHAR(50) DEFAULT 'pendente'
+      `);
+      console.log('✅ Coluna situacao_processamento adicionada/verificada em notas_fiscais');
+    } catch (err) {
+      if (err.code !== '42701') { // 42701 = column already exists
+        console.warn('⚠️  Erro ao adicionar coluna situacao_processamento:', err.message);
+      }
+    }
+
+    // Adicionar coluna motivo_exclusao se não existir
+    try {
+      await pool.query(`
+        ALTER TABLE notas_fiscais
+        ADD COLUMN IF NOT EXISTS motivo_exclusao TEXT
+      `);
+      console.log('✅ Coluna motivo_exclusao adicionada/verificada em notas_fiscais');
+    } catch (err) {
+      if (err.code !== '42701') { // 42701 = column already exists
+        console.warn('⚠️  Erro ao adicionar coluna motivo_exclusao:', err.message);
+      }
+    }
+
     // Criar índices para notas_fiscais
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notas_numero ON notas_fiscais(numero_nf)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notas_status ON notas_fiscais(status)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_notas_created ON notas_fiscais(created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_notas_situacao ON notas_fiscais(situacao_processamento)`);
 
     // 5. Criar tabela regras_categoria_fornecedor
     await pool.query(`

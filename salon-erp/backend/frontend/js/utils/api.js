@@ -225,6 +225,15 @@ const api = {
   // DELETE /api/regras-categoria/:id - Deletar regra
   deletarRegra(id) {
     return axios.delete(`${API_BASE}/regras-categoria/${id}`);
+  },
+
+  // 🔍 PHASE 3: GET /api/faturamentos/validar-importacao - Validação de importação
+  obterValidacaoImportacao(from, to) {
+    let url = `${API_BASE}/faturamentos/validar-importacao`;
+    if (from && to) {
+      url += `?from=${from}&to=${to}`;
+    }
+    return axios.get(url);
   }
 };
 
