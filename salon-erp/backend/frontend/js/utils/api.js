@@ -89,6 +89,11 @@ const api = {
     return axios.get(url);
   },
 
+  // GET /api/faturamentos/cruzamento-notas-faturamentos - Cross-reference notas vs faturamentos
+  obterCruzamentoNotasFaturamentos() {
+    return axios.get(`${API_BASE}/faturamentos/cruzamento-notas-faturamentos`);
+  },
+
   // ==================== NOTAS FISCAIS ====================
 
   // GET /api/notas-fiscais - Listar notas fiscais

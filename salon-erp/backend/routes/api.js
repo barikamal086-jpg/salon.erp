@@ -775,6 +775,120 @@ router.get('/faturamentos/auditoria-debug', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/cruzamento-notas-faturamentos
+// Cruza dados de notas fiscais com faturamentos processados
+// Mostra: 87 notas → 62 despesas + 25 receitas
+router.get('/faturamentos/cruzamento-notas-faturamentos', async (req, res) => {
+  try {
+    console.log(`🔀 [Cruzamento] Analisando 87 notas vs faturamentos...`);
+
+    // 1. Get ALL notas fiscais
+    const todasNotas = await allAsync(`
+      SELECT id, numero_nf, fornecedor, valor, status, data_criacao
+      FROM notas_fiscais
+      ORDER BY data_criacao DESC
+    `, []);
+
+    console.log(`📄 Total notas: ${todasNotas.length}`);
+
+    // 2. Get ALL faturamentos com referência à nota
+    const todosFaturamentos = await allAsync(`
+      SELECT id, nota_fiscal_id, numero_nf, fornecedor, total, categoria, tipo, status, data
+      FROM faturamento
+      WHERE nota_fiscal_id IS NOT NULL
+      ORDER BY data DESC
+    `, []);
+
+    console.log(`💰 Total faturamentos com referência à nota: ${todosFaturamentos.length}`);
+
+    // 3. Build mapping: nota_id → [faturamentos]
+    const notaParaFaturamentos = {};
+    const faturamentosPorTipo = { receita: 0, despesa: 0, outro: 0 };
+    const faturamentosPorCategoria = {};
+
+    todosFaturamentos.forEach(f => {
+      const notaId = f.nota_fiscal_id;
+      if (!notaParaFaturamentos[notaId]) {
+        notaParaFaturamentos[notaId] = [];
+      }
+      notaParaFaturamentos[notaId].push({
+        id: f.id,
+        tipo: f.tipo,
+        categoria: f.categoria,
+        valor: f.total,
+        data: f.data
+      });
+
+      // Count by type
+      if (f.tipo === 'receita') faturamentosPorTipo.receita++;
+      else if (f.tipo === 'despesa') faturamentosPorTipo.despesa++;
+      else faturamentosPorTipo.outro++;
+
+      // Count by category
+      if (!faturamentosPorCategoria[f.categoria]) {
+        faturamentosPorCategoria[f.categoria] = 0;
+      }
+      faturamentosPorCategoria[f.categoria]++;
+    });
+
+    console.log(`  Por tipo: Receita=${faturamentosPorTipo.receita}, Despesa=${faturamentosPorTipo.despesa}`);
+
+    // 4. Detailed mapping of each note
+    const detalheCruzamento = todasNotas.map(nota => {
+      const faturamentos = notaParaFaturamentos[nota.id] || [];
+
+      return {
+        nota: {
+          id: nota.id,
+          numero_nf: nota.numero_nf,
+          fornecedor: nota.fornecedor,
+          valor: parseFloat(nota.valor || 0),
+          status: nota.status,
+          data_criacao: nota.data_criacao
+        },
+        faturamentos: faturamentos.length > 0 ? faturamentos : null,
+        processada: faturamentos.length > 0,
+        tipos_gerados: faturamentos.length > 0 ?
+          [...new Set(faturamentos.map(f => f.tipo))].join(', ') : 'não processada',
+        categorias_geradas: faturamentos.length > 0 ?
+          [...new Set(faturamentos.map(f => f.categoria))].join(', ') : 'N/A'
+      };
+    });
+
+    // 5. Summary statistics
+    const notasProcessadas = detalheCruzamento.filter(d => d.processada).length;
+    const notasNaoProcessadas = detalheCruzamento.length - notasProcessadas;
+
+    console.log(`✅ Resumo: ${notasProcessadas} processadas, ${notasNaoProcessadas} não processadas`);
+
+    res.json({
+      success: true,
+      data: {
+        resumo: {
+          total_notas: todasNotas.length,
+          notas_processadas: notasProcessadas,
+          notas_nao_processadas: notasNaoProcessadas,
+          total_faturamentos: todosFaturamentos.length
+        },
+        faturamentos_por_tipo: faturamentosPorTipo,
+        faturamentos_por_categoria: faturamentosPorCategoria,
+        detalhamento: detalheCruzamento,
+        explicacao: {
+          why_62_despesas: `Das ${notasProcessadas} notas processadas, ${faturamentosPorTipo.despesa} viraram despesas (CMV).`,
+          why_25_missing: `As outras ${notasProcessadas - faturamentosPorTipo.despesa} viraram receitas ou outras categorias e NÃO aparecem em "Auditoria CMV".`,
+          not_processed: `${notasNaoProcessadas} notas ainda não foram processadas (status = pendente/erro).`
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao gerar cruzamento:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {

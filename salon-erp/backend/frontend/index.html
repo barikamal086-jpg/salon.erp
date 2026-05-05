@@ -376,6 +376,11 @@
                 style="padding: 8px 16px; background: #8B5CF6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
                 🔍 Ver Debug
               </button>
+              <button
+                @click="carregarCruzamentoNotas"
+                style="padding: 8px 16px; background: #EC4899; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                🔀 Cruzamento (87 notas)
+              </button>
             </div>
           </div>
 
@@ -652,6 +657,148 @@
               <li><strong>Fora do Período:</strong> Foi processada em data diferente do filtro selecionado</li>
             </ul>
           </div>
+        </div>
+
+        <!-- CRUZAMENTO: NOTAS FISCAIS VS FATURAMENTOS -->
+        <div v-if="mostraCruzamento && cruzamentoNotas" style="margin-top: 48px; padding: 24px; background: #FCE7F3; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #EC4899;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #BE185D; margin: 0;">
+              🔀 Cruzamento: 87 Notas → 62 Despesas + 25 Receitas
+            </h3>
+            <button
+              @click="mostraCruzamento = false"
+              style="padding: 8px 16px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+              ✕ Fechar
+            </button>
+          </div>
+
+          <!-- RESUMO GERAL -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+            <div style="padding: 16px; background: #FEE2E2; border-radius: 8px; border-left: 4px solid #DC2626;">
+              <div style="font-size: 0.875rem; color: #991B1B; margin-bottom: 4px; font-weight: 600;">Total de Notas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #DC2626;">
+                {{ cruzamentoNotas.resumo.total_notas }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #DBEAFE; border-radius: 8px; border-left: 4px solid #3B82F6;">
+              <div style="font-size: 0.875rem; color: #1E40AF; margin-bottom: 4px; font-weight: 600;">Notas Processadas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #2563EB;">
+                {{ cruzamentoNotas.resumo.notas_processadas }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #FFEDD5; border-radius: 8px; border-left: 4px solid #F97316;">
+              <div style="font-size: 0.875rem; color: #92400E; margin-bottom: 4px; font-weight: 600;">Não Processadas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #EA580C;">
+                {{ cruzamentoNotas.resumo.notas_nao_processadas }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #E0E7FF; border-radius: 8px; border-left: 4px solid #6366F1;">
+              <div style="font-size: 0.875rem; color: #312E81; margin-bottom: 4px; font-weight: 600;">Total Faturamentos</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #4F46E5;">
+                {{ cruzamentoNotas.resumo.total_faturamentos }}
+              </div>
+            </div>
+          </div>
+
+          <!-- FATURAMENTOS POR TIPO -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px;">
+            <div style="padding: 16px; background: white; border-radius: 8px; border: 1px solid #FBCFE8; text-align: center;">
+              <div style="font-size: 0.875rem; color: #BE185D; font-weight: 600; margin-bottom: 8px;">💰 Receitas</div>
+              <div style="font-size: 2rem; font-weight: 700; color: #10B981;">
+                {{ cruzamentoNotas.faturamentos_por_tipo.receita }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: white; border-radius: 8px; border: 1px solid #FBCFE8; text-align: center;">
+              <div style="font-size: 0.875rem; color: #BE185D; font-weight: 600; margin-bottom: 8px;">💸 Despesas</div>
+              <div style="font-size: 2rem; font-weight: 700; color: #EF4444;">
+                {{ cruzamentoNotas.faturamentos_por_tipo.despesa }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: white; border-radius: 8px; border: 1px solid #FBCFE8; text-align: center;">
+              <div style="font-size: 0.875rem; color: #BE185D; font-weight: 600; margin-bottom: 8px;">⚙️ Outros</div>
+              <div style="font-size: 2rem; font-weight: 700; color: #F59E0B;">
+                {{ cruzamentoNotas.faturamentos_por_tipo.outro }}
+              </div>
+            </div>
+          </div>
+
+          <!-- DISTRIBUIÇÃO POR CATEGORIA -->
+          <div style="margin-bottom: 32px;">
+            <h4 style="font-size: 1rem; font-weight: 600; color: #BE185D; margin: 0 0 16px 0;">📊 Distribuição por Categoria</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+              <div v-for="(count, categoria) in cruzamentoNotas.faturamentos_por_categoria" :key="categoria"
+                   style="padding: 12px; background: white; border-radius: 8px; border: 1px solid #FBCFE8; text-align: center;">
+                <div style="font-size: 0.75rem; color: #BE185D; font-weight: 600; text-transform: uppercase;">{{ categoria }}</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #EC4899; margin-top: 4px;">{{ count }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EXPLICAÇÃO VISUAL -->
+          <div style="padding: 16px; background: white; border-radius: 8px; border: 2px solid #EC4899; margin-bottom: 32px;">
+            <div style="font-weight: 600; color: #BE185D; margin-bottom: 12px; font-size: 1.1rem;">🔍 Por Que Há 25 Notas "Faltando" em CMV?</div>
+            <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6;">
+              <p style="margin: 0 0 12px 0;">
+                <strong style="color: #EC4899;">{{ cruzamentoNotas.resumo.notas_processadas }} notas foram processadas</strong>, gerando {{ cruzamentoNotas.resumo.total_faturamentos }} faturamentos:
+              </p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li><strong style="color: #EF4444;">{{ cruzamentoNotas.faturamentos_por_tipo.despesa }} despesas</strong> → Aparecem em "Auditoria CMV" ✅</li>
+                <li><strong style="color: #10B981;">{{ cruzamentoNotas.faturamentos_por_tipo.receita }} receitas</strong> → NÃO aparecem em "Auditoria CMV" (só despesas) ❌</li>
+                <li v-if="cruzamentoNotas.faturamentos_por_tipo.outro > 0"><strong style="color: #F59E0B;">{{ cruzamentoNotas.faturamentos_por_tipo.outro }} outros</strong> → Outras categorias</li>
+              </ul>
+              <p style="margin: 12px 0 0 0; padding-top: 12px; border-top: 1px solid #E5E7EB;">
+                <strong>Resposta:</strong> {{ cruzamentoNotas.explicacao.why_25_missing }}
+              </p>
+            </div>
+          </div>
+
+          <!-- DETALHAMENTO (EXPANSÍVEL) -->
+          <details style="margin-top: 24px;">
+            <summary style="padding: 12px; background: #FEF2F2; border-radius: 8px; cursor: pointer; font-weight: 600; color: #BE185D; user-select: none;">
+              📋 Ver Detalhamento Completo (87 notas com cruzamento)
+            </summary>
+            <div style="margin-top: 12px; overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: white; font-size: 0.875rem;">
+                <thead style="background: #FCE7F3;">
+                  <tr>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EC4899;">NF</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EC4899;">Fornecedor</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #EC4899;">Valor</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EC4899;">Status</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #EC4899;">Processada</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EC4899;">Tipos Gerados</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #EC4899;">Categorias</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(linha, idx) in cruzamentoNotas.detalhamento" :key="idx"
+                      :style="linha.processada ? 'background: #F0FDF4; border-bottom: 1px solid var(--border);' : 'background: #FEF2F2; border-bottom: 1px solid var(--border);'">
+                    <td style="padding: 12px; font-weight: 500;">{{ linha.nota.numero_nf }}</td>
+                    <td style="padding: 12px;">{{ linha.nota.fornecedor }}</td>
+                    <td style="padding: 12px; text-align: right;">R$ {{ parseFloat(linha.nota.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}</td>
+                    <td style="padding: 12px;">
+                      <span :style="linha.nota.status === 'processado' ? 'background: #DBEAFE; color: #1E40AF;' : 'background: #FEE2E2; color: #991B1B;'"
+                            style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                        {{ linha.nota.status }}
+                      </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                      <span :style="linha.processada ? 'color: #10B981; font-weight: 700;' : 'color: #EF4444; font-weight: 700;'">
+                        {{ linha.processada ? '✅' : '❌' }}
+                      </span>
+                    </td>
+                    <td style="padding: 12px;">{{ linha.tipos_gerados }}</td>
+                    <td style="padding: 12px;">{{ linha.categorias_geradas }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
         </div>
 
         <!-- Gráfico Mensal - INLINE -->
@@ -1926,6 +2073,9 @@
           // Auditoria Debug (comparar notas vs faturamentos)
           auditoriaDebug: null,
           mostraDebug: false,
+          // Cruzamento de notas vs faturamentos
+          cruzamentoNotas: null,
+          mostraCruzamento: false,
           outraCategoria: '',
           receitas: [],
           novaReceita: {
@@ -2727,6 +2877,21 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             }
           } catch (error) {
             console.error('❌ Erro ao carregar debug:', error);
+          }
+        },
+
+        async carregarCruzamentoNotas() {
+          try {
+            console.log('🔀 Carregando cruzamento de notas vs faturamentos...');
+            const response = await api.obterCruzamentoNotasFaturamentos();
+
+            if (response.data.success) {
+              this.cruzamentoNotas = response.data.data;
+              this.mostraCruzamento = true;
+              console.log('✅ Cruzamento carregado:', this.cruzamentoNotas);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar cruzamento:', error);
           }
         },
 
