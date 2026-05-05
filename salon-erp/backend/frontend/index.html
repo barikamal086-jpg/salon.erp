@@ -365,7 +365,7 @@
             <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0;">
               📋 Auditoria de Alocação de Despesas
             </h3>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button
                 @click="carregarAuditoriaAlocacao"
                 style="padding: 8px 16px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
@@ -380,6 +380,11 @@
                 @click="carregarCruzamentoNotas"
                 style="padding: 8px 16px; background: #EC4899; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
                 🔀 Cruzamento (87 notas)
+              </button>
+              <button
+                @click="carregarCruzamentoCMVDetalhado"
+                style="padding: 8px 16px; background: #06B6D4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                🔗 CMV ↔ Notas (62)
               </button>
             </div>
           </div>
@@ -799,6 +804,147 @@
               </table>
             </div>
           </details>
+        </div>
+
+        <!-- CRUZAMENTO CMV DETALHADO: Qual nota gerou qual despesa -->
+        <div v-if="mostraCruzamentoCMV && cruzamentoCMV" style="margin-top: 48px; padding: 24px; background: #ECFDF5; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 2px solid #06B6D4;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: #0D9488; margin: 0;">
+              🔗 Cruzamento Detalhado: CMV ↔ Notas Fiscais
+            </h3>
+            <button
+              @click="mostraCruzamentoCMV = false"
+              style="padding: 8px 16px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+              ✕ Fechar
+            </button>
+          </div>
+
+          <!-- RESUMO GERAL -->
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px;">
+            <div style="padding: 16px; background: #FEE2E2; border-radius: 8px; border-left: 4px solid #DC2626;">
+              <div style="font-size: 0.875rem; color: #991B1B; margin-bottom: 4px; font-weight: 600;">Total de Notas</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #DC2626;">
+                {{ cruzamentoCMV.resumo.total_notas }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #DBEAFE; border-radius: 8px; border-left: 4px solid #3B82F6;">
+              <div style="font-size: 0.875rem; color: #1E40AF; margin-bottom: 4px; font-weight: 600;">Despesas CMV</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #2563EB;">
+                {{ cruzamentoCMV.resumo.total_despesas_cmv }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #DCFCE7; border-radius: 8px; border-left: 4px solid #16A34A;">
+              <div style="font-size: 0.875rem; color: #15803D; margin-bottom: 4px; font-weight: 600;">Com Match ✅</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #22C55E;">
+                {{ cruzamentoCMV.resumo.com_match }}
+              </div>
+            </div>
+
+            <div style="padding: 16px; background: #FEE2E2; border-radius: 8px; border-left: 4px solid #EF4444;">
+              <div style="font-size: 0.875rem; color: #991B1B; margin-bottom: 4px; font-weight: 600;">Sem Match ❌</div>
+              <div style="font-size: 1.75rem; font-weight: 700; color: #DC2626;">
+                {{ cruzamentoCMV.resumo.sem_match }}
+              </div>
+            </div>
+          </div>
+
+          <!-- TAXA DE MATCH -->
+          <div style="padding: 16px; background: white; border-radius: 8px; border: 2px solid #06B6D4; margin-bottom: 32px; text-align: center;">
+            <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 8px;">Taxa de Correspondência</div>
+            <div style="font-size: 2rem; font-weight: 700; color: #06B6D4;">{{ cruzamentoCMV.resumo.percentual_com_match }}</div>
+          </div>
+
+          <!-- DISTRIBUIÇÃO POR TIPO DE MATCH -->
+          <div style="margin-bottom: 32px;">
+            <h4 style="font-size: 1rem; font-weight: 600; color: #0D9488; margin: 0 0 16px 0;">🎯 Como As Despesas Foram Linkadas</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+              <div v-for="(count, tipoMatch) in cruzamentoCMV.match_por_tipo" :key="tipoMatch"
+                   style="padding: 12px; background: white; border-radius: 8px; border: 1px solid #CCFBF1; text-align: center;">
+                <div style="font-size: 0.75rem; color: #0D9488; font-weight: 600; text-transform: uppercase; margin-bottom: 4px;">
+                  {{ tipoMatch.replace('_', ' ') }}
+                </div>
+                <div style="font-size: 1.75rem; font-weight: 700; color: #06B6D4;">{{ count }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px;">despesa(s)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DICAS SOBRE TIPOS DE MATCH -->
+          <div style="padding: 16px; background: #F0FDFA; border-radius: 8px; border-left: 4px solid #06B6D4; margin-bottom: 32px;">
+            <div style="font-weight: 600; color: #0D9488; margin-bottom: 12px;">📝 Entendendo os Tipos de Match:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.875rem; color: var(--text-secondary); line-height: 1.8;">
+              <li><strong>por_id:</strong> Linkagem exata por ID da nota</li>
+              <li><strong>por_numero_nf:</strong> Linkagem por número NF idêntico</li>
+              <li><strong>por_fornecedor_valor:</strong> Linkagem por fornecedor + valor similar (±5%)</li>
+              <li><strong>por_fornecedor_fuzzy:</strong> Linkagem fuzzy por fornecedor</li>
+              <li><strong>nao_encontrada:</strong> Despesa sem link (lançamento manual provavelmente)</li>
+            </ul>
+          </div>
+
+          <!-- TABELA DETALHADA (EXPANSÍVEL) -->
+          <details style="margin-top: 24px;">
+            <summary style="padding: 12px; background: #F0FDFA; border-radius: 8px; cursor: pointer; font-weight: 600; color: #0D9488; user-select: none;">
+              📋 Ver Detalhamento Completo (62 despesas CMV com links)
+            </summary>
+            <div style="margin-top: 12px; overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: white; font-size: 0.875rem;">
+                <thead style="background: #ECFDF5;">
+                  <tr>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #06B6D4;">Despesa CMV</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #06B6D4;">Valor</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #06B6D4;">Nota Fiscal Linkada</th>
+                    <th style="padding: 12px; text-align: right; font-weight: 600; border-bottom: 2px solid #06B6D4;">Valor NF</th>
+                    <th style="padding: 12px; text-align: center; font-weight: 600; border-bottom: 2px solid #06B6D4;">Status</th>
+                    <th style="padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #06B6D4;">Tipo Match</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(linha, idx) in cruzamentoCMV.detalhamento" :key="idx"
+                      :style="linha.match === '✅ Encontrada' ? 'background: #F0FDF4; border-bottom: 1px solid var(--border);' : 'background: #FEF2F2; border-bottom: 1px solid var(--border);'">
+                    <td style="padding: 12px; font-weight: 500;">
+                      <div>{{ linha.despesa_cmv.fornecedor || 'N/A' }}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-secondary);">{{ linha.despesa_cmv.numero_nf || 'Manual' }}</div>
+                    </td>
+                    <td style="padding: 12px; text-align: right; font-weight: 500;">
+                      R$ {{ parseFloat(linha.despesa_cmv.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                    </td>
+                    <td style="padding: 12px;">
+                      <div v-if="linha.nota_fiscal" style="font-weight: 500;">{{ linha.nota_fiscal.fornecedor }}</div>
+                      <div v-if="linha.nota_fiscal" style="font-size: 0.75rem; color: var(--text-secondary);">NF {{ linha.nota_fiscal.numero_nf }}</div>
+                      <div v-else style="color: var(--text-secondary); font-style: italic;">Não encontrada</div>
+                    </td>
+                    <td style="padding: 12px; text-align: right;">
+                      <div v-if="linha.nota_fiscal">
+                        R$ {{ parseFloat(linha.nota_fiscal.valor).toLocaleString('pt-BR', {minimumFractionDigits: 2}) }}
+                      </div>
+                      <div v-else style="color: var(--text-secondary);">-</div>
+                    </td>
+                    <td style="padding: 12px; text-align: center;">
+                      <span :style="linha.match === '✅ Encontrada' ? 'background: #DCFCE7; color: #15803D;' : 'background: #FEE2E2; color: #991B1B;'"
+                            style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                        {{ linha.match }}
+                      </span>
+                    </td>
+                    <td style="padding: 12px; font-size: 0.75rem; color: var(--text-secondary);">
+                      {{ linha.tipo_match }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+
+          <!-- INSIGHTS -->
+          <div style="margin-top: 24px; padding: 16px; background: white; border-radius: 8px; border: 1px solid #CCFBF1;">
+            <div style="font-weight: 600; color: #0D9488; margin-bottom: 8px;">💡 O que Isso Significa:</div>
+            <ul style="margin: 0; padding-left: 20px; font-size: 0.875rem; color: var(--text-secondary);">
+              <li><strong>Com Match ({{ cruzamentoCMV.resumo.com_match }}):</strong> Despesas foram linkadas com suas notas fiscais originais ✅</li>
+              <li><strong>Sem Match ({{ cruzamentoCMV.resumo.sem_match }}):</strong> Despesas não encontraram match - provavelmente lançamentos manuais ⚠️</li>
+              <li><strong>Percentual:</strong> {{ cruzamentoCMV.resumo.percentual_com_match }} de correspondência entre despesas e notas</li>
+            </ul>
+          </div>
         </div>
 
         <!-- Gráfico Mensal - INLINE -->
@@ -2076,6 +2222,9 @@
           // Cruzamento de notas vs faturamentos
           cruzamentoNotas: null,
           mostraCruzamento: false,
+          // Cruzamento CMV detalhado
+          cruzamentoCMV: null,
+          mostraCruzamentoCMV: false,
           outraCategoria: '',
           receitas: [],
           novaReceita: {
@@ -2892,6 +3041,21 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             }
           } catch (error) {
             console.error('❌ Erro ao carregar cruzamento:', error);
+          }
+        },
+
+        async carregarCruzamentoCMVDetalhado() {
+          try {
+            console.log('🔗 Carregando cruzamento CMV detalhado...');
+            const response = await api.obterCruzamentoCMVDetalhado();
+
+            if (response.data.success) {
+              this.cruzamentoCMV = response.data.data;
+              this.mostraCruzamentoCMV = true;
+              console.log('✅ Cruzamento CMV carregado:', this.cruzamentoCMV);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar cruzamento CMV:', error);
           }
         },
 

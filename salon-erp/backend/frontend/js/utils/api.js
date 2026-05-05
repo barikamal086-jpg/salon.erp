@@ -94,6 +94,11 @@ const api = {
     return axios.get(`${API_BASE}/faturamentos/cruzamento-notas-faturamentos`);
   },
 
+  // GET /api/faturamentos/cruzamento-cmv-detalhado - Link despesas CMV com notas fiscais
+  obterCruzamentoCMVDetalhado() {
+    return axios.get(`${API_BASE}/faturamentos/cruzamento-cmv-detalhado`);
+  },
+
   // ==================== NOTAS FISCAIS ====================
 
   // GET /api/notas-fiscais - Listar notas fiscais

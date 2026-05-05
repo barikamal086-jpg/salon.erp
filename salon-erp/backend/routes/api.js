@@ -889,6 +889,161 @@ router.get('/faturamentos/cruzamento-notas-faturamentos', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/cruzamento-cmv-detalhado
+// Faz match entre despesas CMV e notas fiscais originais
+router.get('/faturamentos/cruzamento-cmv-detalhado', async (req, res) => {
+  try {
+    console.log(`🔗 [Cruzamento CMV] Buscando todas as despesas CMV e suas notas...`);
+
+    // 1. Get ALL despesas CMV (62)
+    const despesasCMV = await allAsync(`
+      SELECT id, numero_nf, fornecedor, total, categoria, tipo, nota_fiscal_id, data, tipo_despesa_id
+      FROM faturamento
+      WHERE tipo = 'despesa'
+        AND categoria = 'Salão'
+      ORDER BY data DESC
+    `, []);
+
+    console.log(`💰 Total despesas CMV encontradas: ${despesasCMV.length}`);
+
+    // 2. Get ALL notas fiscais (87)
+    const todasNotas = await allAsync(`
+      SELECT id, numero_nf, fornecedor, valor, status, data_criacao
+      FROM notas_fiscais
+      ORDER BY data_criacao DESC
+    `, []);
+
+    console.log(`📄 Total notas fiscais: ${todasNotas.length}`);
+
+    // 3. Build mapping: numero_nf → nota, fornecedor → nota
+    const notasPorNumero = {};
+    const notasPorFornecedor = {};
+
+    todasNotas.forEach(nota => {
+      if (nota.numero_nf) {
+        notasPorNumero[nota.numero_nf] = nota;
+      }
+      if (nota.fornecedor) {
+        if (!notasPorFornecedor[nota.fornecedor.toLowerCase()]) {
+          notasPorFornecedor[nota.fornecedor.toLowerCase()] = [];
+        }
+        notasPorFornecedor[nota.fornecedor.toLowerCase()].push(nota);
+      }
+    });
+
+    // 4. Match each despesa CMV with its original nota
+    const detalhamento = despesasCMV.map(despesa => {
+      let notaMatchada = null;
+      let tipoMatch = 'nao_encontrada';
+
+      // Try 1: Match by nota_fiscal_id
+      if (despesa.nota_fiscal_id) {
+        const notaPorId = todasNotas.find(n => n.id === despesa.nota_fiscal_id);
+        if (notaPorId) {
+          notaMatchada = notaPorId;
+          tipoMatch = 'por_id';
+        }
+      }
+
+      // Try 2: Match by numero_nf
+      if (!notaMatchada && despesa.numero_nf) {
+        notaMatchada = notasPorNumero[despesa.numero_nf];
+        if (notaMatchada) tipoMatch = 'por_numero_nf';
+      }
+
+      // Try 3: Match by fornecedor + valor similar (±5%)
+      if (!notaMatchada && despesa.fornecedor) {
+        const notasDoFornecedor = notasPorFornecedor[despesa.fornecedor.toLowerCase()] || [];
+        const valorDespesa = parseFloat(despesa.total || 0);
+        const notaProxima = notasDoFornecedor.find(n => {
+          const valorNota = parseFloat(n.valor || 0);
+          const diferenca = Math.abs(valorDespesa - valorNota);
+          const percentual = (diferenca / valorDespesa) * 100;
+          return percentual <= 5; // Até 5% de diferença
+        });
+        if (notaProxima) {
+          notaMatchada = notaProxima;
+          tipoMatch = 'por_fornecedor_valor';
+        }
+      }
+
+      // Try 4: Match by fornecedor only (fuzzy)
+      if (!notaMatchada && despesa.fornecedor) {
+        const notasDoFornecedor = notasPorFornecedor[despesa.fornecedor.toLowerCase()] || [];
+        if (notasDoFornecedor.length > 0) {
+          notaMatchada = notasDoFornecedor[0];
+          tipoMatch = 'por_fornecedor_fuzzy';
+        }
+      }
+
+      return {
+        despesa_cmv: {
+          id: despesa.id,
+          numero_nf: despesa.numero_nf,
+          fornecedor: despesa.fornecedor,
+          valor: parseFloat(despesa.total || 0),
+          data: despesa.data,
+          categoria: despesa.categoria
+        },
+        nota_fiscal: notaMatchada ? {
+          id: notaMatchada.id,
+          numero_nf: notaMatchada.numero_nf,
+          fornecedor: notaMatchada.fornecedor,
+          valor: parseFloat(notaMatchada.valor || 0),
+          status: notaMatchada.status,
+          data_criacao: notaMatchada.data_criacao
+        } : null,
+        match: notaMatchada ? '✅ Encontrada' : '❌ Não encontrada',
+        tipo_match: tipoMatch
+      };
+    });
+
+    // 5. Calculate statistics
+    const comMatch = detalhamento.filter(d => d.nota_fiscal !== null).length;
+    const semMatch = detalhamento.filter(d => d.nota_fiscal === null).length;
+
+    console.log(`✅ Resumo: ${comMatch} despesas com match, ${semMatch} sem match`);
+
+    // 6. Group by match type
+    const matchPorTipo = {};
+    detalhamento.forEach(d => {
+      if (!matchPorTipo[d.tipo_match]) {
+        matchPorTipo[d.tipo_match] = 0;
+      }
+      matchPorTipo[d.tipo_match]++;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        resumo: {
+          total_notas: todasNotas.length,
+          total_despesas_cmv: despesasCMV.length,
+          com_match: comMatch,
+          sem_match: semMatch,
+          percentual_com_match: ((comMatch / despesasCMV.length) * 100).toFixed(1) + '%'
+        },
+        match_por_tipo: matchPorTipo,
+        detalhamento: detalhamento,
+        dicas: {
+          com_match: 'Despesas CMV foram encontradas e linkadas com suas notas fiscais',
+          sem_match: 'Despesas CMV que não foram encontradas - podem ser lançamentos manuais sem nota',
+          por_id: 'Match exato por ID da nota',
+          por_numero_nf: 'Match por número NF idêntico',
+          por_fornecedor_valor: 'Match por fornecedor + valor similar (±5%)',
+          por_fornecedor_fuzzy: 'Match por fornecedor (fuzzy match)'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao gerar cruzamento CMV:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {
