@@ -99,6 +99,15 @@ const api = {
     return axios.get(`${API_BASE}/faturamentos/cruzamento-cmv-detalhado`);
   },
 
+  // GET /api/faturamentos/auditoria-cmv-totais - Total CMV: todas vs apenas período
+  obterAuditoriaCMVTotais(from, to) {
+    let url = `${API_BASE}/faturamentos/auditoria-cmv-totais`;
+    if (from && to) {
+      url += `?from=${from}&to=${to}`;
+    }
+    return axios.get(url);
+  },
+
   // ==================== NOTAS FISCAIS ====================
 
   // GET /api/notas-fiscais - Listar notas fiscais

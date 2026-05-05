@@ -1044,6 +1044,123 @@ router.get('/faturamentos/cruzamento-cmv-detalhado', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/auditoria-cmv-totais
+// Analisa total de notas CMV: todas vs apenas as do período
+router.get('/faturamentos/auditoria-cmv-totais', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    console.log(`📊 [Auditoria CMV Totais] Analisando todas as notas CMV...`);
+
+    // 1. Get ALL notes marked as CMV (82)
+    const todasNotasCMV = await allAsync(`
+      SELECT id, numero_nf, fornecedor, valor, status, data_criacao, descricao
+      FROM notas_fiscais
+      ORDER BY data_criacao DESC
+    `, []);
+
+    console.log(`📄 Total de notas no sistema: ${todasNotasCMV.length}`);
+
+    // 2. Get faturamentos to identify which are CMV
+    const todosFaturamentos = await allAsync(`
+      SELECT id, nota_fiscal_id, numero_nf, fornecedor, total, tipo, categoria
+      FROM faturamento
+      WHERE tipo = 'despesa'
+        AND categoria = 'Salão'
+      ORDER BY data DESC
+    `, []);
+
+    console.log(`💰 Total faturamentos CMV: ${todosFaturamentos.length}`);
+
+    // 3. Build set of CMV nota IDs
+    const notasCMVIds = new Set();
+    todosFaturamentos.forEach(f => {
+      if (f.nota_fiscal_id) {
+        notasCMVIds.add(f.nota_fiscal_id);
+      }
+    });
+
+    // 4. Filter CMV notes
+    const notasCMV = todasNotasCMV.filter(n => notasCMVIds.has(n.id));
+    console.log(`🎯 Notas identificadas como CMV: ${notasCMV.length}`);
+
+    // 5. Separate CMV notes: in period vs out of period
+    const dataFrom = from ? new Date(from) : null;
+    const dataTo = to ? new Date(to) : null;
+
+    const cmvNoPeriodo = [];
+    const cmvForaPeriodo = [];
+
+    notasCMV.forEach(nota => {
+      const dataNota = new Date(nota.data_criacao);
+
+      if (from && to) {
+        if (dataNota >= dataFrom && dataNota <= dataTo) {
+          cmvNoPeriodo.push(nota);
+        } else {
+          cmvForaPeriodo.push({
+            ...nota,
+            motivo_exclusao: dataNota < dataFrom
+              ? `Data anterior ao período (${nota.data_criacao?.split('T')[0]} < ${from})`
+              : `Data posterior ao período (${nota.data_criacao?.split('T')[0]} > ${to})`
+          });
+        }
+      } else {
+        cmvNoPeriodo.push(nota);
+      }
+    });
+
+    console.log(`✅ CMV no período: ${cmvNoPeriodo.length}`);
+    console.log(`⚠️  CMV fora do período: ${cmvForaPeriodo.length}`);
+
+    // 6. Group fora-período by month
+    const cmvPorMes = {};
+    cmvForaPeriodo.forEach(nota => {
+      const mes = nota.data_criacao.substring(0, 7); // YYYY-MM
+      if (!cmvPorMes[mes]) {
+        cmvPorMes[mes] = [];
+      }
+      cmvPorMes[mes].push(nota);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        resumo: {
+          total_notas_sistema: todasNotasCMV.length,
+          total_notas_cmv: notasCMV.length,
+          cmv_no_periodo: cmvNoPeriodo.length,
+          cmv_fora_periodo: cmvForaPeriodo.length,
+          periodo: { from, to }
+        },
+        cmv_por_mes_fora_periodo: cmvPorMes,
+        notas_cmv_fora_periodo: cmvForaPeriodo.map(n => ({
+          id: n.id,
+          numero_nf: n.numero_nf,
+          fornecedor: n.fornecedor,
+          valor: parseFloat(n.valor || 0),
+          status: n.status,
+          data_criacao: n.data_criacao,
+          motivo_exclusao: n.motivo_exclusao
+        })),
+        insights: {
+          faltando: `${cmvForaPeriodo.length} notas CMV estão fora do período`,
+          distribuicao_por_mes: Object.keys(cmvPorMes).map(mes => `${mes}: ${cmvPorMes[mes].length} nota(s)`),
+          sugestao: cmvForaPeriodo.length > 0
+            ? `Se precisar incluir essas notas, ajuste o período para ${Object.keys(cmvPorMes)[0]} até ${Object.keys(cmvPorMes)[Object.keys(cmvPorMes).length - 1]}`
+            : 'Todas as notas CMV estão no período ✅'
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erro ao gerar auditoria CMV totais:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/cmv/total - Obter total de CMV
 router.get('/faturamentos/cmv/total', async (req, res) => {
   try {
