@@ -135,10 +135,17 @@ class Faturamento {
     }
     console.log(`   ✓ Registro encontrado depois:`, { id: registroDepois.id, data: registroDepois.data, total: registroDepois.total, categoria: registroDepois.categoria });
 
-    if (registroDepois.data !== data || parseFloat(registroDepois.total) !== parseFloat(total)) {
+    // Extrair apenas a data (sem hora) para comparação
+    const dataDepois = registroDepois.data ? registroDepois.data.toString().substring(0, 10) : null;
+    const dataEsperada = data.substring(0, 10);
+    const totalDepois = parseFloat(registroDepois.total);
+    const totalEsperado = parseFloat(total);
+
+    // Validar se os dados foram atualizados (com tolerância de arredondamento para total)
+    if (dataDepois !== dataEsperada || Math.abs(totalDepois - totalEsperado) > 0.01) {
       console.error(`   ❌ ERRO: UPDATE NÃO FUNCIONOU!`);
-      console.error(`      Esperado: data=${data}, total=${parseFloat(total)}`);
-      console.error(`      Obtido: data=${registroDepois.data}, total=${registroDepois.total}`);
+      console.error(`      Esperado: data=${dataEsperada}, total=${totalEsperado}`);
+      console.error(`      Obtido: data=${dataDepois}, total=${totalDepois}`);
       throw new Error('UPDATE falhou: dados não foram atualizados no banco');
     }
 
