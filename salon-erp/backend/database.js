@@ -313,10 +313,26 @@ async function insertDefaultTiposDespesa() {
 async function runAsync(sql, params = []) {
   try {
     const convertedSql = convertPlaceholders(sql);
+
+    // 🔍 DEBUG: Log SQL e parameters para UPDATE/DELETE statements
+    if (sql.toUpperCase().includes('UPDATE') || sql.toUpperCase().includes('DELETE')) {
+      console.log(`🔍 [runAsync DEBUG] SQL CONVERTIDO:`, convertedSql);
+      console.log(`🔍 [runAsync DEBUG] PARAMS:`, params);
+      console.log(`🔍 [runAsync DEBUG] PARAM TYPES:`, params.map(p => typeof p + ':' + (p === null ? 'NULL' : p)));
+    }
+
     const result = await pool.query(convertedSql, params);
+
+    // 🔍 DEBUG: Log result for UPDATE/DELETE
+    if (sql.toUpperCase().includes('UPDATE') || sql.toUpperCase().includes('DELETE')) {
+      console.log(`🔍 [runAsync RESULT] rowCount: ${result.rowCount}, rows: ${result.rows.length}`);
+    }
+
     return { id: result.rows[0]?.id, changes: result.rowCount };
   } catch (err) {
     console.error('❌ Erro em runAsync:', err.message);
+    console.error('❌ SQL que causou erro:', sql);
+    console.error('❌ Params:', params);
     throw err;
   }
 }
@@ -324,7 +340,21 @@ async function runAsync(sql, params = []) {
 async function getAsync(sql, params = []) {
   try {
     const convertedSql = convertPlaceholders(sql);
+
+    // 🔍 DEBUG: Log SELECT queries that are part of UPDATE verify
+    if (sql.includes('faturamento WHERE id') && (sql.includes('SELECT') || !sql.toUpperCase().includes('UPDATE'))) {
+      console.log(`🔍 [getAsync DEBUG] SQL:`, convertedSql);
+      console.log(`🔍 [getAsync DEBUG] PARAMS:`, params);
+    }
+
     const result = await pool.query(convertedSql, params);
+
+    if (sql.includes('faturamento WHERE id')) {
+      console.log(`🔍 [getAsync RESULT] Encontrado:`, result.rows[0] ?
+        `ID=${result.rows[0].id}, data=${result.rows[0].data}, total=${result.rows[0].total}, categoria=${result.rows[0].categoria}, tipo=${result.rows[0].tipo}, tipo_despesa_id=${result.rows[0].tipo_despesa_id}` :
+        'NULL');
+    }
+
     return result.rows[0];
   } catch (err) {
     console.error('❌ Erro em getAsync:', err.message);

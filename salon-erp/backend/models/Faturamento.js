@@ -116,7 +116,7 @@ class Faturamento {
     if (!registroAntes) {
       throw new Error(`Faturamento ID ${idInt} não existe no banco de dados!`);
     }
-    console.log(`   ✓ Registro encontrado antes:`, { id: registroAntes.id, data: registroAntes.data, total: registroAntes.total, categoria: registroAntes.categoria });
+    console.log(`   ✓ Registro encontrado antes:`, { id: registroAntes.id, data: registroAntes.data, total: registroAntes.total, categoria: registroAntes.categoria, tipo: registroAntes.tipo, tipo_despesa_id: registroAntes.tipo_despesa_id });
 
     // Se tipo_despesa_id foi informado, validar se existe
     if (tipoDespesaIdInt) {
@@ -132,24 +132,33 @@ class Faturamento {
       WHERE id = ?
     `;
 
-    console.log(`   Executando SQL:`, sql.replace(/\n/g, ' '));
+    console.log(`   📋 Executando UPDATE com os seguintes valores:`);
+    console.log(`      - data: "${data}" (type: ${typeof data})`);
+    console.log(`      - total: ${totalNormalizado} (type: ${typeof totalNormalizado})`);
+    console.log(`      - categoria: "${categoria}" (type: ${typeof categoria})`);
+    console.log(`      - tipo: "${tipoNormalizado}" (type: ${typeof tipoNormalizado})`);
+    console.log(`      - tipo_despesa_id: ${tipoDespesaIdInt} (type: ${typeof tipoDespesaIdInt})`);
+    console.log(`      - WHERE id = ${idInt}`);
+
     const result = await runAsync(sql, [data, totalNormalizado, categoria, tipoNormalizado, tipoDespesaIdInt, idInt]);
     console.log(`   ✓ runAsync retornou:`, result);
 
     // VERIFICAR que o UPDATE foi executado (conferir pelo menos o updated_at)
+    console.log(`   🔍 Lendo registro após UPDATE para verificação...`);
     const registroDepois = await getAsync('SELECT * FROM faturamento WHERE id = ?', [idInt]);
     if (!registroDepois) {
       throw new Error(`ERRO CRÍTICO: Faturamento ID ${idInt} desapareceu após UPDATE!`);
     }
-    console.log(`   ✓ Registro atualizado com sucesso! Nova versão:`, {
-      id: registroDepois.id,
-      data: registroDepois.data,
-      total: registroDepois.total,
-      categoria: registroDepois.categoria,
-      tipo: registroDepois.tipo,
-      tipo_despesa_id: registroDepois.tipo_despesa_id,
-      updated_at: registroDepois.updated_at
-    });
+
+    // 🔍 COMPARAR VALORES ANTES vs DEPOIS
+    console.log(`\n   📊 COMPARAÇÃO ANTES vs DEPOIS:`);
+    console.log(`      Data:         "${registroAntes.data}" → "${registroDepois.data}" ${registroAntes.data === registroDepois.data ? '❌ SEM MUDANÇA' : '✅ MUDOU'}`);
+    console.log(`      Total:        ${registroAntes.total} → ${registroDepois.total} ${registroAntes.total === registroDepois.total ? '❌ SEM MUDANÇA' : '✅ MUDOU'}`);
+    console.log(`      Categoria:    "${registroAntes.categoria}" → "${registroDepois.categoria}" ${registroAntes.categoria === registroDepois.categoria ? '❌ SEM MUDANÇA' : '✅ MUDOU'}`);
+    console.log(`      Tipo:         "${registroAntes.tipo}" → "${registroDepois.tipo}" ${registroAntes.tipo === registroDepois.tipo ? '❌ SEM MUDANÇA' : '✅ MUDOU'}`);
+    console.log(`      Tipo Despesa: ${registroAntes.tipo_despesa_id} → ${registroDepois.tipo_despesa_id} ${registroAntes.tipo_despesa_id === registroDepois.tipo_despesa_id ? '❌ SEM MUDANÇA' : '✅ MUDOU'}`);
+    console.log(`      Updated At:   ${registroAntes.updated_at} → ${registroDepois.updated_at}`);
+    console.log();
 
     // ✅ Se chegou aqui, o UPDATE foi bem-sucedido
     console.log(`✅ ATUALIZAÇÃO CONCLUÍDA COM SUCESSO`);
