@@ -3041,21 +3041,21 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             if (response.data.success) {
               console.log(`📊 [carregarReceitas] Recebido ${response.data.data.length} registros do banco`);
 
-              // Limpar array antes de filtrar (importante para DELETE!)
+              // Limpar array antes de atualizar (importante para DELETE!)
               this.receitas = [];
               console.log('🧹 [carregarReceitas] Array limpdo');
 
-              console.log('📋 [carregarReceitas] Filtrando receitas por período:', this.periodo.dataInicio, '-', this.periodo.dataFim);
-              const filtradas = response.data.data.filter(r => {
-                const ok = r.data >= this.periodo.dataInicio && r.data <= this.periodo.dataFim;
-                if (!ok) {
-                  console.log(`   ⊗ Fora do período: ${r.data}`);
-                }
-                return ok;
-              }).sort((a, b) => new Date(b.data) - new Date(a.data));
+              // ✅ IMPORTANTE: NÃO FILTRAR POR PERÍODO DO DASHBOARD AQUI!
+              // Os dados devem ser filtrados no frontend pelos computed properties (receitasFiltradas)
+              // que usam:
+              // - Dashboard: this.periodo.dataInicio/dataFim
+              // - Histórico: this.filtroHistorico.dataInicio/dataFim e this.filtroHistorico.categoria
+              const sortidas = response.data.data.sort((a, b) => new Date(b.data) - new Date(a.data));
 
-              this.receitas = filtradas;
-              console.log(`✅ [carregarReceitas] Receitas filtradas: ${this.receitas.length}`);
+              this.receitas = sortidas;
+              console.log(`✅ [carregarReceitas] Receitas carregadas (SEM filtro): ${this.receitas.length}`);
+              console.log(`   Dashboard vai filtrar pelo período: ${this.periodo.dataInicio} a ${this.periodo.dataFim}`);
+              console.log(`   Histórico pode filtrar livremente pelo seu período: ${this.filtroHistorico.dataInicio} a ${this.filtroHistorico.dataFim}`);
 
               // Verificar duplicatas
               const ids = this.receitas.map(r => r.id);
