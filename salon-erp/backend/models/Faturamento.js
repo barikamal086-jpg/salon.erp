@@ -97,10 +97,11 @@ class Faturamento {
     }
 
     const idInt = parseInt(id);
+    const tipoDespesaIdInt = tipoDespesaId ? parseInt(tipoDespesaId) : null;
 
     console.log(`🔄 [Faturamento.atualizarCompleto] INICIANDO UPDATE`);
     console.log(`   ID: ${idInt} (tipo: ${typeof idInt})`);
-    console.log(`   Dados: data=${data}, total=${parseFloat(total)}, categoria=${categoria}, tipo=${tipoNormalizado}, tipo_despesa_id=${tipoDespesaId}`);
+    console.log(`   Dados: data=${data}, total=${parseFloat(total)}, categoria=${categoria}, tipo=${tipoNormalizado}, tipo_despesa_id=${tipoDespesaIdInt}`);
 
     // VERIFICAR que o registro EXISTS antes de atualizar
     const registroAntes = await getAsync('SELECT * FROM faturamento WHERE id = ?', [idInt]);
@@ -109,6 +110,14 @@ class Faturamento {
     }
     console.log(`   ✓ Registro encontrado antes:`, { id: registroAntes.id, data: registroAntes.data, total: registroAntes.total, categoria: registroAntes.categoria });
 
+    // Se tipo_despesa_id foi informado, validar se existe
+    if (tipoDespesaIdInt) {
+      const tipoDespesaExiste = await getAsync('SELECT id FROM tipo_despesa WHERE id = ?', [tipoDespesaIdInt]);
+      if (!tipoDespesaExiste) {
+        console.warn(`⚠️ tipo_despesa_id ${tipoDespesaIdInt} não existe. Será inserido NULL.`);
+      }
+    }
+
     const sql = `
       UPDATE faturamento
       SET data = ?, total = ?, categoria = ?, tipo = ?, tipo_despesa_id = ?, updated_at = NOW()
@@ -116,7 +125,7 @@ class Faturamento {
     `;
 
     console.log(`   Executando SQL:`, sql.replace(/\n/g, ' '));
-    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipoNormalizado, tipoDespesaId, idInt]);
+    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipoNormalizado, tipoDespesaIdInt, idInt]);
     console.log(`   ✓ runAsync retornou:`, result);
 
     // VERIFICAR que o registro foi atualizado

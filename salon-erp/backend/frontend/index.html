@@ -3298,12 +3298,19 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               return;
             }
 
+            // Converter tipoDespesaId para número se for string
+            const tipoDespesaId = this.receitaEmEdicao.tipoDespesaId
+              ? parseInt(this.receitaEmEdicao.tipoDespesaId)
+              : null;
+
             console.log('💾 Salvando edição:', {
               id: this.receitaEmEdicao.id,
               data: this.receitaEmEdicao.data,
               total: this.receitaEmEdicao.total,
               categoria: this.receitaEmEdicao.categoria,
-              tipo: this.receitaEmEdicao.tipo
+              tipo: this.receitaEmEdicao.tipo,
+              tipoDespesaId: tipoDespesaId,
+              tipoDespesaId_tipo: typeof tipoDespesaId
             });
 
             await api.atualizarFaturamento(
@@ -3312,7 +3319,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               parseFloat(this.receitaEmEdicao.total),
               this.receitaEmEdicao.categoria,
               this.receitaEmEdicao.tipo,
-              this.receitaEmEdicao.tipoDespesaId  // Enviar tipo_despesa_id
+              tipoDespesaId  // Enviar tipo_despesa_id como número
             );
 
             this.mostrarModalEdicao = false;
@@ -3321,7 +3328,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             alert('✅ Lançamento atualizado com sucesso!');
           } catch (error) {
             console.error('❌ Erro ao atualizar:', error);
-            alert('❌ Erro ao atualizar: ' + error.message);
+            console.error('📋 Detalhes:', error.response?.data);
+            alert('❌ Erro ao atualizar: ' + (error.response?.data?.error || error.message));
           }
         },
 
