@@ -3927,5 +3927,70 @@ router.post('/notas-fiscais/aplicar-regras', async (req, res) => {
   }
 });
 
+// ==================== TAXAS DE PLATAFORMA ====================
+
+// GET /api/faturamentos/taxas-plataforma - Obter taxas de plataforma (iFood, Keeta, 99Food)
+// Parâmetros: from=YYYY-MM-DD, to=YYYY-MM-DD, restaurante_id=1 (opcional)
+router.get('/faturamentos/taxas-plataforma', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { from, to, restaurante_id = 1 } = req.query;
+
+    // Validar parâmetros
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    console.log(`📊 [Taxas Plataforma] Período: ${from} a ${to}, Restaurante: ${restaurante_id}`);
+
+    // Query: Get all taxes grouped by platform for period
+    const query = `
+      SELECT
+        plataforma,
+        SUM(taxa_valor) as total_taxa,
+        COUNT(*) as quantidade_registros,
+        AVG(percentual_taxa) as percentual_medio
+      FROM taxas_plataforma
+      WHERE restaurante_id = $1
+        AND data BETWEEN $2 AND $3
+      GROUP BY plataforma
+      ORDER BY plataforma
+    `;
+
+    const result = await client.query(query, [restaurante_id, from, to]);
+
+    // Calculate total taxes
+    const totalTaxas = result.rows.reduce((sum, row) => sum + parseFloat(row.total_taxa || 0), 0);
+
+    // Return structured response
+    res.json({
+      success: true,
+      periodo: { from, to },
+      restaurante_id: parseInt(restaurante_id),
+      taxas: result.rows.map(row => ({
+        plataforma: row.plataforma,
+        total_taxa: parseFloat(row.total_taxa || 0),
+        quantidade_registros: parseInt(row.quantidade_registros || 0),
+        percentual_medio: parseFloat(row.percentual_medio || 0)
+      })),
+      total_taxas_periodo: totalTaxas
+    });
+
+    console.log(`✅ Taxas carregadas: ${result.rows.length} plataformas, Total: R$ ${totalTaxas.toFixed(2)}`);
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar taxas:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
 // ==================== EXPORT ====================
 module.exports = router;

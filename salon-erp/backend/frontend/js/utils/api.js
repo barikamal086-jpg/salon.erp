@@ -234,6 +234,15 @@ const api = {
       url += `?from=${from}&to=${to}`;
     }
     return axios.get(url);
+  },
+
+  // 💰 GET /api/faturamentos/taxas-plataforma - Obter taxas de plataforma
+  obterTaxasPlataforma(from, to, restaurante_id = 1) {
+    let url = `${API_BASE}/faturamentos/taxas-plataforma?restaurante_id=${restaurante_id}`;
+    if (from && to) {
+      url += `&from=${from}&to=${to}`;
+    }
+    return axios.get(url);
   }
 };
 

@@ -302,31 +302,53 @@
                 {{ cat.categoria }}
               </div>
               <div style="space-y: 8px;">
+                <!-- Receita -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                   <span style="font-size: 0.85rem; color: var(--success);">💰 Receita:</span>
                   <span style="font-size: 0.9rem; font-weight: 600; color: var(--success);">R$ {{ formatarValor(cat.totalReceita) }}</span>
                 </div>
-                <!-- Para iFood, Keeta, 99Food: mostrar Taxas e Despesas Alocadas -->
-                <template v-if="cat.categoria !== 'Salão' && (cat.totalTaxas > 0 || cat.totalDespesasAlocadas > 0)">
+
+                <!-- Para iFood, Keeta, 99Food: mostrar Taxas -->
+                <template v-if="cat.categoria !== 'Salão'">
+                  <!-- Taxa Plataforma (iFood, Keeta, 99Food) -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem;">
-                    <span style="color: var(--error);">🏷️ Taxas:</span>
-                    <span style="font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalTaxas) }}</span>
+                    <span style="color: #F59E0B;">🏷️ Taxa:</span>
+                    <span style="font-weight: 600; color: #F59E0B;">R$ {{ formatarValor(cat.totalTaxas || 0) }}</span>
                   </div>
+
+                  <!-- % Taxa -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem;">
+                    <span style="color: #8B5CF6;">%:</span>
+                    <span style="font-weight: 600; color: #8B5CF6;">{{ cat.percentualTaxas || '0.00' }}%</span>
+                  </div>
+
+                  <!-- Despesas Alocadas -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.8rem;">
-                    <span style="color: var(--error);">📊 Despesas:</span>
-                    <span style="font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesasAlocadas) }}</span>
+                    <span style="color: var(--error);">📊 Desp.:</span>
+                    <span style="font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesasAlocadas || 0) }}</span>
                   </div>
                 </template>
+
                 <!-- Para Salão: mostrar apenas Despesa Total -->
                 <template v-else>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.85rem; color: var(--error);">💸 Despesa:</span>
+                    <span style="font-size: 0.85rem; color: var(--error);">💸 Desp.:</span>
                     <span style="font-size: 0.9rem; font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesa) }}</span>
                   </div>
                 </template>
+
+                <!-- Líquido = Receita - Taxa - Despesa -->
                 <div style="border-top: 1px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">📈 Líquido:</span>
-                  <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">R$ {{ formatarValor(cat.totalLiquido) }}</span>
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">💚 Líquido:</span>
+                  <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">
+                    R$ {{
+                      formatarValor(
+                        (parseFloat(cat.totalReceita) || 0) -
+                        (parseFloat(cat.totalTaxas) || 0) -
+                        (cat.categoria !== 'Salão' ? parseFloat(cat.totalDespesasAlocadas) || 0 : parseFloat(cat.totalDespesa) || 0)
+                      )
+                    }}
+                  </span>
                 </div>
               </div>
               <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
@@ -2671,6 +2693,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           });
           await this.carregarStats();
           await this.carregarStatsPorCategoria();
+          await this.carregarTaxasPlataforma();
           // Gráfico agora é independente - não sincroniza ao alterar período!
           await this.carregarReceitas();
           console.log('✅ ====== PERÍODO ATUALIZADO ======\n');
@@ -2746,6 +2769,51 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           }
           console.log('🔍 Categorias filtradas:', this.categoriasFiltradas);
           this.$forceUpdate();
+        },
+
+        async carregarTaxasPlataforma() {
+          try {
+            console.log('💰 Carregando taxas de plataforma:', {
+              dataInicio: this.periodo.dataInicio,
+              dataFim: this.periodo.dataFim
+            });
+
+            const response = await api.obterTaxasPlataforma(
+              this.periodo.dataInicio,
+              this.periodo.dataFim,
+              1  // restaurante_id = 1 (KAIA)
+            );
+
+            if (response.data.success) {
+              // Transform array into object keyed by plataforma
+              const taxasObj = {};
+              response.data.taxas.forEach(taxa => {
+                taxasObj[taxa.plataforma] = taxa;
+              });
+
+              console.log('✅ Taxas carregadas:', taxasObj);
+
+              // Mesclar dados de taxas com statsPorCategoria
+              this.statsPorCategoria = this.statsPorCategoria.map(stat => {
+                const taxa = taxasObj[stat.categoria];
+                if (taxa && (stat.categoria === 'iFood' || stat.categoria === 'Keeta' || stat.categoria === '99Food')) {
+                  return {
+                    ...stat,
+                    totalTaxas: taxa.total_taxa || 0,
+                    percentualTaxas: stat.totalReceita > 0
+                      ? ((taxa.total_taxa || 0) / parseFloat(stat.totalReceita) * 100).toFixed(2)
+                      : '0.00'
+                  };
+                }
+                return stat;
+              });
+
+              console.log('✅ Stats com taxas:', this.statsPorCategoria);
+              this.atualizarFiltroCategoria();
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar taxas:', error);
+          }
         },
 
         async carregarAuditoriaAlocacao() {

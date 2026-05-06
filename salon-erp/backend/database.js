@@ -180,6 +180,35 @@ async function initializeDatabase() {
       ON regras_categoria_fornecedor(LOWER(fornecedor_nome))
     `);
 
+    // 7. Criar tabela taxas_plataforma (PHASE 1: Platform Taxes)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS taxas_plataforma (
+        id SERIAL PRIMARY KEY,
+        restaurante_id INTEGER NOT NULL DEFAULT 1,
+        plataforma VARCHAR(50) NOT NULL,
+        data DATE NOT NULL,
+        taxa_valor DECIMAL(10, 2) NOT NULL,
+        receita_referencia DECIMAL(10, 2),
+        percentual_taxa DECIMAL(5, 2),
+        descricao TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('✅ Tabela taxas_plataforma criada/verificada');
+
+    // Criar índice para filtragem rápida por restaurante e data
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_taxas_restaurante_data
+      ON taxas_plataforma(restaurante_id, data DESC)
+    `);
+
+    // Criar índice por plataforma para analytics
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_taxas_plataforma
+      ON taxas_plataforma(plataforma)
+    `);
+
     // 6. Inserir dados padrão
     await insertDefaultRestaurantes();
     await insertDefaultTiposDespesa();
