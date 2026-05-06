@@ -2,13 +2,19 @@
  * Parser de números em formato brasileiro
  * Converte formatos como "36.315,20" para 36315.20
  *
- * Aceita:
- * - "36.315,20" → 36315.20
- * - "36315,20"  → 36315.20
- * - "36.315"    → 36315 (sem decimais)
- * - "36315"     → 36315
- * - "36,20"     → 36.20
- * - 36315.20    → 36315.20 (já é número)
+ * Regra SIMPLES:
+ * 1. Se tem ponto E vírgula → ponto=milhar, vírgula=decimal
+ * 2. Se tem só vírgula → é decimal
+ * 3. Se tem só ponto → é decimal (última parte) ou milhar (se múltiplos)
+ * 4. Se é número → retorna como está
+ *
+ * Exemplos:
+ * - "3.631,52" → 3631.52 ✓
+ * - "36.315,20" → 36315.20 ✓
+ * - "36315,20" → 36315.20 ✓
+ * - "3,50" → 3.50 ✓
+ * - "1000" → 1000 ✓
+ * - 3631.52 → 3631.52 ✓
  */
 
 function parseBrasilValue(input) {
@@ -23,52 +29,29 @@ function parseBrasilValue(input) {
   }
 
   // Remover espaços
-  let value = input.trim();
+  let str = input.toString().trim();
 
   // Se está vazio, retornar 0
-  if (value === '' || value === null) {
+  if (str === '' || str === null) {
     return 0;
   }
 
-  // Lógica para detectar separador de milhar e decimal:
-  // Se tem múltiplos pontos, o primeiro é milhar
-  // Se tem ponto E vírgula: ponto = milhar, vírgula = decimal
-  // Se tem só vírgula: é decimal
-  // Se tem só ponto no final: pode ser decimal
+  // ✅ LÓGICA SIMPLES E CORRETA:
 
-  // Remover pontos que são separadores de milhar
-  // Estratégia: se há vírgula, tudo que vem antes dela com ponto é milhar
-  if (value.includes(',')) {
-    // Tem vírgula, então ela é o separador decimal
-    // Remove todos os pontos (são separadores de milhar)
-    value = value.replace(/\./g, '');
-    // Troca vírgula por ponto para parseFloat funcionar
-    value = value.replace(/,/g, '.');
-  } else if (value.lastIndexOf('.') > 0 && value.length - value.lastIndexOf('.') > 3) {
-    // Tem ponto mas não tem vírgula, e tem mais de 3 dígitos após o ponto
-    // Isso significa que o ponto é separador de milhar (ex: "36.315.00")
-    // Remover todos os pontos
-    value = value.replace(/\./g, '');
-  } else if (value.includes('.') && !value.includes(',')) {
-    // Tem ponto mas não tem vírgula
-    // Se há menos de 3 dígitos após o ponto, é decimal
-    // Caso contrário, são todos pontos de milhar
-    const parts = value.split('.');
-    if (parts[parts.length - 1].length <= 2) {
-      // Parece ser decimal (ex: "36.20")
-      // Mas se há múltiplos pontos, remover todos
-      if (parts.length > 2) {
-        value = value.replace(/\./g, '');
-      }
-      // Do nothing - ponto final é decimal
-    } else {
-      // Mais de 2 dígitos após ponto, é milhar
-      value = value.replace(/\./g, '');
-    }
+  // Se tem ponto E vírgula (formato brasileiro completo: "3.631,52")
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '');     // Remove pontos (são milhar)
+    str = str.replace(/,/g, '.');     // Vírgula vira ponto
   }
+  // Se tem só vírgula (formato brasileiro sem milhar: "36315,20" ou "3,50")
+  else if (str.includes(',')) {
+    str = str.replace(/,/g, '.');     // Vírgula vira ponto
+  }
+  // Se tem só ponto, deixa como está (pode ser decimal ou já estar correto)
+  // Exemplo: "36.32" ou "1000" seguem normalmente
 
   // Converter para número
-  const result = parseFloat(value);
+  const result = parseFloat(str);
 
   // Se deu NaN, retornar 0
   return isNaN(result) ? 0 : result;
