@@ -3947,6 +3947,25 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
 
     console.log(`💰 [Taxas Plataforma] Buscando do faturamento: ${from} a ${to}`);
 
+    // DEBUG: First check what's in faturamento for these categories
+    const debugQuery = `
+      SELECT
+        f.categoria,
+        f.tipo_despesa_id,
+        td.subcategoria,
+        td.classificacao,
+        COUNT(*) as qtd,
+        SUM(f.total) as total
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
+        AND f.data BETWEEN $1 AND $2
+      GROUP BY f.categoria, f.tipo_despesa_id, td.subcategoria, td.classificacao
+      ORDER BY f.categoria, td.subcategoria
+    `;
+    const debugResult = await client.query(debugQuery, [from, to]);
+    console.log(`📋 DEBUG - Registros encontrados no período:`, debugResult.rows);
+
     // Query: Get all taxes from faturamento (where subcategoria = 'Taxas')
     const query = `
       SELECT
@@ -3964,6 +3983,7 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
     `;
 
     const result = await client.query(query, [from, to]);
+    console.log(`🔍 DEBUG - Taxas encontradas (WHERE subcategoria='Taxas'):`, result.rows);
 
     // Calculate total taxes
     const totalTaxas = result.rows.reduce((sum, row) => sum + parseFloat(row.total_taxa || 0), 0);
