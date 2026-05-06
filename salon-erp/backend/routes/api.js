@@ -4274,5 +4274,61 @@ router.get('/debug/tipo-despesa', async (req, res) => {
   }
 });
 
+// 🔍 DEBUG: GET /api/debug/registro/:id - Ver os detalhes EXATOS de um registro
+router.get('/debug/registro/:id', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id } = req.params;
+
+    const query = `
+      SELECT
+        f.id,
+        f.data,
+        f.tipo,
+        f.categoria,
+        f.total,
+        f.tipo_despesa_id,
+        td.id as td_id,
+        td.subcategoria,
+        td.classificacao
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.id = $1
+    `;
+
+    const result = await client.query(query, [id]);
+
+    if (result.rows.length === 0) {
+      return res.json({ error: `Registro ${id} não encontrado` });
+    }
+
+    const registro = result.rows[0];
+
+    res.json({
+      id: registro.id,
+      data: registro.data,
+      tipo: registro.tipo,
+      categoria: registro.categoria,
+      total: registro.total,
+      tipo_despesa_id: registro.tipo_despesa_id,
+      tipo_despesa_info: {
+        id: registro.td_id,
+        subcategoria: registro.subcategoria,
+        classificacao: registro.classificacao
+      },
+      observacoes: `
+        ⚠️ Se tipo_despesa_id é NULL ou não é 13, não será contado como Taxa.
+        ⚠️ Se subcategoria não é "Taxas", não será exibido como taxa.
+      `
+    });
+
+  } catch (error) {
+    console.error('❌ Erro:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ==================== EXPORT ====================
 module.exports = router;
