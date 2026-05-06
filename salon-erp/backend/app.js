@@ -17,6 +17,21 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Servir frontend estático
 const frontendPath = path.join(__dirname, './frontend');
+
+// Middleware para desabilitar cache do index.html
+app.use((req, res, next) => {
+  // Desabilitar cache apenas para index.html
+  if (req.path === '/' || req.path.endsWith('index.html')) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  } else {
+    // Permitir cache para outros assets (1 hora)
+    res.set('Cache-Control', 'public, max-age=3600');
+  }
+  next();
+});
+
 app.use(express.static(frontendPath));
 
 // Rotas API
