@@ -75,12 +75,20 @@ class Faturamento {
 
   // Atualizar faturamento completo (data, total, categoria, tipo, tipo_despesa_id)
   static async atualizarCompleto(id, data, total, categoria, tipo, tipoDespesaId = null) {
+    // Converter total: aceitar ponto (.) ou vírgula (,) como separador decimal
+    let totalNormalizado = total;
+    if (typeof total === 'string') {
+      // Remover pontos de milhar e converter vírgula para ponto
+      totalNormalizado = total.replace(/\./g, '').replace(/,/g, '.');
+    }
+    totalNormalizado = parseFloat(totalNormalizado);
+
     // Validações
-    if (!data || !total || !categoria) {
+    if (!data || !totalNormalizado || !categoria) {
       throw new Error('Data, Total e Categoria são obrigatórios');
     }
 
-    if (total <= 0) {
+    if (totalNormalizado <= 0) {
       throw new Error('Total deve ser maior que zero');
     }
 
@@ -101,7 +109,7 @@ class Faturamento {
 
     console.log(`🔄 [Faturamento.atualizarCompleto] INICIANDO UPDATE`);
     console.log(`   ID: ${idInt} (tipo: ${typeof idInt})`);
-    console.log(`   Dados: data=${data}, total=${parseFloat(total)}, categoria=${categoria}, tipo=${tipoNormalizado}, tipo_despesa_id=${tipoDespesaIdInt}`);
+    console.log(`   Dados: data=${data}, total=${totalNormalizado}, categoria=${categoria}, tipo=${tipoNormalizado}, tipo_despesa_id=${tipoDespesaIdInt}`);
 
     // VERIFICAR que o registro EXISTS antes de atualizar
     const registroAntes = await getAsync('SELECT * FROM faturamento WHERE id = ?', [idInt]);
@@ -125,7 +133,7 @@ class Faturamento {
     `;
 
     console.log(`   Executando SQL:`, sql.replace(/\n/g, ' '));
-    const result = await runAsync(sql, [data, parseFloat(total), categoria, tipoNormalizado, tipoDespesaIdInt, idInt]);
+    const result = await runAsync(sql, [data, totalNormalizado, categoria, tipoNormalizado, tipoDespesaIdInt, idInt]);
     console.log(`   ✓ runAsync retornou:`, result);
 
     // VERIFICAR que o UPDATE foi executado (conferir pelo menos o updated_at)
