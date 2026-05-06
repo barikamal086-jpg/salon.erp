@@ -3966,7 +3966,8 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
     const debugResult = await client.query(debugQuery, [from, to]);
     console.log(`📋 DEBUG - Registros encontrados no período:`, debugResult.rows);
 
-    // Query: Get all taxes from faturamento (where subcategoria = 'Taxas')
+    // Query: Get all taxes from faturamento (where subcategoria contains 'Taxas')
+    // Aceita: Taxas, Taxas Ifood, Taxas Keeta, Taxas 99Food, etc
     const query = `
       SELECT
         f.categoria as plataforma,
@@ -3976,7 +3977,8 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
       FROM faturamento f
       LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
       WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
-        AND td.subcategoria = 'Taxas'
+        AND f.tipo = 'despesa'
+        AND td.subcategoria ILIKE '%Taxas%'
         AND f.data BETWEEN $1 AND $2
       GROUP BY f.categoria
       ORDER BY f.categoria
