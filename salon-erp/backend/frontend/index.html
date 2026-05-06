@@ -1616,25 +1616,47 @@
 
               <!-- Filtros -->
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <!-- Período -->
+                <!-- Período (Dropdown) -->
                 <div>
                   <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Período</label>
+                  <select
+                    v-model="filtroHistorico.filtroPreset"
+                    @change="aplicarFiltroPresetHistorico"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
+                  >
+                    <option value="hoje">Hoje</option>
+                    <option value="semana">Esta semana</option>
+                    <option value="mes">Este mês</option>
+                    <option value="ano">Este ano</option>
+                    <option value="ultimos30" selected>Últimos 30 dias</option>
+                    <option value="ultimos12">Últimos 12 meses</option>
+                    <option value="todo">Todo o período</option>
+                    <option value="customizado">Personalizado</option>
+                  </select>
+                </div>
+
+                <!-- Inputs de Data (mostrados apenas em "Personalizado") -->
+                <div v-if="filtroHistorico.filtroPreset === 'customizado'">
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">De</label>
                   <input
                     v-model="filtroHistorico.dataInicio"
                     type="date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                </div>
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Até</label>
-                  <input
-                    v-model="filtroHistorico.dataFim"
-                    type="date"
+                    @change="atualizarFiltroHistorico"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                 </div>
 
-                <!-- Categoria -->
+                <div v-if="filtroHistorico.filtroPreset === 'customizado'">
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Até</label>
+                  <input
+                    v-model="filtroHistorico.dataFim"
+                    type="date"
+                    @change="atualizarFiltroHistorico"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                </div>
+
+                <!-- Categoria (mantém como está) -->
                 <div>
                   <label class="block text-sm font-semibold text-gray-700 mb-2">🏷️ Categoria</label>
                   <select
@@ -2092,7 +2114,8 @@
           categoriaIdMap: { 'Salão': null, 'iFood': null, '99Food': null, 'Keeta': null }, // Mapa de categoria -> ID
           // Histórico: Filtros e Paginação
           filtroHistorico: {
-            dataInicio: this.obterData90DiasAtras(),
+            filtroPreset: 'ultimos30',  // DEFAULT: Últimos 30 dias
+            dataInicio: this.obterDataUltimos30Dias(),
             dataFim: this.obterDataHoje(),
             categoria: ''
           },
@@ -2346,11 +2369,37 @@
 
         // Limpar filtros do histórico (volta para últimos 90 dias)
         limparFiltrosHistorico() {
-          this.filtroHistorico.dataInicio = this.obterData90DiasAtras();
-          this.filtroHistorico.dataFim = this.obterDataHoje();
+          this.filtroHistorico.filtroPreset = 'ultimos30';
+          this.aplicarFiltroPresetHistorico('ultimos30');
           this.filtroHistorico.categoria = '';
           this.paginacao.paginaAtual = 1;
-          console.log('🔄 Filtros histórico limpos (volta para últimos 90 dias)');
+          console.log('🔄 Filtros histórico limpos (volta para últimos 30 dias)');
+        },
+
+        aplicarFiltroPresetHistorico(filtro) {
+          const hoje = this.obterDataHoje();
+          const mapeamentoFiltros = {
+            'hoje': { inicio: hoje, fim: hoje },
+            'semana': { inicio: this.obterDataInicioSemana(), fim: hoje },
+            'mes': { inicio: this.obterDataInicioMes(), fim: hoje },
+            'ano': { inicio: this.obterDataInicioAno(), fim: hoje },
+            'ultimos30': { inicio: this.obterDataUltimos30Dias(), fim: hoje },
+            'ultimos12': { inicio: this.obterDataUltimos12Meses(), fim: hoje },
+            'todo': { inicio: this.obterDataTodoOPeriodo(), fim: hoje },
+            'customizado': { inicio: this.filtroHistorico.dataInicio, fim: this.filtroHistorico.dataFim }
+          };
+
+          const datas = mapeamentoFiltros[filtro] || mapeamentoFiltros['ultimos30'];
+          this.filtroHistorico.dataInicio = datas.inicio;
+          this.filtroHistorico.dataFim = datas.fim;
+          this.paginacao.paginaAtual = 1;
+
+          console.log(`📅 Filtro histórico aplicado: ${filtro} (${datas.inicio} a ${datas.fim})`);
+        },
+
+        atualizarFiltroHistorico() {
+          this.paginacao.paginaAtual = 1;
+          console.log(`📅 Filtro histórico atualizado: ${this.filtroHistorico.dataInicio} a ${this.filtroHistorico.dataFim}`);
         },
 
         // CMV Inteligente Methods
