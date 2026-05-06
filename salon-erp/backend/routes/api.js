@@ -4097,5 +4097,119 @@ router.get('/faturamentos/taxas-plataforma/debug', async (req, res) => {
   }
 });
 
+// 🔍 DEBUG: GET /api/debug/todas-plataformas - Listar TODOS os registros com detalhes completos
+router.get('/debug/todas-plataformas', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { from = '2026-04-01', to = '2026-04-30' } = req.query;
+
+    console.log(`\n📊 [DEBUG] Listando TODOS os registros: ${from} a ${to}\n`);
+
+    const query = `
+      SELECT
+        f.id,
+        f.data,
+        f.tipo,
+        f.categoria,
+        f.total,
+        td.id as tipo_despesa_id,
+        td.subcategoria,
+        td.classificacao
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.categoria IN ('iFood', 'Keeta', '99Food', 'Salão')
+        AND f.data BETWEEN $1 AND $2
+      ORDER BY f.categoria, f.data DESC, f.tipo DESC
+    `;
+
+    const result = await client.query(query, [from, to]);
+
+    // Agrupar por categoria
+    const porCategoria = {};
+    result.rows.forEach(row => {
+      if (!porCategoria[row.categoria]) {
+        porCategoria[row.categoria] = {
+          receitas: [],
+          despesas: [],
+          resumo: { totalReceita: 0, totalDespesa: 0, totalTaxas: 0 }
+        };
+      }
+
+      const valor = parseFloat(row.total || 0);
+
+      if (row.tipo === 'receita' || !row.tipo) {
+        porCategoria[row.categoria].receitas.push({
+          id: row.id,
+          data: row.data,
+          total: valor,
+          subcategoria: row.subcategoria || 'N/A'
+        });
+        porCategoria[row.categoria].resumo.totalReceita += valor;
+      } else if (row.tipo === 'despesa') {
+        porCategoria[row.categoria].despesas.push({
+          id: row.id,
+          data: row.data,
+          total: valor,
+          subcategoria: row.subcategoria,
+          classificacao: row.classificacao,
+          isTaxa: row.subcategoria === 'Taxas'
+        });
+
+        if (row.subcategoria === 'Taxas') {
+          porCategoria[row.categoria].resumo.totalTaxas += valor;
+        }
+        porCategoria[row.categoria].resumo.totalDespesa += valor;
+      }
+    });
+
+    // Calcular percentuais e criar resposta estruturada
+    const resposta = {};
+    Object.entries(porCategoria).forEach(([categoria, dados]) => {
+      resposta[categoria] = {
+        resumo: {
+          totalReceita: parseFloat(dados.resumo.totalReceita.toFixed(2)),
+          totalTaxas: parseFloat(dados.resumo.totalTaxas.toFixed(2)),
+          percentualTaxas: dados.resumo.totalReceita > 0
+            ? parseFloat(((dados.resumo.totalTaxas / dados.resumo.totalReceita) * 100).toFixed(2))
+            : 0,
+          totalDespesas: parseFloat(dados.resumo.totalDespesa.toFixed(2)),
+          liquid: parseFloat((dados.resumo.totalReceita - dados.resumo.totalTaxas - (dados.resumo.totalDespesa - dados.resumo.totalTaxas)).toFixed(2))
+        },
+        receitas: dados.receitas.map(r => ({
+          id: r.id,
+          data: r.data,
+          total: parseFloat(r.total.toFixed(2)),
+          subcategoria: r.subcategoria
+        })),
+        taxas: dados.despesas.filter(d => d.isTaxa).map(t => ({
+          id: t.id,
+          data: t.data,
+          total: parseFloat(t.total.toFixed(2)),
+          subcategoria: t.subcategoria
+        })),
+        outrosDespesas: dados.despesas.filter(d => !d.isTaxa).map(d => ({
+          id: d.id,
+          data: d.data,
+          total: parseFloat(d.total.toFixed(2)),
+          subcategoria: d.subcategoria,
+          classificacao: d.classificacao
+        }))
+      };
+    });
+
+    res.json({
+      success: true,
+      periodo: { from, to },
+      dados: resposta
+    });
+
+  } catch (error) {
+    console.error('❌ Erro:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ==================== EXPORT ====================
 module.exports = router;
