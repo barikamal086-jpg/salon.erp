@@ -3930,11 +3930,12 @@ router.post('/notas-fiscais/aplicar-regras', async (req, res) => {
 // ==================== TAXAS DE PLATAFORMA ====================
 
 // GET /api/faturamentos/taxas-plataforma - Obter taxas de plataforma (iFood, Keeta, 99Food)
-// Parâmetros: from=YYYY-MM-DD, to=YYYY-MM-DD, restaurante_id=1 (opcional)
+// Busca DIRETO do faturamento (onde subcategoria = 'Taxas')
+// Parâmetros: from=YYYY-MM-DD, to=YYYY-MM-DD
 router.get('/faturamentos/taxas-plataforma', async (req, res) => {
   const client = await pool.connect();
   try {
-    const { from, to, restaurante_id = 1 } = req.query;
+    const { from, to } = req.query;
 
     // Validar parâmetros
     if (!from || !to) {
@@ -3944,23 +3945,25 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
       });
     }
 
-    console.log(`📊 [Taxas Plataforma] Período: ${from} a ${to}, Restaurante: ${restaurante_id}`);
+    console.log(`💰 [Taxas Plataforma] Buscando do faturamento: ${from} a ${to}`);
 
-    // Query: Get all taxes grouped by platform for period
+    // Query: Get all taxes from faturamento (where subcategoria = 'Taxas')
     const query = `
       SELECT
-        plataforma,
-        SUM(taxa_valor) as total_taxa,
+        f.categoria as plataforma,
+        SUM(f.total) as total_taxa,
         COUNT(*) as quantidade_registros,
-        AVG(percentual_taxa) as percentual_medio
-      FROM taxas_plataforma
-      WHERE restaurante_id = $1
-        AND data BETWEEN $2 AND $3
-      GROUP BY plataforma
-      ORDER BY plataforma
+        AVG(f.total) as media_taxa
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
+        AND td.subcategoria = 'Taxas'
+        AND f.data BETWEEN $1 AND $2
+      GROUP BY f.categoria
+      ORDER BY f.categoria
     `;
 
-    const result = await client.query(query, [restaurante_id, from, to]);
+    const result = await client.query(query, [from, to]);
 
     // Calculate total taxes
     const totalTaxas = result.rows.reduce((sum, row) => sum + parseFloat(row.total_taxa || 0), 0);
@@ -3969,12 +3972,11 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
     res.json({
       success: true,
       periodo: { from, to },
-      restaurante_id: parseInt(restaurante_id),
       taxas: result.rows.map(row => ({
         plataforma: row.plataforma,
         total_taxa: parseFloat(row.total_taxa || 0),
         quantidade_registros: parseInt(row.quantidade_registros || 0),
-        percentual_medio: parseFloat(row.percentual_medio || 0)
+        percentual_medio: parseFloat(row.media_taxa || 0)
       })),
       total_taxas_periodo: totalTaxas
     });
