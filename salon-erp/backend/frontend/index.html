@@ -1971,6 +1971,7 @@
   </div>
 
   <script src="js/utils/api.js"></script>
+  <script src="js/utils/numberParser.js"></script>
   <!-- Carregando componentes Vue -->
   <script src="js/components/GraficoMensal.vue.js?v=2"></script>
   <script src="js/components/GraficoTendencia.vue.js?v=2"></script>
@@ -3277,12 +3278,11 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               return;
             }
 
-            // Normalizar total: aceitar ponto ou vírgula como separador decimal
-            let totalNormalizado = this.receitaEmEdicao.total;
-            if (typeof totalNormalizado === 'string') {
-              totalNormalizado = totalNormalizado.replace(/\./g, '').replace(/,/g, '.');
-            }
-            totalNormalizado = parseFloat(totalNormalizado);
+            // Normalizar total: aceitar múltiplos formatos brasileiros
+            // "36.315,20" → 36315.20
+            // "36315,20" → 36315.20
+            // "36.315" → 36315
+            const totalNormalizado = parseBrasilValue(this.receitaEmEdicao.total);
 
             if (!totalNormalizado || totalNormalizado <= 0) {
               alert('❌ Total deve ser maior que zero');

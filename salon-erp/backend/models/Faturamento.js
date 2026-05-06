@@ -1,4 +1,5 @@
 const { runAsync, getAsync, allAsync } = require('../database');
+const { parseBrasilValue } = require('../utils/numberParser');
 
 class Faturamento {
   // Listar faturamentos (últimos N dias, opcionalmente filtrar por status e/ou categoria)
@@ -28,8 +29,11 @@ class Faturamento {
 
   // Criar novo faturamento (receita ou despesa)
   static async criar(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null, categoriaProduto = 'Comida') {
+    // Normalizar total em formato brasileiro
+    const totalNormalizado = parseBrasilValue(total);
+
     // Validar total > 0
-    if (total <= 0) {
+    if (totalNormalizado <= 0) {
       throw new Error('Total deve ser maior que zero');
     }
 
@@ -55,13 +59,16 @@ class Faturamento {
       INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, categoria_produto, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, false, NOW(), NOW())
     `;
-    return await runAsync(sql, [data, parseFloat(total), categoria.trim(), tipoNormalizado, tipoDespesaId, categoriaProduto]);
+    return await runAsync(sql, [data, totalNormalizado, categoria.trim(), tipoNormalizado, tipoDespesaId, categoriaProduto]);
   }
 
   // Atualizar faturamento (apenas total)
   static async atualizar(id, total) {
+    // Normalizar total em formato brasileiro
+    const totalNormalizado = parseBrasilValue(total);
+
     // Validar total > 0
-    if (total <= 0) {
+    if (totalNormalizado <= 0) {
       throw new Error('Total deve ser maior que zero');
     }
 
@@ -70,18 +77,17 @@ class Faturamento {
       SET total = ?, updated_at = NOW()
       WHERE id = ?
     `;
-    return await runAsync(sql, [parseFloat(total), id]);
+    return await runAsync(sql, [totalNormalizado, id]);
   }
 
   // Atualizar faturamento completo (data, total, categoria, tipo, tipo_despesa_id)
   static async atualizarCompleto(id, data, total, categoria, tipo, tipoDespesaId = null) {
-    // Converter total: aceitar ponto (.) ou vírgula (,) como separador decimal
-    let totalNormalizado = total;
-    if (typeof total === 'string') {
-      // Remover pontos de milhar e converter vírgula para ponto
-      totalNormalizado = total.replace(/\./g, '').replace(/,/g, '.');
-    }
-    totalNormalizado = parseFloat(totalNormalizado);
+    // Converter total: aceitar múltiplos formatos brasileiros
+    // "36.315,20" → 36315.20
+    // "36315,20" → 36315.20
+    // "36.315" → 36315
+    // 36315.20 → 36315.20
+    let totalNormalizado = parseBrasilValue(total);
 
     // Validações
     if (!data || !totalNormalizado || !categoria) {
