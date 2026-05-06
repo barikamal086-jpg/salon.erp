@@ -186,11 +186,41 @@
       <!-- Content -->
       <div v-show="activeView === 'dashboard'" class="p-8 space-y-6">
 
-        <!-- Seletor de Período -->
+        <!-- Seletor de Período (Dropdown) -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
           <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📅 Selecione o Período</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: flex-start;">
+            <!-- Dropdown Menu (como Conta Azul) -->
             <div>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Competência</label>
+              <select
+                v-model="periodo.filtroPreset"
+                @change="aplicarFiltroPreset"
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; background: white; cursor: pointer;"
+              >
+                <option value="hoje">Hoje</option>
+                <option value="semana">Esta semana</option>
+                <option value="mes">Este mês</option>
+                <option value="ano">Este ano</option>
+                <option value="ultimos30" selected>Últimos 30 dias</option>
+                <option value="ultimos12">Últimos 12 meses</option>
+                <option value="todo">Todo o período</option>
+                <option value="customizado">Personalizado</option>
+              </select>
+            </div>
+
+            <!-- Buscar no período selecionado -->
+            <div>
+              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Pesquisar no período selecionado</label>
+              <input
+                type="text"
+                placeholder="Buscar..."
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
+              >
+            </div>
+
+            <!-- Mostrar apenas quando "Personalizado" está selecionado -->
+            <div v-if="periodo.filtroPreset === 'customizado'">
               <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Data Início</label>
               <input
                 v-model="periodo.dataInicio"
@@ -199,7 +229,8 @@
                 style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
               >
             </div>
-            <div>
+
+            <div v-if="periodo.filtroPreset === 'customizado'">
               <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Data Fim</label>
               <input
                 v-model="periodo.dataFim"
@@ -208,26 +239,10 @@
                 style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;"
               >
             </div>
-            <div>
-              <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Atalhos</label>
-              <div style="display: flex; gap: 8px;">
-                <button
-                  @click="setUltimos7Dias"
-                  style="flex: 1; padding: 10px 12px; background: var(--primary); color: white; font-size: 0.9rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;"
-                  @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
-                  @mouseleave="$event.target.style.background = 'var(--primary)'"
-                >
-                  Últimos 7d
-                </button>
-                <button
-                  @click="setUltimos30Dias"
-                  style="flex: 1; padding: 10px 12px; background: var(--primary); color: white; font-size: 0.9rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; transition: all 0.2s;"
-                  @mouseenter="$event.target.style.background = 'var(--primary-dark)'"
-                  @mouseleave="$event.target.style.background = 'var(--primary)'"
-                >
-                  Últimos 30d
-                </button>
-              </div>
+
+            <!-- Mostrar período atual selecionado -->
+            <div style="grid-column: span 2; padding: 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 0.9rem; color: var(--text-secondary);">
+              📅 Período: <strong style="color: var(--text-primary);">{{ periodo.dataInicio }}</strong> a <strong style="color: var(--text-primary);">{{ periodo.dataFim }}</strong>
             </div>
           </div>
         </div>
@@ -1972,7 +1987,8 @@
             dataFim: this.obterDataHoje()
           },
           periodo: {
-            dataInicio: this.obterData90DiasAtras(),
+            filtroPreset: 'ultimos30',  // DEFAULT: Últimos 30 dias
+            dataInicio: this.obterDataUltimos30Dias(),
             dataFim: this.obterDataHoje()
           },
           stats: {
@@ -2266,6 +2282,66 @@
         obterDataHoje() {
           const hoje = new Date();
           return getLocalDateISO(hoje);
+        },
+
+        // ========== NOVOS MÉTODOS PARA FILTRO DE PERÍODO ==========
+
+        obterDataUltimos30Dias() {
+          const hoje = new Date();
+          const dias30atras = new Date(hoje.getTime() - (30 * 24 * 60 * 60 * 1000));
+          return getLocalDateISO(dias30atras);
+        },
+
+        obterDataInicioSemana() {
+          const hoje = new Date();
+          const dia = hoje.getDay(); // 0 = domingo, 1 = segunda, etc
+          const diff = dia === 0 ? -6 : 1 - dia; // Volta para segunda-feira
+          const segundaFeira = new Date(hoje.getTime() + diff * 24 * 60 * 60 * 1000);
+          return getLocalDateISO(segundaFeira);
+        },
+
+        obterDataInicioMes() {
+          const hoje = new Date();
+          return getLocalDateISO(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+        },
+
+        obterDataInicioAno() {
+          const hoje = new Date();
+          return getLocalDateISO(new Date(hoje.getFullYear(), 0, 1));
+        },
+
+        obterDataUltimos12Meses() {
+          const hoje = new Date();
+          const anos12atras = new Date(hoje.getTime() - (365 * 24 * 60 * 60 * 1000));
+          return getLocalDateISO(anos12atras);
+        },
+
+        obterDataTodoOPeriodo() {
+          // Retorna 10 anos atrás (considerado "todo o período")
+          const hoje = new Date();
+          const anoAtras = new Date(hoje.getTime() - (10 * 365 * 24 * 60 * 60 * 1000));
+          return getLocalDateISO(anoAtras);
+        },
+
+        aplicarFiltroPreset(filtro) {
+          const hoje = this.obterDataHoje();
+          const mapeamentoFiltros = {
+            'hoje': { inicio: hoje, fim: hoje },
+            'semana': { inicio: this.obterDataInicioSemana(), fim: hoje },
+            'mes': { inicio: this.obterDataInicioMes(), fim: hoje },
+            'ano': { inicio: this.obterDataInicioAno(), fim: hoje },
+            'ultimos30': { inicio: this.obterDataUltimos30Dias(), fim: hoje },
+            'ultimos12': { inicio: this.obterDataUltimos12Meses(), fim: hoje },
+            'todo': { inicio: this.obterDataTodoOPeriodo(), fim: hoje },
+            'customizado': { inicio: this.periodo.dataInicio, fim: this.periodo.dataFim }
+          };
+
+          const datas = mapeamentoFiltros[filtro] || mapeamentoFiltros['ultimos30'];
+          this.periodo.dataInicio = datas.inicio;
+          this.periodo.dataFim = datas.fim;
+
+          console.log(`📅 Filtro aplicado: ${filtro} (${datas.inicio} a ${datas.fim})`);
+          this.atualizarPeriodo();
         },
 
         // Limpar filtros do histórico (volta para últimos 90 dias)
