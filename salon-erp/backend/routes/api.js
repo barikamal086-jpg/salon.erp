@@ -4211,5 +4211,68 @@ router.get('/debug/todas-plataformas', async (req, res) => {
   }
 });
 
+// 🔍 DEBUG: GET /api/debug/tipo-despesa - Ver qual tipo_despesa_id é usado em cada lançamento
+router.get('/debug/tipo-despesa', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { from = '2026-04-01', to = '2026-04-30' } = req.query;
+
+    const query = `
+      SELECT
+        f.id,
+        f.data,
+        f.categoria,
+        f.tipo,
+        f.total,
+        f.tipo_despesa_id,
+        td.subcategoria,
+        td.classificacao
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
+        AND f.data BETWEEN $1 AND $2
+      ORDER BY f.categoria, f.tipo DESC
+    `;
+
+    const result = await client.query(query, [from, to]);
+
+    const resposta = {};
+    result.rows.forEach(row => {
+      if (!resposta[row.categoria]) {
+        resposta[row.categoria] = [];
+      }
+      resposta[row.categoria].push({
+        id: row.id,
+        data: row.data,
+        tipo: row.tipo || 'receita',
+        total: parseFloat(row.total),
+        tipo_despesa_id: row.tipo_despesa_id,
+        subcategoria: row.subcategoria,
+        classificacao: row.classificacao
+      });
+    });
+
+    res.json({
+      success: true,
+      periodo: { from, to },
+      dados: resposta,
+      observacoes: `
+        IMPORTANTE: Se uma despesa tem tipo_despesa_id = 13, ela é "Taxas".
+        Se tem outro ID, precisa revisar se foi classificada corretamente.
+
+        Para iFood (R$ 31.902,77): Qual tipo_despesa_id?
+        Para Keeta (R$ 3.631,52): Qual tipo_despesa_id?
+        Para 99Food (R$ 14.061,36): Qual tipo_despesa_id?
+      `
+    });
+
+  } catch (error) {
+    console.error('❌ Erro:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ==================== EXPORT ====================
 module.exports = router;
