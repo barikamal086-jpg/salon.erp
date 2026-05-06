@@ -4014,5 +4014,88 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
   }
 });
 
+// 🔍 DEBUG: GET /api/faturamentos/taxas-plataforma/debug - Visualizar registros que compõem a taxa
+router.get('/faturamentos/taxas-plataforma/debug', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { from, to, plataforma = '99Food' } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ error: 'Parâmetros "from" e "to" obrigatórios' });
+    }
+
+    console.log(`🔍 [DEBUG Taxas] Mostrando registros de ${plataforma}: ${from} a ${to}`);
+
+    // Query: Mostrar TODOS os registros que compõem a taxa
+    const query = `
+      SELECT
+        f.id,
+        f.data,
+        f.tipo,
+        f.categoria,
+        f.total,
+        td.id as tipo_despesa_id,
+        td.subcategoria,
+        td.classificacao
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.categoria = $1
+        AND f.data BETWEEN $2 AND $3
+      ORDER BY f.data DESC, td.subcategoria, f.total DESC
+    `;
+
+    const result = await client.query(query, [plataforma, from, to]);
+
+    // Separar em Receitas, Taxas e Despesas
+    const receitas = result.rows.filter(r => r.tipo === 'receita' || !r.tipo);
+    const taxas = result.rows.filter(r => r.tipo === 'despesa' && r.subcategoria === 'Taxas');
+    const despesas = result.rows.filter(r => r.tipo === 'despesa' && r.subcategoria !== 'Taxas');
+
+    const totalReceita = receitas.reduce((sum, r) => sum + parseFloat(r.total || 0), 0);
+    const totalTaxas = taxas.reduce((sum, r) => sum + parseFloat(r.total || 0), 0);
+    const totalDespesas = despesas.reduce((sum, r) => sum + parseFloat(r.total || 0), 0);
+    const percentualTaxas = totalReceita > 0 ? ((totalTaxas / totalReceita) * 100).toFixed(2) : 0;
+
+    res.json({
+      success: true,
+      periodo: { from, to },
+      plataforma,
+      resumo: {
+        totalReceita: parseFloat(totalReceita.toFixed(2)),
+        totalTaxas: parseFloat(totalTaxas.toFixed(2)),
+        totalDespesas: parseFloat(totalDespesas.toFixed(2)),
+        percentualTaxas: parseFloat(percentualTaxas),
+        dataCount: result.rows.length
+      },
+      receitas: receitas.map(r => ({
+        id: r.id,
+        data: r.data,
+        total: parseFloat(r.total),
+        subcategoria: r.subcategoria || 'N/A'
+      })),
+      taxas: taxas.map(r => ({
+        id: r.id,
+        data: r.data,
+        total: parseFloat(r.total),
+        subcategoria: r.subcategoria,
+        tipo_despesa_id: r.tipo_despesa_id
+      })),
+      despesas: despesas.map(r => ({
+        id: r.id,
+        data: r.data,
+        total: parseFloat(r.total),
+        subcategoria: r.subcategoria,
+        classificacao: r.classificacao
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar debug taxas:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ==================== EXPORT ====================
 module.exports = router;
