@@ -1173,7 +1173,13 @@
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Total (R$)</label>
-                <input v-model.number="novaReceita.total" type="number" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <input
+                  v-model="novaReceita.total"
+                  type="text"
+                  placeholder="0,00"
+                  @input="formatarValorInput"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ novaReceita.tipo === 'receita' ? 'Categoria' : 'Local/Origem' }}</label>
@@ -1910,8 +1916,9 @@
               v-model="receitaEmEdicao.total"
               type="text"
               placeholder="0.00 ou 0,00"
+              @input="formatarValorEdicao"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <p class="mt-1 text-xs text-gray-500">💡 Aceita: 1000.50 ou 1000,50</p>
+            <p class="mt-1 text-xs text-gray-500">💡 Formata automaticamente: 1.234,56</p>
           </div>
 
           <div>
@@ -3363,6 +3370,68 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
           });
+        },
+
+        // 🎯 Formatar valor enquanto digita (como Conta Azul)
+        formatarValorInput() {
+          let valor = this.novaReceita.total;
+
+          if (!valor) return;
+
+          // Remover tudo que não é número, ponto ou vírgula
+          let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+
+          // Remover múltiplas vírgulas/pontos
+          let pontos = (limpo.match(/\./g) || []).length;
+          let virgulas = (limpo.match(/,/g) || []).length;
+
+          // Se tem vírgula, assume formato brasileiro
+          if (virgulas > 0) {
+            // Remover pontos (são milhar)
+            limpo = limpo.replace(/\./g, '');
+            // Deixar a vírgula
+          } else if (pontos > 1) {
+            // Múltiplos pontos = usar o último como decimal
+            const partes = limpo.split('.');
+            limpo = partes.slice(0, -1).join('') + '.' + partes[partes.length - 1];
+          }
+
+          // Aplicar formatação visual
+          const parsedValue = parseBrasilValue(limpo);
+          if (!isNaN(parsedValue)) {
+            this.novaReceita.total = formatBrasilValue(parsedValue);
+          }
+        },
+
+        // 🎯 Formatar valor no modal de edição
+        formatarValorEdicao() {
+          let valor = this.receitaEmEdicao.total;
+
+          if (!valor) return;
+
+          // Remover tudo que não é número, ponto ou vírgula
+          let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+
+          // Remover múltiplas vírgulas/pontos
+          let pontos = (limpo.match(/\./g) || []).length;
+          let virgulas = (limpo.match(/,/g) || []).length;
+
+          // Se tem vírgula, assume formato brasileiro
+          if (virgulas > 0) {
+            // Remover pontos (são milhar)
+            limpo = limpo.replace(/\./g, '');
+            // Deixar a vírgula
+          } else if (pontos > 1) {
+            // Múltiplos pontos = usar o último como decimal
+            const partes = limpo.split('.');
+            limpo = partes.slice(0, -1).join('') + '.' + partes[partes.length - 1];
+          }
+
+          // Aplicar formatação visual
+          const parsedValue = parseBrasilValue(limpo);
+          if (!isNaN(parsedValue)) {
+            this.receitaEmEdicao.total = formatBrasilValue(parsedValue);
+          }
         },
 
         formatarData(data) {
