@@ -3449,20 +3449,27 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
           if (!valor) return;
 
-          // ✨ Verificar se é só números (novo smart behavior)
+          // ✨ Verificar se é formato brasileiro CLARO
           const apenasNumeros = valor.toString().replace(/\D/g, '');
-          const temSeparadores = /[.,]/.test(valor.toString());
+          const temPonto = valor.toString().includes('.');
+          const temVirgula = valor.toString().includes(',');
+          const temVirgulaNoPenultimo = /,\d{2}$/.test(valor.toString());
 
           let parsedValue;
 
-          // Se é SÓ NÚMEROS (sem ponto ou vírgula), usar parser inteligente
-          if (apenasNumeros.length > 0 && !temSeparadores) {
-            parsedValue = parseValorInteligente(apenasNumeros);
-          }
-          // Se tem separadores (ponto ou vírgula), usar parser brasileiro
-          else {
+          // ✅ LÓGICA MELHORADA:
+          // Detectar CLARAMENTE se é formato brasileiro:
+          // 1. Se tem ponto E vírgula (tipo "1.234,56") → formato brasileiro
+          // 2. Se tem vírgula nos últimos 2 dígitos (tipo "1234,56") → formato brasileiro
+          // 3. Caso contrário → número puro (use parseValorInteligente)
+
+          if ((temPonto && temVirgula) || (temVirgula && temVirgulaNoPenultimo)) {
+            // É formato brasileiro claro
             let limpo = valor.toString().replace(/[^0-9.,]/g, '');
             parsedValue = parseBrasilValue(limpo);
+          } else {
+            // Assume número puro (Conta Azul style)
+            parsedValue = parseValorInteligente(apenasNumeros);
           }
 
           // Aplicar formatação visual
@@ -3479,20 +3486,27 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
           if (!valor) return;
 
-          // ✨ Verificar se é só números (novo smart behavior)
+          // ✨ Verificar se é formato brasileiro CLARO
           const apenasNumeros = valor.toString().replace(/\D/g, '');
-          const temSeparadores = /[.,]/.test(valor.toString());
+          const temPonto = valor.toString().includes('.');
+          const temVirgula = valor.toString().includes(',');
+          const temVirgulaNoPenultimo = /,\d{2}$/.test(valor.toString());
 
           let parsedValue;
 
-          // Se é SÓ NÚMEROS (sem ponto ou vírgula), usar parser inteligente
-          if (apenasNumeros.length > 0 && !temSeparadores) {
-            parsedValue = parseValorInteligente(apenasNumeros);
-          }
-          // Se tem separadores (ponto ou vírgula), usar parser brasileiro
-          else {
+          // ✅ LÓGICA MELHORADA:
+          // Detectar CLARAMENTE se é formato brasileiro:
+          // 1. Se tem ponto E vírgula (tipo "1.234,56") → formato brasileiro
+          // 2. Se tem vírgula nos últimos 2 dígitos (tipo "1234,56") → formato brasileiro
+          // 3. Caso contrário → número puro (use parseValorInteligente)
+
+          if ((temPonto && temVirgula) || (temVirgula && temVirgulaNoPenultimo)) {
+            // É formato brasileiro claro
             let limpo = valor.toString().replace(/[^0-9.,]/g, '');
             parsedValue = parseBrasilValue(limpo);
+          } else {
+            // Assume número puro (Conta Azul style)
+            parsedValue = parseValorInteligente(apenasNumeros);
           }
 
           // Aplicar formatação visual
