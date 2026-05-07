@@ -2166,9 +2166,26 @@
       watch: {
         periodo: {
           handler(newVal, oldVal) {
-            console.log('👁️ Watcher: período mudou!');
+            console.log('👁️ Watcher: período do Dashboard mudou!');
             console.log('  Antigo:', oldVal);
             console.log('  Novo:', newVal);
+            // 🔄 Sincronizar com Histórico
+            this.filtroHistorico.dataInicio = newVal.dataInicio;
+            this.filtroHistorico.dataFim = newVal.dataFim;
+            console.log('🔄 Histórico sincronizado com Dashboard');
+            this.atualizarPeriodo();
+          },
+          deep: true
+        },
+        filtroHistorico: {
+          handler(newVal, oldVal) {
+            console.log('👁️ Watcher: período do Histórico mudou!');
+            console.log('  Antigo:', oldVal);
+            console.log('  Novo:', newVal);
+            // 🔄 Sincronizar com Dashboard
+            this.periodo.dataInicio = newVal.dataInicio;
+            this.periodo.dataFim = newVal.dataFim;
+            console.log('🔄 Dashboard sincronizado com Histórico');
             this.atualizarPeriodo();
           },
           deep: true
