@@ -3205,6 +3205,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
             console.log('✅ [salvarNovaReceita] Lançamento salvo. Recarregando dados...');
             await this.atualizarPeriodo();
+            await nextTick();  // Forçar re-render imediato
 
             // Garantir que o filtro inclua a data do novo lançamento
             const dataNoveLancamento = this.novaReceita.data;
@@ -3223,6 +3224,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
               console.log(`✅ [salvarNovaReceita] Filtro ajustado: [${this.filtroHistorico.dataInicio}, ${this.filtroHistorico.dataFim}]`);
               await this.atualizarPeriodo();
+              await nextTick();  // Forçar re-render imediato
             }
 
             alert('✅ Lançamento adicionado com sucesso!');
@@ -3241,7 +3243,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
               console.log(`🔄 [Frontend] Recarregando dados...`);
               await this.atualizarPeriodo();
-              console.log(`✅ [Frontend] Dados recarregados`);
+              await nextTick();  // Forçar re-render imediato
+              console.log(`✅ [Frontend] Dados recarregados e UI atualizada`);
 
               this.menuAcoesAberto = null;
               alert('Faturamento deletado com sucesso!');
@@ -3351,7 +3354,11 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             await this.carregarStatsPorCategoria();
             await this.carregarTaxasPlataforma();
 
-            console.log('✅ Todos os dados recarregados');
+            // 🔄 Forçar re-render do Vue (sem esperar por watcher)
+            console.log('🔄 Forçando re-render do Vue...');
+            await nextTick();
+
+            console.log('✅ Todos os dados recarregados e UI atualizada');
             alert('✅ Lançamento atualizado com sucesso!');
           } catch (error) {
             console.error('❌ Erro ao atualizar:', error);
