@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Number Formatter</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .pass { background: #d4edda; }
+        .fail { background: #f8d7da; }
+        input { padding: 8px; margin: 5px 0; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Test Number Formatter - Conta Azul Style</h1>
+
+    <div id="tests"></div>
+
+    <script src="js/utils/numberParser.js"></script>
+    <script>
+        console.log('🔧 Testing Parser Functions...');
+
+        // Test cases
+        const tests = [
+            { input: '841133', expected: 8411.33, desc: 'Pure number: 841133 → 8411.33' },
+            { input: '1', expected: 0.01, desc: 'Single digit: 1 → 0.01' },
+            { input: '12', expected: 0.12, desc: 'Two digits: 12 → 0.12' },
+            { input: '123', expected: 1.23, desc: 'Three digits: 123 → 1.23' },
+            { input: '1234', expected: 12.34, desc: 'Four digits: 1234 → 12.34' },
+            { input: '12345', expected: 123.45, desc: 'Five digits: 12345 → 123.45' },
+            { input: '100', expected: 1.00, desc: 'Hundred: 100 → 1.00' },
+            { input: '0', expected: 0.00, desc: 'Zero: 0 → 0.00' },
+            { input: '', expected: 0, desc: 'Empty string → 0' },
+        ];
+
+        const testDiv = document.getElementById('tests');
+        let passCount = 0;
+        let failCount = 0;
+
+        tests.forEach(test => {
+            try {
+                const result = parseValorInteligente(test.input);
+                const passed = Math.abs(result - test.expected) < 0.01;
+
+                if (passed) passCount++;
+                else failCount++;
+
+                const html = `
+                    <div class="test ${passed ? 'pass' : 'fail'}">
+                        <strong>${test.desc}</strong><br/>
+                        Input: "${test.input}"<br/>
+                        Expected: ${test.expected.toFixed(2)}<br/>
+                        Got: ${result.toFixed(2)} ${passed ? '✅' : '❌'}
+                    </div>
+                `;
+                testDiv.innerHTML += html;
+            } catch (e) {
+                failCount++;
+                testDiv.innerHTML += `
+                    <div class="test fail">
+                        <strong>${test.desc}</strong><br/>
+                        ERROR: ${e.message} ❌
+                    </div>
+                `;
+            }
+        });
+
+        // Test formatBrasilValue
+        console.log('\n🎨 Testing Format Functions...');
+        const formatTests = [
+            { input: 8411.33, expected: '8.411,33' },
+            { input: 0.01, expected: '0,01' },
+            { input: 1.00, expected: '1,00' },
+            { input: 123.45, expected: '123,45' },
+            { input: 1234.56, expected: '1.234,56' },
+        ];
+
+        formatTests.forEach(test => {
+            try {
+                const result = formatBrasilValue(test.input);
+                const passed = result === test.expected;
+
+                if (passed) passCount++;
+                else failCount++;
+
+                const html = `
+                    <div class="test ${passed ? 'pass' : 'fail'}">
+                        <strong>Format: ${test.input} → ${test.expected}</strong><br/>
+                        Got: ${result} ${passed ? '✅' : '❌'}
+                    </div>
+                `;
+                testDiv.innerHTML += html;
+            } catch (e) {
+                failCount++;
+                testDiv.innerHTML += `
+                    <div class="test fail">
+                        <strong>Format: ${test.input}</strong><br/>
+                        ERROR: ${e.message} ❌
+                    </div>
+                `;
+            }
+        });
+
+        // Summary
+        const summary = `
+            <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border: 2px solid #0066cc;">
+                <h2>Summary</h2>
+                <p>✅ Passed: ${passCount}</p>
+                <p>❌ Failed: ${failCount}</p>
+                <p><strong>${passCount + failCount} / ${passCount + failCount} tests</strong></p>
+            </div>
+        `;
+        testDiv.innerHTML += summary;
+
+        console.log(`✅ ${passCount} tests passed`);
+        console.log(`❌ ${failCount} tests failed`);
+    </script>
+</body>
+</html>
