@@ -2169,10 +2169,12 @@
             console.log('👁️ Watcher: período do Dashboard mudou!');
             console.log('  Antigo:', oldVal);
             console.log('  Novo:', newVal);
-            // 🔄 Sincronizar com Histórico
+            // 🔄 Sincronizar com Histórico (data + categoria)
             this.filtroHistorico.dataInicio = newVal.dataInicio;
             this.filtroHistorico.dataFim = newVal.dataFim;
-            console.log('🔄 Histórico sincronizado com Dashboard');
+            this.filtroHistorico.categoria = '';  // Resetar filtro de categoria
+            this.filtroHistorico.filtroPreset = newVal.filtroPreset;  // Sincronizar preset também
+            console.log('🔄 Histórico sincronizado com Dashboard (data + categoria zerada)');
             this.atualizarPeriodo();
           },
           deep: true
@@ -2182,10 +2184,11 @@
             console.log('👁️ Watcher: período do Histórico mudou!');
             console.log('  Antigo:', oldVal);
             console.log('  Novo:', newVal);
-            // 🔄 Sincronizar com Dashboard
+            // 🔄 Sincronizar com Dashboard APENAS as datas (categoria fica independente no Histórico)
             this.periodo.dataInicio = newVal.dataInicio;
             this.periodo.dataFim = newVal.dataFim;
-            console.log('🔄 Dashboard sincronizado com Histórico');
+            this.periodo.filtroPreset = newVal.filtroPreset;
+            console.log('🔄 Dashboard sincronizado com Histórico (datas)');
             this.atualizarPeriodo();
           },
           deep: true
@@ -2416,7 +2419,10 @@
           this.aplicarFiltroPresetHistorico('ultimos30');
           this.filtroHistorico.categoria = '';
           this.paginacao.paginaAtual = 1;
-          console.log('🔄 Filtros histórico limpos (volta para últimos 30 dias)');
+          // 🔄 Sincronizar Dashboard quando limpar filtros
+          this.periodo.filtroPreset = 'ultimos30';
+          this.aplicarFiltroPreset('ultimos30');
+          console.log('🔄 Filtros histórico limpos (Dashboard sincronizado)');
         },
 
         aplicarFiltroPresetHistorico(filtro) {
@@ -3204,9 +3210,19 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             : this.novaReceita.categoria;
 
           try {
+            // ✨ Normalizar total: suporta múltiplos formatos
+            let totalParaEnviar = this.novaReceita.total;
+            const apenasNumeros = totalParaEnviar.toString().replace(/\D/g, '');
+            const temSeparadores = /[.,]/.test(totalParaEnviar.toString());
+
+            // Se é SÓ NÚMEROS (puro), usar parser inteligente
+            if (apenasNumeros.length > 0 && !temSeparadores) {
+              totalParaEnviar = formatBrasilValue(parseValorInteligente(apenasNumeros));
+            }
+
             await api.criarFaturamento(
               this.novaReceita.data,
-              this.novaReceita.total,
+              totalParaEnviar,
               categoria,
               this.novaReceita.tipo,
               this.novaReceita.tipoDespesaId
@@ -3305,11 +3321,23 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               return;
             }
 
-            // Normalizar total: aceitar múltiplos formatos brasileiros
-            // "36.315,20" → 36315.20
-            // "36315,20" → 36315.20
-            // "36.315" → 36315
-            const totalNormalizado = parseBrasilValue(this.receitaEmEdicao.total);
+            // ✨ Normalizar total: suporta múltiplos formatos
+            // - Números puros: "841133" → 8411.33
+            // - Formato brasileiro: "8.411,33" → 8411.33
+            // - Sem separadores: "8411,33" → 8411.33
+            let totalNormalizado;
+            const apenasNumeros = this.receitaEmEdicao.total.toString().replace(/\D/g, '');
+            const temSeparadores = /[.,]/.test(this.receitaEmEdicao.total.toString());
+
+            // Se é SÓ NÚMEROS (puro), usar parser inteligente
+            if (apenasNumeros.length > 0 && !temSeparadores) {
+              totalNormalizado = parseValorInteligente(apenasNumeros);
+            }
+            // Se tem separadores, usar parser brasileiro
+            else {
+              let limpo = this.receitaEmEdicao.total.toString().replace(/[^0-9.,]/g, '');
+              totalNormalizado = parseBrasilValue(limpo);
+            }
 
             if (!totalNormalizado || totalNormalizado <= 0) {
               alert('❌ Total deve ser maior que zero');
@@ -3413,64 +3441,62 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           });
         },
 
-        // 🎯 Formatar valor enquanto digita (como Conta Azul)
-        formatarValorInput() {
-          let valor = this.novaReceita.total;
+        // 🎯 Formatar valor enquanto digita (estilo Conta Azul - INTELIGENTE)
+        formatarValorInput($event) {
+          // ✅ Usar event.target.value em vez de this.novaReceita.total
+          // porque @input dispara ANTES do v-model atualizar a data
+          let valor = $event.target.value;
 
           if (!valor) return;
 
-          // Remover tudo que não é número, ponto ou vírgula
-          let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+          // ✨ Verificar se é só números (novo smart behavior)
+          const apenasNumeros = valor.toString().replace(/\D/g, '');
+          const temSeparadores = /[.,]/.test(valor.toString());
 
-          // Remover múltiplas vírgulas/pontos
-          let pontos = (limpo.match(/\./g) || []).length;
-          let virgulas = (limpo.match(/,/g) || []).length;
+          let parsedValue;
 
-          // Se tem vírgula, assume formato brasileiro
-          if (virgulas > 0) {
-            // Remover pontos (são milhar)
-            limpo = limpo.replace(/\./g, '');
-            // Deixar a vírgula
-          } else if (pontos > 1) {
-            // Múltiplos pontos = usar o último como decimal
-            const partes = limpo.split('.');
-            limpo = partes.slice(0, -1).join('') + '.' + partes[partes.length - 1];
+          // Se é SÓ NÚMEROS (sem ponto ou vírgula), usar parser inteligente
+          if (apenasNumeros.length > 0 && !temSeparadores) {
+            parsedValue = parseValorInteligente(apenasNumeros);
+          }
+          // Se tem separadores (ponto ou vírgula), usar parser brasileiro
+          else {
+            let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+            parsedValue = parseBrasilValue(limpo);
           }
 
           // Aplicar formatação visual
-          const parsedValue = parseBrasilValue(limpo);
-          if (!isNaN(parsedValue)) {
+          if (!isNaN(parsedValue) && parsedValue > 0) {
             this.novaReceita.total = formatBrasilValue(parsedValue);
           }
         },
 
-        // 🎯 Formatar valor no modal de edição
-        formatarValorEdicao() {
-          let valor = this.receitaEmEdicao.total;
+        // 🎯 Formatar valor no modal de edição (estilo Conta Azul - INTELIGENTE)
+        formatarValorEdicao($event) {
+          // ✅ Usar event.target.value em vez de this.receitaEmEdicao.total
+          // porque @input dispara ANTES do v-model atualizar a data
+          let valor = $event.target.value;
 
           if (!valor) return;
 
-          // Remover tudo que não é número, ponto ou vírgula
-          let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+          // ✨ Verificar se é só números (novo smart behavior)
+          const apenasNumeros = valor.toString().replace(/\D/g, '');
+          const temSeparadores = /[.,]/.test(valor.toString());
 
-          // Remover múltiplas vírgulas/pontos
-          let pontos = (limpo.match(/\./g) || []).length;
-          let virgulas = (limpo.match(/,/g) || []).length;
+          let parsedValue;
 
-          // Se tem vírgula, assume formato brasileiro
-          if (virgulas > 0) {
-            // Remover pontos (são milhar)
-            limpo = limpo.replace(/\./g, '');
-            // Deixar a vírgula
-          } else if (pontos > 1) {
-            // Múltiplos pontos = usar o último como decimal
-            const partes = limpo.split('.');
-            limpo = partes.slice(0, -1).join('') + '.' + partes[partes.length - 1];
+          // Se é SÓ NÚMEROS (sem ponto ou vírgula), usar parser inteligente
+          if (apenasNumeros.length > 0 && !temSeparadores) {
+            parsedValue = parseValorInteligente(apenasNumeros);
+          }
+          // Se tem separadores (ponto ou vírgula), usar parser brasileiro
+          else {
+            let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+            parsedValue = parseBrasilValue(limpo);
           }
 
           // Aplicar formatação visual
-          const parsedValue = parseBrasilValue(limpo);
-          if (!isNaN(parsedValue)) {
+          if (!isNaN(parsedValue) && parsedValue > 0) {
             this.receitaEmEdicao.total = formatBrasilValue(parsedValue);
           }
         },
