@@ -218,7 +218,7 @@
 
         <!-- Seletor de Período (Dropdown) -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
-          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📅 Selecione o Período</h3>
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">Selecione o Período</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: flex-start;">
             <!-- Dropdown Menu (como Conta Azul) -->
             <div>
@@ -272,43 +272,43 @@
 
             <!-- Mostrar período atual selecionado -->
             <div style="grid-column: span 2; padding: 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 0.9rem; color: var(--text-secondary);">
-              📅 Período: <strong style="color: var(--text-primary);">{{ periodo.dataInicio }}</strong> a <strong style="color: var(--text-primary);">{{ periodo.dataFim }}</strong>
+              Período: <strong style="color: var(--text-primary);">{{ periodo.dataInicio }}</strong> a <strong style="color: var(--text-primary);">{{ periodo.dataFim }}</strong>
             </div>
           </div>
         </div>
 
         <!-- KPIs Gerais -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
-          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 24px;">📊 Indicadores de Performance</h3>
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 24px;">Indicadores de Performance</h3>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
             <!-- Receita -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">💰 Total Receita</p>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Total Receita</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.totalReceita) }}</p>
             </div>
             <!-- Despesa -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">💸 Total Despesa</p>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Total Despesa</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.totalDespesa) }}</p>
             </div>
             <!-- Líquido -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📈 Total Líquido</p>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Total Líquido</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">R$ {{ formatarValor(stats.totalLiquido) }}</p>
             </div>
             <!-- Média Receita -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Receita</p>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Média Receita</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.mediaReceita) }}</p>
             </div>
             <!-- Média Despesa -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Despesa</p>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Média Despesa</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
             </div>
             <!-- Dias -->
             <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📅 Dias</p>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Dias</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">{{ stats?.dias || 0 }}</p>
             </div>
           </div>
@@ -317,15 +317,15 @@
         <!-- KPIs por Categoria -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0;">🏷️ Performance por Categoria</h3>
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0;">Performance por Categoria</h3>
             <div style="display: flex; gap: 8px; align-items: center;">
               <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Filtrar:</label>
               <select v-model="filtroCategoria" @change="atualizarFiltroCategoria" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; min-width: 150px;">
-                <option value="">✨ Todas</option>
-                <option value="Salão">🍽️ Salão</option>
-                <option value="iFood">🍔 iFood</option>
-                <option value="Keeta">🥘 Keeta</option>
-                <option value="99Food">🚗 99Food</option>
+                <option value="">Todas</option>
+                <option value="Salão">Salão</option>
+                <option value="iFood">iFood</option>
+                <option value="Keeta">Keeta</option>
+                <option value="99Food">99Food</option>
               </select>
             </div>
           </div>
@@ -349,7 +349,7 @@
               <div style="space-y: 8px;">
                 <!-- Receita -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <span style="font-size: 0.85rem; color: var(--success);">💰 Receita:</span>
+                  <span style="font-size: 0.85rem; color: var(--success);">Receita:</span>
                   <span style="font-size: 0.9rem; font-weight: 600; color: var(--success);">R$ {{ formatarValor(cat.totalReceita) }}</span>
                 </div>
 
@@ -357,7 +357,7 @@
                 <template v-if="cat.categoria !== 'Salão'">
                   <!-- Taxa Plataforma (iFood, Keeta, 99Food) -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.8rem;">
-                    <span style="color: #F59E0B;">🏷️ Taxa:</span>
+                    <span style="color: #F59E0B;">Taxa:</span>
                     <span style="font-weight: 600; color: #F59E0B;">R$ {{ formatarValor(cat.totalTaxas || 0) }}</span>
                   </div>
 
@@ -369,7 +369,7 @@
 
                   <!-- Despesas Alocadas -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 0.8rem;">
-                    <span style="color: var(--error);">📊 Desp.:</span>
+                    <span style="color: var(--error);">Desp.:</span>
                     <span style="font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesasAlocadas || 0) }}</span>
                   </div>
                 </template>
@@ -377,14 +377,14 @@
                 <!-- Para Salão: mostrar apenas Despesa Total -->
                 <template v-else>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.85rem; color: var(--error);">💸 Desp.:</span>
+                    <span style="font-size: 0.85rem; color: var(--error);">Desp.:</span>
                     <span style="font-size: 0.9rem; font-weight: 600; color: var(--error);">R$ {{ formatarValor(cat.totalDespesa) }}</span>
                   </div>
                 </template>
 
                 <!-- Líquido = Receita - Taxa - Despesa -->
                 <div style="border-top: 1px solid var(--border); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">💚 Líquido:</span>
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">Líquido:</span>
                   <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">
                     R$ {{
                       formatarValor(
@@ -412,7 +412,7 @@
         <div style="margin-top: 48px; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid var(--border);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0;">
-              📋 Auditoria de Alocação de Despesas
+              Auditoria de Alocação de Despesas
             </h3>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
               <button
@@ -1130,7 +1130,7 @@
 
         <!-- Gráfico Mensal - INLINE -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
-          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">📊 Receitas vs Despesas por Dia</h3>
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">Receitas vs Despesas por Dia</h3>
           <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
               <div>
@@ -1170,8 +1170,8 @@
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
                 <select v-model="novaReceita.tipo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="receita">💰 Receita</option>
-                  <option value="despesa">💸 Despesa</option>
+                  <option value="receita">Receita</option>
+                  <option value="despesa">Despesa</option>
                 </select>
               </div>
 
@@ -1341,7 +1341,7 @@
 
             <!-- Aplicar Regras às Pendentes -->
             <div class="mb-6 pt-4 border-t border-gray-200">
-              <p class="text-sm font-semibold text-gray-700 mb-3">🤖 Aplicar Regras Automáticas</p>
+              <p class="text-sm font-semibold text-gray-700 mb-3">Aplicar Regras Automáticas</p>
               <p class="text-xs text-gray-500 mb-3">Categoriza automaticamente notas com fornecedores cadastrados em Regras</p>
               <div class="flex gap-2">
                 <button
@@ -1421,7 +1421,7 @@
             <!-- 🔍 PHASE 4: Validation Report Section -->
             <div class="mb-6 pt-4 border-t border-gray-200">
               <div class="flex justify-between items-center mb-3">
-                <p class="text-sm font-semibold text-gray-700">📊 Relatório de Importação</p>
+                <p class="text-sm font-semibold text-gray-700">Relatório de Importação</p>
                 <button
                   @click="carregarValidacaoImportacao"
                   :disabled="carregandoValidacao"
@@ -1548,7 +1548,7 @@
 
             <!-- Histórico de Notas Fiscais Processadas -->
             <div class="mb-4">
-              <h4 class="font-semibold text-gray-800 mb-3">📋 Histórico de Notas ({{ notasPendentes.length }})</h4>
+              <h4 class="font-semibold text-gray-800 mb-3">Histórico de Notas ({{ notasPendentes.length }})</h4>
               <div v-if="notasPendentes.length === 0" class="text-center py-4 text-gray-500">
                 Nenhuma nota no histórico
               </div>
@@ -1751,13 +1751,13 @@
           <!-- Tabela -->
           <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
             <div class="mb-6">
-              <h3 class="text-lg font-bold text-gray-900 mb-4">📊 Histórico</h3>
+              <h3 class="text-lg font-bold text-gray-900 mb-4">Histórico</h3>
 
               <!-- Filtros -->
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <!-- Período (Dropdown) -->
                 <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Período</label>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Período</label>
                   <select
                     v-model="filtroHistorico.filtroPreset"
                     @change="aplicarFiltroPresetHistorico"
@@ -1797,7 +1797,7 @@
 
                 <!-- Categoria (mantém como está) -->
                 <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">🏷️ Categoria</label>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Categoria</label>
                   <select
                     v-model="filtroHistorico.categoria"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1824,11 +1824,11 @@
                 <!-- Resumo -->
                 <div class="flex gap-6 text-sm">
                   <div>
-                    <span class="text-gray-600">💰 Receitas (R$)</span>
+                    <span class="text-gray-600">Receitas (R$)</span>
                     <p class="text-lg font-bold text-green-600">{{ formatarValor(resumoFiltrado.totalReceita) }}</p>
                   </div>
                   <div>
-                    <span class="text-gray-600">💸 Despesas (R$)</span>
+                    <span class="text-gray-600">Despesas (R$)</span>
                     <p class="text-lg font-bold text-red-600">-{{ formatarValor(resumoFiltrado.totalDespesa) }}</p>
                   </div>
                   <div>
@@ -1858,7 +1858,7 @@
                     <td class="px-4 py-2">{{ formatarData(r.data) }}</td>
                     <td class="px-4 py-2">
                       <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{'bg-green-200 text-green-800': r.tipo === 'receita', 'bg-red-200 text-red-800': r.tipo === 'despesa'}">
-                        {{ r.tipo === 'receita' ? '💰 Receita' : '💸 Despesa' }}
+                        {{ r.tipo === 'receita' ? 'Receita' : 'Despesa' }}
                       </span>
                     </td>
                     <td class="px-4 py-2">
@@ -2014,13 +2014,13 @@
     <!-- Modal: Data para Processamento de Nota (Simplificado) -->
     <div v-if="mostrarSugestaoData" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-lg p-6 w-96">
-        <h3 class="text-lg font-bold text-gray-900 mb-2">📅 Data do Lançamento</h3>
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Data do Lançamento</h3>
         <p class="text-sm text-gray-600 mb-4">{{ sugestaoData.fornecedor }}</p>
 
         <div class="space-y-4">
           <!-- Data de Vencimento (leitura) -->
           <div v-if="sugestaoData.data_vencimento" class="bg-gray-50 p-3 rounded">
-            <label class="block text-xs font-medium text-gray-600 mb-1">📅 Vencimento:</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Vencimento:</label>
             <input
               :value="sugestaoData.data_vencimento?.split('T')[0]"
               type="date"
@@ -2082,7 +2082,7 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">💰 Valor</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
             <input
               v-model="receitaEmEdicao.total"
               type="text"
@@ -2093,18 +2093,18 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">🏷️ Categoria</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
             <select v-model="receitaEmEdicao.categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="Todos (Grupo)">📊 Todos (Grupo)</option>
-              <option value="Salão">🍽️ Salão</option>
-              <option value="iFood">🍔 iFood</option>
-              <option value="Keeta">🥘 Keeta</option>
-              <option value="99Food">🚗 99Food</option>
+              <option value="Todos (Grupo)">Todos (Grupo)</option>
+              <option value="Salão">Salão</option>
+              <option value="iFood">iFood</option>
+              <option value="Keeta">Keeta</option>
+              <option value="99Food">99Food</option>
             </select>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">📊 Tipo</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
             <select v-model="receitaEmEdicao.tipo" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="receita">Receita</option>
               <option value="despesa">Despesa</option>
@@ -2113,7 +2113,7 @@
 
           <!-- Campo: Tipo de Despesa (apenas para despesas) -->
           <div v-if="receitaEmEdicao.tipo === 'despesa'">
-            <label class="block text-sm font-medium text-gray-700 mb-2">🏷️ Tipo de Despesa</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Despesa</label>
             <select
               v-model.number="receitaEmEdicao.tipoDespesaId"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -3084,7 +3084,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
         async atualizarPeriodo() {
           console.log('🔄 ====== ATUALIZAR PERÍODO ======');
-          console.log('📅 Período selecionado:', {
+          console.log('Período selecionado:', {
             dataInicio: this.periodo.dataInicio,
             dataFim: this.periodo.dataFim,
             tipoInicio: typeof this.periodo.dataInicio,
@@ -4629,7 +4629,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         }
 
         console.log('🚀 ====== APP CARREGADO ======');
-        console.log('📅 Período inicial:');
+        console.log('Período inicial:');
         console.log('  dataInicio:', this.periodo.dataInicio);
         console.log('  dataFim:', this.periodo.dataFim);
 
