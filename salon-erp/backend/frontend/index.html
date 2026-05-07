@@ -280,36 +280,36 @@
         <!-- KPIs Gerais -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
           <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 24px;">Indicadores de Performance</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
             <!-- Receita -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Total Receita</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.totalReceita) }}</p>
+            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--success); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Receita</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0;">R$ {{ formatarValor(stats.totalReceita) }}</p>
             </div>
             <!-- Despesa -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Total Despesa</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.totalDespesa) }}</p>
+            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--error); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Despesa</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(stats.totalDespesa) }}</p>
             </div>
             <!-- Líquido -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Total Líquido</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">R$ {{ formatarValor(stats.totalLiquido) }}</p>
+            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--info); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Líquido</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--info); margin: 0;">R$ {{ formatarValor(stats.totalLiquido) }}</p>
             </div>
             <!-- Média Receita -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--success);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Média Receita</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats.mediaReceita) }}</p>
+            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--success); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Média Receita</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0;">R$ {{ formatarValor(stats.mediaReceita) }}</p>
             </div>
             <!-- Média Despesa -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Média Despesa</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
+            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--error); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Média Despesa</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
             </div>
             <!-- Dias -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">Dias</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">{{ stats?.dias || 0 }}</p>
+            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--info); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Dias</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--info); margin: 0;">{{ stats?.dias || 0 }}</p>
             </div>
           </div>
         </div>
