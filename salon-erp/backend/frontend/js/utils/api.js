@@ -4,9 +4,19 @@ const API_BASE = window.location.origin + '/api';
 
 const api = {
   // GET /api/faturamentos
-  listarFaturamentos(days = 30) {
+  listarFaturamentos(days = 30, forceRefresh = false) {
     let url = `${API_BASE}/faturamentos?days=${days}`;
-    return axios.get(url);
+    // Adicionar timestamp para forçar atualização (evitar cache)
+    if (forceRefresh) {
+      url += `&t=${Date.now()}`;
+    }
+    return axios.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   },
 
   // POST /api/faturamentos

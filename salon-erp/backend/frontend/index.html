@@ -3052,10 +3052,10 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           }
         },
 
-        async carregarReceitas() {
+        async carregarReceitas(forceRefresh = false) {
           try {
-            console.log('📥 [carregarReceitas] Buscando dados da API (365 dias)...');
-            const response = await api.listarFaturamentos(365);
+            console.log(`📥 [carregarReceitas] Buscando dados da API (365 dias)${forceRefresh ? ' - FORÇA REFRESH' : ''}...`);
+            const response = await api.listarFaturamentos(365, forceRefresh);
 
             if (response.data.success) {
               console.log(`📊 [carregarReceitas] Recebido ${response.data.data.length} registros do banco`);
@@ -3329,9 +3329,22 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               tipoDespesaId  // Enviar tipo_despesa_id como número
             );
 
+            console.log('✅ API respondeu sucesso');
+
             this.mostrarModalEdicao = false;
             this.receitaEmEdicao = null;
-            await this.atualizarPeriodo();
+
+            // 🔄 Forçar recarregamento completo dos dados (com força refresh para evitar cache)
+            console.log('🔄 Recarregando dados do banco...');
+            await this.carregarReceitas(true);
+
+            // 📊 Recarregar stats do Dashboard também
+            console.log('📊 Recarregando stats...');
+            await this.carregarStats();
+            await this.carregarStatsPorCategoria();
+            await this.carregarTaxasPlataforma();
+
+            console.log('✅ Todos os dados recarregados');
             alert('✅ Lançamento atualizado com sucesso!');
           } catch (error) {
             console.error('❌ Erro ao atualizar:', error);
