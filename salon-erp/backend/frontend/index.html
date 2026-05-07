@@ -1978,10 +1978,64 @@
   </div>
 
   <script src="js/utils/api.js"></script>
-  <script src="js/utils/numberParser.js"></script>
   <!-- Carregando componentes Vue -->
   <script src="js/components/GraficoMensal.vue.js?v=2"></script>
   <script src="js/components/GraficoTendencia.vue.js?v=2"></script>
+
+  <!-- ✅ FUNÇÕES DE PARSER (INLINE para garantir carregamento) -->
+  <script>
+    // Parser de números em formato brasileiro
+    function parseBrasilValue(input) {
+      if (typeof input === 'number') return input;
+      if (typeof input !== 'string') return parseFloat(input);
+
+      let str = input.toString().trim();
+      if (str === '' || str === null) return 0;
+
+      if (str.includes('.') && str.includes(',')) {
+        str = str.replace(/\./g, '');
+        str = str.replace(/,/g, '.');
+      } else if (str.includes(',')) {
+        str = str.replace(/,/g, '.');
+      }
+
+      const result = parseFloat(str);
+      return isNaN(result) ? 0 : result;
+    }
+
+    // Formatar número para exibição em formato brasileiro
+    function formatBrasilValue(value, decimals = 2) {
+      if (typeof value !== 'number') value = parseFloat(value);
+      if (isNaN(value)) return '0,00';
+
+      const fixed = value.toFixed(decimals);
+      const parts = fixed.split('.');
+      const intPart = parts[0];
+      const decPart = parts[1] || '00';
+      const intFormatted = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+      return `${intFormatted},${decPart}`;
+    }
+
+    // Parser inteligente (Conta Azul style)
+    function parseValorInteligente(input) {
+      let numeros = input.toString().replace(/\D/g, '');
+      if (numeros.length === 0) return 0;
+
+      if (numeros.length <= 2) {
+        numeros = '0' + numeros.padStart(2, '0');
+      }
+
+      const centavos = numeros.slice(-2);
+      const reais = numeros.slice(0, -2) || '0';
+      const valor = parseFloat(reais + '.' + centavos);
+
+      return valor;
+    }
+
+    console.log('✅ Funções de parser carregadas: parseValorInteligente, parseBrasilValue, formatBrasilValue');
+  </script>
+
   <script>
     console.log('🔄 ===== VERSÃO ATUALIZADA v3 - TESTE SEM COMPONENTES =====');
     const { createApp, nextTick } = Vue;
