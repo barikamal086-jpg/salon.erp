@@ -94,3 +94,42 @@ function isValidBrasilNumber(input) {
     return false;
   }
 }
+
+/**
+ * ✨ PARSER INTELIGENTE (estilo Conta Azul)
+ * Usuário digita apenas números, sistema interpreta automaticamente
+ * Últimos 2 dígitos = centavos, resto = reais
+ *
+ * Exemplos:
+ * - "841133" → 8411.33 (R$ 8.411,33)
+ * - "3631520" → 36315.20 (R$ 36.315,20)
+ * - "363152" → 3631.52 (R$ 3.631,52)
+ * - "100" → 1.00 (R$ 1,00)
+ * - "1" → 0.01 (R$ 0,01)
+ * - "0" → 0.00 (R$ 0,00)
+ */
+function parseValorInteligente(input) {
+  // Extrair apenas dígitos
+  let numeros = input.toString().replace(/\D/g, '');
+
+  if (numeros.length === 0) {
+    return 0;
+  }
+
+  // Se tem menos de 3 dígitos, assume que são centavos
+  // "1" → "0.01", "12" → "0.12"
+  if (numeros.length <= 2) {
+    numeros = '0' + numeros.padStart(2, '0');
+  }
+
+  // Últimos 2 dígitos = centavos
+  const centavos = numeros.slice(-2);
+
+  // Resto = reais (ou "0" se ficou vazio)
+  const reais = numeros.slice(0, -2) || '0';
+
+  // Combinar: "reais.centavos"
+  const valor = parseFloat(reais + '.' + centavos);
+
+  return valor;
+}

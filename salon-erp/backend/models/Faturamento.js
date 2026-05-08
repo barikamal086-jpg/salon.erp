@@ -206,7 +206,7 @@ class Faturamento {
         COUNT(DISTINCT data) as dias,
         COUNT(*) as totalEntradas
       FROM faturamento
-      WHERE data >= ? AND data <= ?
+      WHERE data >= ? AND data <= ? AND status = false
     `;
     let params = [dataInicio, dataFim];
 
@@ -226,7 +226,7 @@ class Faturamento {
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as receita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as despesa
       FROM faturamento
-      WHERE data >= ? AND data <= ?
+      WHERE data >= ? AND data <= ? AND status = false
     `;
     let params = [dataInicio, dataFim];
 
@@ -260,7 +260,7 @@ class Faturamento {
         COUNT(DISTINCT CASE WHEN tipo = 'despesa' THEN data ELSE NULL END) as diasDespesa,
         COUNT(*) as totalEntradas
       FROM faturamento
-      WHERE data >= ? AND data <= ?
+      WHERE data >= ? AND data <= ? AND status = false
     `;
 
     const params = [dataFim, dataInicio, dataFim, dataInicio, dataFim, dataInicio, dataInicio, dataFim];
@@ -288,7 +288,7 @@ class Faturamento {
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalTaxasReais
       FROM faturamento
-      WHERE data >= ? AND data <= ?
+      WHERE data >= ? AND data <= ? AND status = false
     `;
 
     const params = [dataInicio, dataFim];
@@ -313,7 +313,7 @@ class Faturamento {
     const despesaSalaoQuery = `
       SELECT COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa
       FROM faturamento
-      WHERE data >= ? AND data <= ? AND categoria = 'Salão'
+      WHERE data >= ? AND data <= ? AND categoria = 'Salão' AND status = false
     `;
     const despesaSalao = await getAsync(despesaSalaoQuery, [dataInicio, dataFim]);
     const totalDespesaSalao = parseFloat(despesaSalao.totalDespesa || 0);
