@@ -8,6 +8,7 @@ class Faturamento {
     let sql = `
       SELECT * FROM faturamento
       WHERE data >= CURRENT_DATE - INTERVAL '${days} days'
+      AND status = false
     `;
     let params = [];
 
