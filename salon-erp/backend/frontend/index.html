@@ -4438,25 +4438,23 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                 if (this.graficoMensalChart) this.graficoMensalChart.destroy();
                 const ctx = canvas.getContext('2d');
                 this.graficoMensalChart = new window.Chart(ctx, {
-                  type: 'line',
+                  type: 'bar',
                   data: {
                     labels: diasDoMes,
                     datasets: [{
                       label: 'Receitas (R$)',
                       data: receitas,
-                      borderColor: '#16A34A',
-                      backgroundColor: 'rgba(22, 163, 74, 0.1)',
-                      tension: 0.4,
-                      fill: true,
-                      pointRadius: 4
+                      backgroundColor: '#16A34A',
+                      borderColor: '#15803D',
+                      borderWidth: 1,
+                      borderRadius: 4
                     }, {
                       label: 'Despesas (R$)',
                       data: despesas,
-                      borderColor: '#DC2626',
-                      backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                      tension: 0.4,
-                      fill: true,
-                      pointRadius: 4
+                      backgroundColor: '#DC2626',
+                      borderColor: '#991B1B',
+                      borderWidth: 1,
+                      borderRadius: 4
                     }]
                   },
                   options: {
@@ -4474,6 +4472,9 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                             return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                           }
                         }
+                      },
+                      x: {
+                        stacked: false
                       }
                     }
                   }
