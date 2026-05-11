@@ -284,7 +284,7 @@
             <!-- Receita -->
             <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--success); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
               <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Receita</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0;">R$ {{ formatarValor(stats.totalReceita) }}</p>
+              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ {{ formatarValor(stats.totalReceita) }}</p>
             </div>
             <!-- Despesa -->
             <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--error); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
@@ -345,10 +345,10 @@
             >
               <!-- Cabeçalho com nome do canal -->
               <div :style="{
-                'background': cat.categoria === 'Salão' ? 'var(--salao)' :
-                            cat.categoria === 'iFood' ? 'var(--ifood)' :
-                            cat.categoria === '99Food' ? 'var(--99food)' :
-                            cat.categoria === 'Keeta' ? 'var(--keeta)' : 'var(--primary)',
+                'background': cat.categoria === 'Salão' ? '#166534' :
+                            cat.categoria === 'iFood' ? '#991B1B' :
+                            cat.categoria === '99Food' ? '#92400E' :
+                            cat.categoria === 'Keeta' ? '#5B21B6' : 'var(--primary)',
                 'color': 'white',
                 'padding': '16px',
                 'font-size': '1.1rem',
@@ -382,7 +382,7 @@
                   <!-- Despesas Alocadas -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Despesa</span>
-                    <span style="font-size: 0.9rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(cat.totalDespesasAlocadas || 0) }}</span>
+                    <span style="font-size: 0.9rem; font-weight: 700;" :style="{ color: (cat.totalDespesasAlocadas || 0) === 0 ? '#9CA3AF' : 'var(--error)' }">R$ {{ formatarValor(cat.totalDespesasAlocadas || 0) }}</span>
                   </div>
                 </template>
 
@@ -390,7 +390,7 @@
                 <template v-else>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Despesa</span>
-                    <span style="font-size: 0.9rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(cat.totalDespesa) }}</span>
+                    <span style="font-size: 0.9rem; font-weight: 700;" :style="{ color: cat.totalDespesa === 0 ? '#9CA3AF' : 'var(--error)' }">R$ {{ formatarValor(cat.totalDespesa) }}</span>
                   </div>
                 </template>
 
