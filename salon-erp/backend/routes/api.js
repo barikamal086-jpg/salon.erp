@@ -1752,21 +1752,39 @@ router.post('/tipo-despesa', async (req, res) => {
   try {
     const { classificacao, subcategoria, descricao } = req.body;
 
-    if (!classificacao || !subcategoria) {
+    console.log('🔍 POST /tipo-despesa:', { classificacao, subcategoria, descricao });
+
+    // Validação: Classificação obrigatória
+    if (!classificacao || classificacao.trim() === '') {
+      console.warn('❌ Classificação vazia ou não fornecida');
       return res.status(400).json({
         success: false,
-        error: 'Classificação e Subcategoria são obrigatórios'
+        error: 'Classificação é obrigatória. Selecione: CMV, Operacional, Administrativa ou Financeira'
       });
     }
 
+    // Validação: Subcategoria obrigatória
+    if (!subcategoria || subcategoria.trim() === '') {
+      console.warn('❌ Subcategoria vazia ou não fornecida');
+      return res.status(400).json({
+        success: false,
+        error: 'Nome da Categoria é obrigatório'
+      });
+    }
+
+    // Validação: Classificação válida
     if (!['CMV', 'Operacional', 'Administrativa', 'Financeira'].includes(classificacao)) {
+      console.warn(`❌ Classificação inválida: ${classificacao}`);
       return res.status(400).json({
         success: false,
-        error: 'Classificação inválida'
+        error: `Classificação inválida: "${classificacao}". Use: CMV, Operacional, Administrativa ou Financeira`
       });
     }
 
+    console.log(`✅ Criando categoria: ${subcategoria} (${classificacao})`);
     const result = await TipoDespesa.criar(classificacao, subcategoria, descricao || '');
+
+    console.log(`✅ Categoria criada com ID: ${result.id}`);
 
     res.status(201).json({
       success: true,
@@ -1780,6 +1798,7 @@ router.post('/tipo-despesa', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('❌ Erro ao criar categoria:', error.message);
     res.status(400).json({
       success: false,
       error: error.message

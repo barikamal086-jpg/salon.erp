@@ -3367,12 +3367,23 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         async criarNovaCategoria() {
-          if (!this.novaCategoria.classificacao || !this.novaCategoria.subcategoria) {
-            alert('Preencha Classificação e Nome da Categoria');
+          if (!this.novaCategoria.classificacao || this.novaCategoria.classificacao.trim() === '') {
+            alert('❌ Selecione uma Classificação (CMV, Operacional, Administrativa ou Financeira)');
+            return;
+          }
+
+          if (!this.novaCategoria.subcategoria || this.novaCategoria.subcategoria.trim() === '') {
+            alert('❌ Preencha o Nome da Categoria');
             return;
           }
 
           try {
+            console.log('📝 Enviando: ', {
+              classificacao: this.novaCategoria.classificacao,
+              subcategoria: this.novaCategoria.subcategoria,
+              descricao: this.novaCategoria.descricao
+            });
+
             const response = await api.criarTipoDespesa(
               this.novaCategoria.classificacao,
               this.novaCategoria.subcategoria,
@@ -3380,6 +3391,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             );
 
             if (response.data.success) {
+              console.log('✅ Categoria criada:', response.data);
               // Recarregar tipos de despesa
               await this.carregarTiposDespesa();
               // Atualizar subcategorias
@@ -3388,10 +3400,16 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               this.novaReceita.tipoDespesaId = response.data.id;
               // Fechar modal
               this.fecharModalNovaCategoria();
+              // Limpar form
+              this.novaCategoria = { classificacao: '', subcategoria: '', descricao: '' };
               alert('✅ Categoria criada com sucesso!');
+            } else {
+              alert('❌ Erro: ' + (response.data.error || 'Erro desconhecido'));
             }
           } catch (error) {
-            alert('Erro ao criar categoria: ' + error.message);
+            console.error('❌ Erro ao criar categoria:', error);
+            const mensagem = error.response?.data?.error || error.message;
+            alert('❌ Erro ao criar categoria:\n\n' + mensagem);
           }
         },
 
