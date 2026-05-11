@@ -77,12 +77,26 @@ const api = {
 
   // GET /api/faturamentos/stats-categoria
   obterStatsPorCategoria(from, to) {
-    return axios.get(`${API_BASE}/faturamentos/stats-categoria?from=${from}&to=${to}`);
+    let url = `${API_BASE}/faturamentos/stats-categoria?from=${from}&to=${to}&t=${Date.now()}`;
+    return axios.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   },
 
   // GET /api/faturamentos/despesas-alocadas
   obterDespesasAlocadas(from, to) {
-    return axios.get(`${API_BASE}/faturamentos/despesas-alocadas?from=${from}&to=${to}`);
+    let url = `${API_BASE}/faturamentos/despesas-alocadas?from=${from}&to=${to}&t=${Date.now()}`;
+    return axios.get(url, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
   },
 
   // GET /api/faturamentos/auditoria-alocacao
