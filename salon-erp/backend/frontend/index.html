@@ -3109,9 +3109,22 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             // Carregar despesas alocadas
             const despesasResponse = await api.obterDespesasAlocadas(this.periodo.dataInicio, this.periodo.dataFim);
 
+            // ✅ Validação robusta: verificar se responses existem e têm data
+            if (!response || !response.data) {
+              console.error('❌ Response vazio ao carregar stats por categoria');
+              return;
+            }
+            if (!despesasResponse || !despesasResponse.data) {
+              console.error('❌ Response vazio ao carregar despesas alocadas');
+              return;
+            }
+
             if (response.data.success && despesasResponse.data.success) {
-              const stats = response.data.data;
-              const despesasAlocadas = despesasResponse.data.data;
+              const stats = response.data.data || [];
+              const despesasAlocadas = despesasResponse.data.data || [];
+
+              console.log('📊 Stats recebido:', stats.length, 'registros');
+              console.log('💰 Despesas alocadas recebido:', despesasAlocadas.length, 'registros');
 
               // Criar mapa de despesas alocadas por categoria
               const despesasMap = {};
@@ -3137,9 +3150,15 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
               console.log('✅ Stats com despesas alocadas:', this.statsPorCategoria);
               this.atualizarFiltroCategoria();
+            } else {
+              console.error('❌ API retornou success=false', {
+                statsSuccess: response.data.success,
+                despesasSuccess: despesasResponse.data.success
+              });
             }
           } catch (error) {
-            console.error('Erro ao carregar stats por categoria:', error);
+            console.error('❌ Erro ao carregar stats por categoria:', error);
+            console.error('📋 Detalhes:', error.response?.data || error.message);
           }
         },
 
