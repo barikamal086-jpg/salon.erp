@@ -3613,6 +3613,9 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
             console.log('✅ API respondeu sucesso');
 
+            // ✅ CAPTURAR DATA ANTES DE SETAR NULL (para verificar período depois)
+            const dataEditada = this.receitaEmEdicao?.data;
+
             this.mostrarModalEdicao = false;
             this.receitaEmEdicao = null;
 
@@ -3631,7 +3634,6 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             await nextTick();
 
             // ⚠️ Se a data foi alterada, ajustar período do Dashboard para incluir a nova data
-            const dataEditada = this.receitaEmEdicao?.data || this.receitaEmEdicao.data;
             if (dataEditada && (dataEditada < this.periodo.dataInicio || dataEditada > this.periodo.dataFim)) {
               console.warn(`⚠️ Data ${dataEditada} FORA do período [${this.periodo.dataInicio}, ${this.periodo.dataFim}]`);
               console.log('🔄 Ajustando período do Dashboard para incluir a data do lançamento...');
