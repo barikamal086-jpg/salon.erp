@@ -147,4 +147,64 @@ router.get('/faturamentos-period', async (req, res) => {
   }
 });
 
+// GET /debug/despesas-alocadas - Verificar cálculo de taxas por categoria (DEBUG iFood)
+router.get('/despesas-alocadas', async (req, res) => {
+  try {
+    const from = req.query.from || '2026-05-01';
+    const to = req.query.to || '2026-05-13';
+
+    console.log(`\n🔍 DEBUG /despesas-alocadas: Testando cálculo de taxas`);
+    console.log(`   Período: ${from} a ${to}`);
+
+    // Chamar a função que calcula as despesas alocadas
+    const resultado = await Faturamento.obterDespesasAlocadas(from, to);
+
+    console.log('\n📊 Resultado de obterDespesasAlocadas():');
+    console.log(resultado);
+
+    // Também fazer uma query RAW para comparar
+    console.log('\n🔍 Query RAW por categoria (status=false):');
+    const rawResult = await pool.query(`
+      SELECT
+        categoria,
+        COUNT(*) as total_registros,
+        COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
+        COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa
+      FROM faturamento
+      WHERE data >= $1 AND data <= $2 AND status = false
+      GROUP BY categoria
+      ORDER BY categoria
+    `, [from, to]);
+
+    console.log('Raw result:');
+    rawResult.rows.forEach(row => {
+      console.log(`   ${row.categoria}: receita=R$ ${row.totalReceita}, despesa=R$ ${row.totalDespesa}, registros=${row.total_registros}`);
+    });
+
+    // Despesas do Salão (usadas para alocar)
+    console.log('\n🔍 Despesas do Salão (para alocar):');
+    const salaoResult = await pool.query(`
+      SELECT
+        COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa
+      FROM faturamento
+      WHERE data >= $1 AND data <= $2 AND categoria = 'Salão' AND status = false
+    `, [from, to]);
+    console.log(`   Salão despesa total: R$ ${salaoResult.rows[0].totalDespesa}`);
+
+    res.json({
+      success: true,
+      periodo: { from, to },
+      despesasAlocadas: resultado,
+      queryRaw: rawResult.rows,
+      despesaSalao: salaoResult.rows[0]
+    });
+  } catch (err) {
+    console.error('❌ Erro:', err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
 module.exports = router;
