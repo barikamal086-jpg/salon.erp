@@ -19,6 +19,9 @@ const {
   deleteLimiter
 } = require('./middleware/rateLimiter');
 
+// Error Handling - Erros estruturados e descritivos
+const { errorHandler } = require('./utils/errorHandler');
+
 const app = express();
 const PORT = process.env.PORT || 5006;
 
@@ -60,13 +63,8 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// Tratamento de erros 404
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Rota não encontrada'
-  });
-});
+// 🚨 MIDDLEWARE DE ERROR HANDLING (DEVE SER O ÚLTIMO)
+app.use(errorHandler);
 
 // Iniciar servidor com timeout aumentado para uploads grandes
 const server = app.listen(PORT, '0.0.0.0', () => {
