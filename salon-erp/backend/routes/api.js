@@ -14,6 +14,16 @@ const { gerarToken, verificarSenha, buscarUsuarioPorEmail, middlewareAutenticaca
 const { pool } = require('../database');
 const xlsx = require('xlsx');
 
+// Rate Limiting
+const {
+  loginLimiter,
+  uploadLimiter,
+  createLimiter,
+  updateLimiter,
+  deleteLimiter,
+  refreshTokenLimiter
+} = require('../middleware/rateLimiter');
+
 // Configurar multer para upload de arquivos (XML, PDF, Excel)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -147,7 +157,7 @@ async function checkIntelligentDuplicate(client, dados, hoursWindow = 24) {
 // ============================================
 
 // POST /api/auth/login
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', loginLimiter, (req, res) => {
   try {
     const { email, senha } = req.body;
 
@@ -233,7 +243,7 @@ router.get('/faturamentos', async (req, res) => {
 
 // POST /api/faturamentos - Criar novo faturamento (receita ou despesa)
 // Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
-router.post('/faturamentos', async (req, res) => {
+router.post('/faturamentos', createLimiter, async (req, res) => {
   try {
     const { data, total, categoria, tipo = 'receita', tipo_despesa_id, categoria_produto = 'Comida' } = req.body;
 
@@ -283,7 +293,7 @@ router.post('/faturamentos', async (req, res) => {
 
 // PUT /api/faturamentos/:id - Atualizar faturamento
 // Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
-router.put('/faturamentos/:id', async (req, res) => {
+router.put('/faturamentos/:id', updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { data, total, categoria, tipo, tipo_despesa_id } = req.body;
@@ -339,7 +349,7 @@ router.put('/faturamentos/:id', async (req, res) => {
 });
 
 // DELETE /api/faturamentos/:id - Deletar faturamento
-router.delete('/faturamentos/:id', async (req, res) => {
+router.delete('/faturamentos/:id', deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     console.log(`🗑️  [DELETE] Deletando faturamento ID: ${id}`);
@@ -1748,7 +1758,7 @@ router.get('/tipo-despesa/cmv', async (req, res) => {
 });
 
 // POST /api/tipo-despesa - Criar novo tipo de despesa
-router.post('/tipo-despesa', async (req, res) => {
+router.post('/tipo-despesa', createLimiter, async (req, res) => {
   try {
     const { classificacao, subcategoria, descricao } = req.body;
 
@@ -2004,7 +2014,7 @@ router.get('/notas-fiscais/:id', async (req, res) => {
 });
 
 // POST /api/diagnosticos/testar-xml - Testar extração de data de XML (DEBUG)
-router.post('/diagnosticos/testar-xml', upload.single('arquivo'), async (req, res) => {
+router.post('/diagnosticos/testar-xml', uploadLimiter, upload.single('arquivo'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -2050,7 +2060,7 @@ router.post('/diagnosticos/testar-xml', upload.single('arquivo'), async (req, re
 });
 
 // POST /api/notas-fiscais/upload - Fazer upload e processar notas fiscais (XML/PDF)
-router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res) => {
+router.post('/notas-fiscais/upload', uploadLimiter, upload.array('files', 100), async (req, res) => {
   try {
     // Aumentar timeout para esta requisição
     req.setTimeout(300000); // 5 minutos
@@ -2202,7 +2212,7 @@ router.post('/notas-fiscais/upload', upload.array('files', 100), async (req, res
 
 // POST /api/importar-conta-azul - Importar Excel Conta Azul como notas fiscais
 // Reutiliza a lógica existente de processamento de notas
-router.post('/importar-conta-azul', uploadExcel.single('arquivo'), async (req, res) => {
+router.post('/importar-conta-azul', uploadLimiter, uploadExcel.single('arquivo'), async (req, res) => {
   let client;
   try {
     console.log('\n📊 Importação Conta Azul iniciada (usando lógica de notas fiscais)');
@@ -2616,7 +2626,7 @@ router.post('/notas-fiscais/:id/processar', async (req, res) => {
 });
 
 // DELETE /api/notas-fiscais/:id - Deletar nota fiscal (apenas se pendente)
-router.delete('/notas-fiscais/:id', async (req, res) => {
+router.delete('/notas-fiscais/:id', deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -2760,7 +2770,7 @@ function extrairLista(texto) {
 
 // POST /api/processar-despesa-imagem - Processar despesa por imagem com Tesseract OCR
 // Body: { image: "base64string" }
-router.post('/processar-despesa-imagem', async (req, res) => {
+router.post('/processar-despesa-imagem', uploadLimiter, async (req, res) => {
   try {
     const { image } = req.body;
 

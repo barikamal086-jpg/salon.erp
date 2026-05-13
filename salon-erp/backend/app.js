@@ -7,6 +7,18 @@ require('./database'); // Inicializa o banco de dados
 const apiRoutes = require('./routes/api');
 const debugRoutes = require('./routes/debug');
 
+// Rate Limiting - Proteção contra DDoS e abuso
+const {
+  loginLimiter,
+  apiLimiter,
+  uploadLimiter,
+  debugLimiter,
+  refreshTokenLimiter,
+  createLimiter,
+  updateLimiter,
+  deleteLimiter
+} = require('./middleware/rateLimiter');
+
 const app = express();
 const PORT = process.env.PORT || 5006;
 
@@ -14,6 +26,9 @@ const PORT = process.env.PORT || 5006;
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+
+// 🔐 Rate Limiting Global - Protege contra abuso
+app.use(apiLimiter);
 
 // Servir frontend estático
 const frontendPath = path.join(__dirname, './frontend');

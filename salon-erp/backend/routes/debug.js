@@ -7,8 +7,11 @@ const router = express.Router();
 const { pool } = require('../database');
 const Faturamento = require('../models/Faturamento');
 
+// Rate Limiting para debug endpoints
+const { debugLimiter } = require('../middleware/rateLimiter');
+
 // GET /debug/database-status - Verificar status do banco de dados
-router.get('/database-status', async (req, res) => {
+router.get('/database-status', debugLimiter, async (req, res) => {
   try {
     console.log('\n🔍 DEBUG: Database Status');
 
@@ -69,7 +72,7 @@ router.get('/database-status', async (req, res) => {
 });
 
 // GET /debug/query - Simular a query do dashboard
-router.get('/query', async (req, res) => {
+router.get('/query', debugLimiter, async (req, res) => {
   try {
     const from = req.query.from || '2026-04-01';
     const to = req.query.to || '2026-04-30';
@@ -111,7 +114,7 @@ router.get('/query', async (req, res) => {
 });
 
 // GET /debug/faturamentos-period - Listar faturamentos de um período
-router.get('/faturamentos-period', async (req, res) => {
+router.get('/faturamentos-period', debugLimiter, async (req, res) => {
   try {
     const from = req.query.from || '2026-04-01';
     const to = req.query.to || '2026-04-30';
@@ -148,7 +151,7 @@ router.get('/faturamentos-period', async (req, res) => {
 });
 
 // GET /debug/despesas-alocadas - Verificar cálculo de taxas por categoria (DEBUG iFood)
-router.get('/despesas-alocadas', async (req, res) => {
+router.get('/despesas-alocadas', debugLimiter, async (req, res) => {
   try {
     const from = req.query.from || '2026-05-01';
     const to = req.query.to || '2026-05-13';
