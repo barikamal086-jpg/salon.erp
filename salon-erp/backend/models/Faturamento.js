@@ -282,6 +282,8 @@ class Faturamento {
 
   // Obter despesas separadas em Taxas (específicas) e Despesas Alocadas (compartilhadas)
   static async obterDespesasAlocadas(dataInicio, dataFim, restaurante = null) {
+    console.log(`🔍 [obterDespesasAlocadas] Período: ${dataInicio} a ${dataFim}`);
+
     // 1. Obter receitas e taxas reais (específicas de cada categoria)
     let sql = `
       SELECT
@@ -305,7 +307,10 @@ class Faturamento {
 
     sql += ` GROUP BY categoria`;
 
+    console.log(`📋 Query: ${sql}`, params);
+
     const stats = await allAsync(sql, params);
+    console.log(`✅ Resultado da query:`, stats);
 
     // 2. Calcular receita total
     const totalReceitaGeral = stats.reduce((sum, s) => sum + parseFloat(s.totalReceita || 0), 0);
