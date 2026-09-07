@@ -24,6 +24,9 @@ const {
   refreshTokenLimiter
 } = require('../middleware/rateLimiter');
 
+// Error Handling
+const { ErrorTypes, Validators } = require('../utils/errorHandler');
+
 // Configurar multer para upload de arquivos (XML, PDF, Excel)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -157,35 +160,28 @@ async function checkIntelligentDuplicate(client, dados, hoursWindow = 24) {
 // ============================================
 
 // POST /api/auth/login
-router.post('/auth/login', loginLimiter, (req, res) => {
+router.post('/auth/login', loginLimiter, (req, res, next) => {
   try {
     const { email, senha } = req.body;
 
-    if (!email || !senha) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email e senha são obrigatórios'
-      });
-    }
+    // Validações com novo error handler
+    Validators.requireFields({ email, senha }, ['email', 'senha']);
+    Validators.requireEmail(email);
 
+    // Buscar usuário
     const usuario = buscarUsuarioPorEmail(email);
-
     if (!usuario) {
       logger.warning(`Tentativa de login com email não registrado: ${email}`);
-      return res.status(401).json({
-        success: false,
-        error: 'Email ou senha inválidos'
-      });
+      throw ErrorTypes.UNAUTHORIZED('Email ou senha inválidos');
     }
 
+    // Verificar senha
     if (!verificarSenha(senha, usuario.senha_hash)) {
       logger.warning(`Tentativa de login com senha incorreta: ${email}`);
-      return res.status(401).json({
-        success: false,
-        error: 'Email ou senha inválidos'
-      });
+      throw ErrorTypes.UNAUTHORIZED('Email ou senha inválidos');
     }
 
+    // Gerar token e retornar
     const token = gerarToken(usuario);
     logger.success(`Login bem-sucedido: ${usuario.nome} (${usuario.email})`);
 
@@ -200,11 +196,7 @@ router.post('/auth/login', loginLimiter, (req, res) => {
       }
     });
   } catch (error) {
-    logger.error(`Erro ao fazer login: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao fazer login'
-    });
+    next(error);  // Passa para middleware de erro
   }
 });
 
@@ -243,39 +235,25 @@ router.get('/faturamentos', async (req, res) => {
 
 // POST /api/faturamentos - Criar novo faturamento (receita ou despesa)
 // Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
-router.post('/faturamentos', createLimiter, async (req, res) => {
+router.post('/faturamentos', createLimiter, async (req, res, next) => {
   try {
     const { data, total, categoria, tipo = 'receita', tipo_despesa_id, categoria_produto = 'Comida' } = req.body;
 
-    if (!data || !total) {
-      return res.status(400).json({
-        success: false,
-        error: 'Data e Total são obrigatórios'
-      });
-    }
+    // Validações com novo error handler
+    Validators.requireFields({ data, total, categoria },
+      ['data', 'total', 'categoria']);
 
-    if (!categoria) {
-      return res.status(400).json({
-        success: false,
-        error: 'Categoria é obrigatória'
-      });
+    Validators.requireDate(data);
+    Validators.requirePositive(total, 'total');
+    Validators.requireEnum(categoria, ['Salão', 'iFood', 'Keeta', '99Food'], 'categoria');
+    Validators.requireEnum(tipo, ['receita', 'despesa'], 'tipo');
+
+    // Validação condicional para despesas
+    if (tipo === 'despesa') {
+      Validators.requireType(tipo_despesa_id, 'number', 'tipo_despesa_id');
     }
 
     const tipoNormalizado = tipo.toLowerCase();
-    if (!['receita', 'despesa'].includes(tipoNormalizado)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Tipo deve ser "receita" ou "despesa"'
-      });
-    }
-
-    if (tipoNormalizado === 'despesa' && !tipo_despesa_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'tipo_despesa_id é obrigatório para despesas'
-      });
-    }
-
     const result = await Faturamento.criar(data, total, categoria, tipoNormalizado, tipo_despesa_id, categoria_produto);
 
     res.status(201).json({
@@ -284,16 +262,13 @@ router.post('/faturamentos', createLimiter, async (req, res) => {
       id: result.id
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    next(error);  // Passa para middleware de erro
   }
 });
 
 // PUT /api/faturamentos/:id - Atualizar faturamento
 // Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
-router.put('/faturamentos/:id', updateLimiter, async (req, res) => {
+router.put('/faturamentos/:id', updateLimiter, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { data, total, categoria, tipo, tipo_despesa_id } = req.body;
@@ -301,18 +276,16 @@ router.put('/faturamentos/:id', updateLimiter, async (req, res) => {
     console.log(`📝 [PUT] Editando faturamento ID: ${id}`);
     console.log(`   Dados recebidos:`, { data, total, categoria, tipo, tipo_despesa_id });
 
-    if (!total || !data || !categoria) {
-      return res.status(400).json({
-        success: false,
-        error: 'Data, Total e Categoria são obrigatórios'
-      });
-    }
+    // Validações com novo error handler
+    Validators.requireFields({ data, total, categoria },
+      ['data', 'total', 'categoria']);
 
-    if (tipo && !['receita', 'despesa'].includes(tipo.toLowerCase())) {
-      return res.status(400).json({
-        success: false,
-        error: 'Tipo deve ser "receita" ou "despesa"'
-      });
+    Validators.requireDate(data);
+    Validators.requirePositive(total, 'total');
+    Validators.requireEnum(categoria, ['Salão', 'iFood', 'Keeta', '99Food'], 'categoria');
+
+    if (tipo) {
+      Validators.requireEnum(tipo, ['receita', 'despesa'], 'tipo');
     }
 
     // Verificar se existe
@@ -341,15 +314,12 @@ router.put('/faturamentos/:id', updateLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error(`❌ Erro ao atualizar faturamento:`, error.message);
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    next(error);  // Passa para middleware de erro
   }
 });
 
 // DELETE /api/faturamentos/:id - Deletar faturamento
-router.delete('/faturamentos/:id', deleteLimiter, async (req, res) => {
+router.delete('/faturamentos/:id', deleteLimiter, async (req, res, next) => {
   try {
     const { id } = req.params;
     console.log(`🗑️  [DELETE] Deletando faturamento ID: ${id}`);
@@ -358,10 +328,7 @@ router.delete('/faturamentos/:id', deleteLimiter, async (req, res) => {
     const faturamento = await Faturamento.obter(id);
     if (!faturamento) {
       console.log(`❌ [DELETE] Faturamento ${id} não encontrado`);
-      return res.status(404).json({
-        success: false,
-        error: 'Faturamento não encontrado'
-      });
+      throw ErrorTypes.NOT_FOUND('Faturamento', id);
     }
 
     console.log(`✓ [DELETE] Encontrado:`, { id: faturamento.id, data: faturamento.data, total: faturamento.total });
@@ -376,9 +343,7 @@ router.delete('/faturamentos/:id', deleteLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error(`❌ [DELETE] ERRO:`, error.message);
-    res.status(400).json({
-      success: false,
-      error: error.message
+    next(error);  // Passa para middleware de erro
     });
   }
 });
