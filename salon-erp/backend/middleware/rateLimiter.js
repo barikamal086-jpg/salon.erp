@@ -15,10 +15,6 @@ const loginLimiter = rateLimit({
   },
   standardHeaders: true, // Retorna info de limite em `RateLimit-*` headers
   legacyHeaders: false, // Desabilita `X-RateLimit-*` headers
-  keyGenerator: (req, res) => {
-    // Rate limit por IP ou por user ID se autenticado
-    return req.body?.email || req.ip;
-  },
   skip: (req, res) => {
     // Skip em desenvolvimento
     return process.env.NODE_ENV === 'development';
