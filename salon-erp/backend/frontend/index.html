@@ -163,21 +163,7 @@
     <aside class="w-64" style="background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); position: fixed; height: 100vh; overflow-y: auto;">
       <!-- Logo -->
       <div style="padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center;">
-        <svg width="120" height="60" viewBox="0 0 120 60" style="margin: 0 auto 12px; display: block;">
-          <!-- Infinito com seta -->
-          <g>
-            <!-- Curva esquerda do infinito -->
-            <path d="M 20 30 Q 25 20 35 20 Q 45 20 50 30 Q 45 40 35 40 Q 25 40 20 30" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
-            <!-- Curva direita do infinito -->
-            <path d="M 50 30 Q 55 20 65 20 Q 75 20 80 30 Q 75 40 65 40 Q 55 40 50 30" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
-            <!-- Seta laranja -->
-            <g transform="translate(68, 22)">
-              <polygon points="0,0 5,8 10,0 7,4 12,4 12,2 7,2" fill="var(--accent)"/>
-            </g>
-          </g>
-        </svg>
-        <h1 style="font-size: 1.3rem; font-weight: 700; color: white; margin: 0; letter-spacing: 0.5px;">Caixa360</h1>
-        <p style="color: white; font-size: 0.65rem; margin-top: 4px; letter-spacing: 0.3px; font-weight: 600;">ERP GESTÃO RESTAURANTE & DELIVERY</p>
+        <img src="assets/logo-caixa360.jpg" alt="Caixa360" style="max-width: 100%; height: auto; border-radius: 8px;">
       </div>
 
       <!-- Menu -->
@@ -188,7 +174,7 @@
           style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
           :style="activeView === 'dashboard' ? 'background: rgba(255,255,255,0.15); border-left: 4px solid white; padding-left: 12px;' : ''"
         >
-          <i class="fas fa-chart-line mr-2"></i> Dashboard
+          <i class="fas fa-chart-line mr-2"></i> Visão Geral
         </div>
       </nav>
     </aside>
@@ -198,18 +184,9 @@
       <!-- Top Bar -->
       <div style="background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-bottom: 1px solid var(--border);">
         <div style="padding: 32px 16px; display: flex; justify-content: space-between; align-items: center;">
-          <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
-            Dashboard
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: #000000 !important;">
+            Visão Geral
           </h2>
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <span style="color: var(--text-secondary); font-weight: 500;">👤 {{ usuario?.nome }}</span>
-            <button @click="fazerLogout" style="padding: 8px 16px; background: var(--error); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 13l4-4m-4 4l4 4M16 9v10"></path>
-              </svg>
-              Sair
-            </button>
-          </div>
         </div>
       </div>
 
@@ -296,21 +273,6 @@
               <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Líquido</p>
               <p style="font-size: 2rem; font-weight: 800; color: var(--info); margin: 0;">R$ {{ formatarValor(stats.totalLiquido) }}</p>
             </div>
-            <!-- Média Receita -->
-            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--success); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Média Receita</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0;">R$ {{ formatarValor(stats.mediaReceita) }}</p>
-            </div>
-            <!-- Média Despesa -->
-            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--error); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Média Despesa</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(stats.mediaDespesa) }}</p>
-            </div>
-            <!-- Dias -->
-            <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--info); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Dias</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--info); margin: 0;">{{ stats?.dias || 0 }}</p>
-            </div>
           </div>
         </div>
 
@@ -322,7 +284,7 @@
               <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Filtrar:</label>
               <select v-model="filtroCategoria" @change="atualizarFiltroCategoria" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; min-width: 150px;">
                 <option value="">Todas</option>
-                <option value="Salão">Salão</option>
+                <option value="Salao">Salão</option>
                 <option value="iFood">iFood</option>
                 <option value="Keeta">Keeta</option>
                 <option value="99Food">99Food</option>
@@ -2096,7 +2058,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
             <select v-model="receitaEmEdicao.categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="Todos (Grupo)">Todos (Grupo)</option>
-              <option value="Salão">Salão</option>
+              <option value="Salao">Salão</option>
               <option value="iFood">iFood</option>
               <option value="Keeta">Keeta</option>
               <option value="99Food">99Food</option>
@@ -3455,15 +3417,28 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             : this.novaReceita.categoria;
 
           try {
-            // ✨ Normalizar total: suporta múltiplos formatos
+            // ✨ Normalizar total: converter formato brasileiro para número
             let totalParaEnviar = this.novaReceita.total;
-            const apenasNumeros = totalParaEnviar.toString().replace(/\D/g, '');
-            const temSeparadores = /[.,]/.test(totalParaEnviar.toString());
 
-            // Se é SÓ NÚMEROS (puro), usar parser inteligente
-            if (apenasNumeros.length > 0 && !temSeparadores) {
-              totalParaEnviar = formatBrasilValue(parseValorInteligente(apenasNumeros));
+            // Se é string (formatada), converter para número
+            if (typeof totalParaEnviar === 'string') {
+              // Remove espaços, depois converte: "1.348,32" → "1348.32"
+              totalParaEnviar = parseFloat(
+                totalParaEnviar
+                  .replace(/\s/g, '')        // Remove espaços
+                  .replace(/\./g, '')        // Remove pontos de milhar
+                  .replace(',', '.')         // Converte vírgula em ponto
+              );
             }
+            totalParaEnviar = parseFloat(totalParaEnviar);
+
+            console.log('📤 Enviando para API:', {
+              data: this.novaReceita.data,
+              total: totalParaEnviar,
+              tipo: typeof totalParaEnviar,
+              categoria: categoria,
+              tipo_receita: this.novaReceita.tipo
+            });
 
             await api.criarFaturamento(
               this.novaReceita.data,
@@ -3875,16 +3850,17 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
             const response = await api.enviarNotasFiscais(files);
 
-            if (response.data.success || response.data.data.length > 0) {
-              alert(`✅ ${response.data.data.length} nota(s) processada(s) com sucesso!`);
+            if (response.data.success) {
+              const qtd = response.data.data.processadas || response.data.data.detalhes.processadas.length;
+              alert(`✅ ${qtd} nota(s) processada(s) com sucesso!`);
 
               // Recarregar notas pendentes
               await this.carregarNotasPendentes();
 
               // Limpar input
               this.$refs.fileInput.value = '';
-            } else if (response.data.errors && response.data.errors.length > 0) {
-              alert(`⚠️ ${response.data.errors.length} erro(s) encontrado(s).\n${response.data.errors[0].erro}`);
+            } else if (response.data.data.erros > 0) {
+              alert(`⚠️ ${response.data.data.erros} erro(s) encontrado(s).\n${response.data.data.detalhes.erros[0].erro}`);
             }
           } catch (error) {
             console.error('Erro ao enviar notas:', error);
