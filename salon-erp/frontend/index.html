@@ -311,16 +311,6 @@
               <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Receita</p>
               <p style="font-size: 1.75rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(stats?.mediaReceita || 0) }}</p>
             </div>
-            <!-- Média Despesa -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--error);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📊 Média Despesa</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--error);">R$ {{ formatarValor(stats?.mediaDespesa || 0) }}</p>
-            </div>
-            <!-- Dias -->
-            <div style="border-radius: 8px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--info);">
-              <p style="color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; margin-bottom: 8px;">📅 Dias</p>
-              <p style="font-size: 1.75rem; font-weight: 700; color: var(--info);">{{ stats?.dias || 28 }}</p>
-            </div>
           </div>
         </div>
 
