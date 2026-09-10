@@ -344,7 +344,6 @@ router.delete('/faturamentos/:id', deleteLimiter, async (req, res, next) => {
   } catch (error) {
     console.error(`❌ [DELETE] ERRO:`, error.message);
     next(error);  // Passa para middleware de erro
-    });
   }
 });
 
