@@ -3150,16 +3150,19 @@ router.post('/processar-receita-imagem', uploadLimiter, async (req, res) => {
       const bruto = extrair99FoodBruto(textoBruto);
       const liquido = extrair99FoodLiquido(textoLiquido);
 
-      // Se a tela do Líquido trouxer mais de uma fatura semanal, usa a primeira como
-      // palpite — o usuário escolhe a certa na tela de confirmação (liquidoCandidatos)
-      const valorLiquido = liquido.candidatos.length > 0 ? liquido.candidatos[0].valor : 0;
+      // Se a tela do Líquido trouxer mais de uma fatura semanal, SOMA todas por padrão —
+      // o período livre do Bruto costuma atravessar mais de uma semana de faturamento, então
+      // o líquido correspondente é a soma das faturas daquele intervalo, não uma escolhida
+      // isoladamente. Usuário pode desmarcar alguma na tela de confirmação (liquidoCandidatos).
+      const candidatosComSelecao = liquido.candidatos.map(c => ({ ...c, selecionado: true }));
+      const valorLiquido = candidatosComSelecao.reduce((soma, c) => soma + c.valor, 0);
       const taxa = bruto.valorBruto > valorLiquido ? parseFloat((bruto.valorBruto - valorLiquido).toFixed(2)) : 0;
 
       dados = {
         canal: '99Food Loja 1', // usuário confirma/ajusta a loja (1 ou 2) na tela
         valorBruto: bruto.valorBruto,
         valorLiquido,
-        liquidoCandidatos: liquido.candidatos,
+        liquidoCandidatos: candidatosComSelecao,
         taxa,
         data: bruto.data, // SEMPRE do print do Bruto — data do Líquido é a do depósito, não da venda
         confianca: (bruto.confianca === 'media' && liquido.candidatos.length > 0) ? 'media' : 'baixa'
