@@ -284,10 +284,12 @@
               <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Filtrar:</label>
               <select v-model="filtroCategoria" @change="atualizarFiltroCategoria" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit; min-width: 150px;">
                 <option value="">Todas</option>
-                <option value="Salao">Salão</option>
-                <option value="iFood">iFood</option>
+                <option value="Salão">Salão</option>
+                <option value="iFood Loja 1">iFood Loja 1</option>
+                <option value="iFood Loja 2">iFood Loja 2</option>
+                <option value="99Food Loja 1">99Food Loja 1</option>
+                <option value="99Food Loja 2">99Food Loja 2</option>
                 <option value="Keeta">Keeta</option>
-                <option value="99Food">99Food</option>
               </select>
             </div>
           </div>
@@ -1904,6 +1906,61 @@
           </div>
         </div>
 
+        <!-- Lançamento por Canal (Receita Bruta + Taxa automática) -->
+        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border); margin-top: 24px;">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">🧾 Lançamento por Canal</h3>
+          <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 16px;">
+            Informe a Receita Bruta e a Receita Líquida do canal — o sistema calcula a Taxa (Bruto − Líquido) e lança os 2 registros automaticamente (Receita + Despesa de Taxa).
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end;">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">📅 Data</label>
+              <input v-model="lancamentoCanal.data" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Canal</label>
+              <select v-model="lancamentoCanal.canal" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Selecione um canal...</option>
+                <option v-for="canal in canaisDisponiveis" :key="canal" :value="canal">{{ canal }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Receita Bruta (R$)</label>
+              <input
+                v-model="lancamentoCanal.receitaBruta"
+                @input="formatarValorGenerico($event, lancamentoCanal, 'receitaBruta')"
+                type="text"
+                placeholder="0,00"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Receita Líquida (R$)</label>
+              <input
+                v-model="lancamentoCanal.receitaLiquida"
+                @input="formatarValorGenerico($event, lancamentoCanal, 'receitaLiquida')"
+                type="text"
+                placeholder="0,00"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+          <div v-if="taxaCalculadaCanal !== null" style="margin-top: 12px; padding: 10px 14px; background: #FEF3C7; border-radius: 8px; font-size: 0.9rem; color: #92400E; display: inline-block;">
+            💰 Taxa calculada: <strong>R$ {{ formatarValor(taxaCalculadaCanal) }}</strong>
+          </div>
+          <div>
+            <button
+              @click="salvarLancamentoCanal"
+              :disabled="salvandoLancamentoCanal"
+              style="margin-top: 16px; width: 100%; background: var(--primary); color: white; padding: 12px; border-radius: 6px; border: none; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              {{ salvandoLancamentoCanal ? 'Lançando...' : 'Lançar (Receita + Taxa)' }}
+            </button>
+          </div>
+        </div>
+
       </div>
 
 
@@ -2058,10 +2115,12 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
             <select v-model="receitaEmEdicao.categoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="Todos (Grupo)">Todos (Grupo)</option>
-              <option value="Salao">Salão</option>
-              <option value="iFood">iFood</option>
+              <option value="Salão">Salão</option>
+              <option value="iFood Loja 1">iFood Loja 1</option>
+              <option value="iFood Loja 2">iFood Loja 2</option>
+              <option value="99Food Loja 1">99Food Loja 1</option>
+              <option value="99Food Loja 2">99Food Loja 2</option>
               <option value="Keeta">Keeta</option>
-              <option value="99Food">99Food</option>
             </select>
           </div>
 
@@ -2245,7 +2304,7 @@
           statsPorCategoria: [],
           filtroCategoria: '',
           categoriasFiltradas: [],
-          categoriasDisponiveis: ['Todos (Grupo)', 'Salão', 'iFood', '99Food', 'Keeta'],
+          categoriasDisponiveis: ['Todos (Grupo)', 'Salão', 'iFood Loja 1', 'iFood Loja 2', '99Food Loja 1', '99Food Loja 2', 'Keeta'],
           // Auditoria de Alocação
           auditoriaAlocacao: null,
           auditoriaPeriodo: {
@@ -2274,6 +2333,15 @@
             classificacao: '',
             tipoDespesaId: null
           },
+          // Lançamento por Canal (Receita Bruta + Taxa automática)
+          canaisDisponiveis: ['Salão', 'iFood Loja 1', 'iFood Loja 2', '99Food Loja 1', '99Food Loja 2', 'Keeta'],
+          lancamentoCanal: {
+            data: getLocalDateISO(),
+            canal: '',
+            receitaBruta: '',
+            receitaLiquida: ''
+          },
+          salvandoLancamentoCanal: false,
           tiposDespesaAgrupados: {},
           subcategoriasDisponiveis: [],
           mostrarModalNovaCategoria: false,
@@ -2403,6 +2471,14 @@
       },
 
       computed: {
+        // Taxa calculada automaticamente no Lançamento por Canal (Bruto - Líquido)
+        taxaCalculadaCanal() {
+          const bruto = parseBrasilValue(this.lancamentoCanal.receitaBruta);
+          const liquido = parseBrasilValue(this.lancamentoCanal.receitaLiquida);
+          if (!bruto || !liquido) return null;
+          return bruto - liquido;
+        },
+
         // Categorias únicas do histórico
         categoriasUnicas() {
           const cats = [...new Set(this.receitas.map(r => r.categoria))];
@@ -3370,7 +3446,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             }
           } catch (error) {
             console.error('❌ Erro ao criar categoria:', error);
-            const mensagem = error.response?.data?.error || error.message;
+            const erroApi = error.response?.data?.error;
+            const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
             alert('❌ Erro ao criar categoria:\n\n' + mensagem);
           }
         },
@@ -3483,6 +3560,86 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             alert('✅ Lançamento adicionado com sucesso!');
           } catch (error) {
             alert('Erro ao salvar: ' + error.message);
+          }
+        },
+
+        // 🧾 Lançamento por Canal: cria Receita (Bruto) + Despesa (Taxa = Bruto - Líquido) numa transação
+        async salvarLancamentoCanal() {
+          if (!this.lancamentoCanal.data || !this.lancamentoCanal.canal) {
+            alert('❌ Preencha a Data e o Canal');
+            return;
+          }
+
+          const bruto = parseBrasilValue(this.lancamentoCanal.receitaBruta);
+          const liquido = parseBrasilValue(this.lancamentoCanal.receitaLiquida);
+
+          if (!bruto || bruto <= 0) {
+            alert('❌ Informe a Receita Bruta');
+            return;
+          }
+          if (!liquido || liquido <= 0) {
+            alert('❌ Informe a Receita Líquida');
+            return;
+          }
+          if (liquido > bruto) {
+            alert('❌ Receita Líquida não pode ser maior que a Receita Bruta');
+            return;
+          }
+
+          this.salvandoLancamentoCanal = true;
+          try {
+            const response = await api.lancarPorCanal(
+              this.lancamentoCanal.data,
+              this.lancamentoCanal.canal,
+              bruto,
+              liquido
+            );
+
+            const taxa = response.data?.data?.taxa ?? (bruto - liquido);
+            alert(`✅ Lançamento criado!\n\nCanal: ${this.lancamentoCanal.canal}\nReceita: R$ ${formatBrasilValue(bruto)}\nTaxa: R$ ${formatBrasilValue(taxa)}`);
+
+            // Resetar formulário (mantém a data para facilitar lançamentos em sequência)
+            const dataAnterior = this.lancamentoCanal.data;
+            this.lancamentoCanal = {
+              data: dataAnterior,
+              canal: '',
+              receitaBruta: '',
+              receitaLiquida: ''
+            };
+
+            console.log('🔄 [salvarLancamentoCanal] Recarregando dados...');
+            await this.atualizarPeriodo();
+            await nextTick();
+          } catch (error) {
+            console.error('❌ Erro ao lançar por canal:', error);
+            const erroApi = error.response?.data?.error;
+            const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
+            alert('❌ Erro ao lançar: ' + mensagem);
+          } finally {
+            this.salvandoLancamentoCanal = false;
+          }
+        },
+
+        // Formatar valor genérico (estilo Conta Azul - inteligente), usado no Lançamento por Canal
+        formatarValorGenerico($event, objeto, campo) {
+          let valor = $event.target.value;
+          if (!valor) return;
+
+          const apenasNumeros = valor.toString().replace(/\D/g, '');
+          const temPonto = valor.toString().includes('.');
+          const temVirgula = valor.toString().includes(',');
+          const temVirgulaNoPenultimo = /,\d{2}$/.test(valor.toString());
+
+          let parsedValue;
+          if ((temPonto && temVirgula) || (temVirgula && temVirgulaNoPenultimo)) {
+            let limpo = valor.toString().replace(/[^0-9.,]/g, '');
+            parsedValue = parseBrasilValue(limpo);
+          } else {
+            parsedValue = parseValorInteligente(apenasNumeros);
+          }
+
+          if (!isNaN(parsedValue) && parsedValue > 0) {
+            objeto[campo] = formatBrasilValue(parsedValue);
           }
         },
 
@@ -3647,7 +3804,9 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           } catch (error) {
             console.error('❌ Erro ao atualizar:', error);
             console.error('📋 Detalhes:', error.response?.data);
-            alert('❌ Erro ao atualizar: ' + (error.response?.data?.error || error.message));
+            const erroApi = error.response?.data?.error;
+            const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
+            alert('❌ Erro ao atualizar: ' + mensagem);
           }
         },
 
@@ -4561,7 +4720,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           }, 3000);
         } catch (error) {
           console.error('❌ Erro ao salvar regra:', error);
-          this.mensagemRegras = error.response?.data?.error || '❌ Erro ao salvar regra';
+          const erroApi = error.response?.data?.error;
+          this.mensagemRegras = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || '❌ Erro ao salvar regra';
           this.tipoMensagemRegras = 'erro';
         } finally {
           this.carregandoRegras = false;

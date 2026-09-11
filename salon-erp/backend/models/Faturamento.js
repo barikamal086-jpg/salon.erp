@@ -1,5 +1,6 @@
 const { runAsync, getAsync, allAsync } = require('../database');
 const { parseBrasilValue } = require('../utils/numberParser');
+const { SQL_TODOS_CANAIS, SQL_GRUPO_CANAL } = require('../utils/canais');
 
 class Faturamento {
   // Listar faturamentos (últimos N dias, opcionalmente filtrar por status e/ou categoria)
@@ -245,7 +246,7 @@ class Faturamento {
   static async obterStatsPorCategoria(dataInicio, dataFim, restaurante = null) {
     let sql = `
       SELECT
-        categoria,
+        ${SQL_GRUPO_CANAL} as categoria,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalDespesa,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) -
@@ -271,8 +272,8 @@ class Faturamento {
       sql += ` AND categoria = ?`;
       params.push(restaurante);
     } else {
-      // Senão, mostrar apenas as 4 categorias padrão
-      sql += ` AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')`;
+      // Senão, mostrar todos os canais (agrupados por marca: iFood e 99Food somam as 2 lojas)
+      sql += ` AND categoria IN (${SQL_TODOS_CANAIS})`;
     }
 
     sql += ` GROUP BY categoria ORDER BY totalLiquido DESC`;
@@ -287,7 +288,7 @@ class Faturamento {
     // 1. Obter receitas e taxas reais (específicas de cada categoria)
     let sql = `
       SELECT
-        categoria,
+        ${SQL_GRUPO_CANAL} as categoria,
         COALESCE(SUM(CASE WHEN tipo = 'receita' THEN total ELSE 0 END), 0) as totalReceita,
         COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN total ELSE 0 END), 0) as totalTaxasReais
       FROM faturamento
@@ -301,8 +302,8 @@ class Faturamento {
       sql += ` AND categoria = ?`;
       params.push(restaurante);
     } else {
-      // Senão, mostrar apenas as 4 categorias padrão
-      sql += ` AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')`;
+      // Senão, mostrar todos os canais (agrupados por marca: iFood e 99Food somam as 2 lojas)
+      sql += ` AND categoria IN (${SQL_TODOS_CANAIS})`;
     }
 
     sql += ` GROUP BY categoria`;
@@ -719,7 +720,7 @@ class Faturamento {
         SELECT
           COALESCE(categoria_produto, 'Comida') as categoria_produto,
           SUM(CASE WHEN categoria = 'Salão' THEN total ELSE 0 END) as salao_receita,
-          SUM(CASE WHEN categoria IN ('iFood', 'Keeta', '99Food') THEN total ELSE 0 END) as delivery_receita,
+          SUM(CASE WHEN categoria != 'Salão' THEN total ELSE 0 END) as delivery_receita,
           SUM(total) as total_receita
         FROM faturamento
         WHERE tipo = 'receita' AND data BETWEEN ? AND ? AND categoria_produto IS NOT NULL
@@ -814,52 +815,52 @@ class Faturamento {
     try {
       const canais = ['Salão', 'iFood', '99Food', 'Keeta'];
 
-      // Query 1: Receita total por canal
+      // Query 1: Receita total por canal (agrupado por marca: iFood/99Food somam as 2 lojas)
       const receitas = await allAsync(`
-        SELECT categoria, SUM(total) as receita_total
+        SELECT ${SQL_GRUPO_CANAL} as categoria, SUM(total) as receita_total
         FROM faturamento
         WHERE tipo = 'receita'
-          AND categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND categoria IN (${SQL_TODOS_CANAIS})
           AND data BETWEEN ? AND ?
         GROUP BY categoria
       `, [dataInicio, dataFim]);
 
       // Query 2: Taxas por canal (subcategoria = 'Taxas')
       const taxas = await allAsync(`
-        SELECT f.categoria, SUM(f.total) as total_taxas
+        SELECT ${SQL_GRUPO_CANAL.replace(/categoria/g, 'f.categoria')} as categoria, SUM(f.total) as total_taxas
         FROM faturamento f
         LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
         WHERE f.tipo = 'despesa'
-          AND f.categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
-          AND td.subcategoria = 'Taxas'
+          AND f.categoria IN (${SQL_TODOS_CANAIS})
+          AND TRIM(td.subcategoria) = 'Taxas'
           AND f.data BETWEEN ? AND ?
-        GROUP BY f.categoria
+        GROUP BY 1
       `, [dataInicio, dataFim]);
 
       // Query 3: CMV Bebidas (subcategoria = 'Bebida')
       const bebidas = await allAsync(`
-        SELECT f.categoria, SUM(f.total) as total_cmv_bebidas, COUNT(f.id) as qtd
+        SELECT ${SQL_GRUPO_CANAL.replace(/categoria/g, 'f.categoria')} as categoria, SUM(f.total) as total_cmv_bebidas, COUNT(f.id) as qtd
         FROM faturamento f
         LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
         WHERE f.tipo = 'despesa'
-          AND f.categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND f.categoria IN (${SQL_TODOS_CANAIS})
           AND td.classificacao = 'CMV'
           AND td.subcategoria = 'Bebida'
           AND f.data BETWEEN ? AND ?
-        GROUP BY f.categoria
+        GROUP BY 1
       `, [dataInicio, dataFim]);
 
       // Query 4: CMV Comida (demais subcategorias)
       const comidas = await allAsync(`
-        SELECT f.categoria, SUM(f.total) as total_cmv_comida, COUNT(f.id) as qtd
+        SELECT ${SQL_GRUPO_CANAL.replace(/categoria/g, 'f.categoria')} as categoria, SUM(f.total) as total_cmv_comida, COUNT(f.id) as qtd
         FROM faturamento f
         LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
         WHERE f.tipo = 'despesa'
-          AND f.categoria IN ('Salão', 'iFood', '99Food', 'Keeta')
+          AND f.categoria IN (${SQL_TODOS_CANAIS})
           AND td.classificacao = 'CMV'
           AND td.subcategoria != 'Bebida'
           AND f.data BETWEEN ? AND ?
-        GROUP BY f.categoria
+        GROUP BY 1
       `, [dataInicio, dataFim]);
 
       // Montar mapas

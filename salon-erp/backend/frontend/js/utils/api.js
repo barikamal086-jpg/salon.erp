@@ -44,6 +44,16 @@ const api = {
     return axios.post(`${API_BASE}/tipo-despesa`, { classificacao, subcategoria, descricao });
   },
 
+  // POST /api/faturamentos/lancamento-canal - Lançamento por canal (Receita Bruta + Taxa automática)
+  lancarPorCanal(data, canal, receitaBruta, receitaLiquida) {
+    return axios.post(`${API_BASE}/faturamentos/lancamento-canal`, {
+      data,
+      canal,
+      receitaBruta,
+      receitaLiquida
+    });
+  },
+
   // PUT /api/faturamentos/:id - Atualizar faturamento completo
   atualizarFaturamento(id, data, total, categoria, tipo, tipoDespesaId = null) {
     return axios.put(`${API_BASE}/faturamentos/${id}`, {

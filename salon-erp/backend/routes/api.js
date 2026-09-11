@@ -11,7 +11,7 @@ const CMVAnalyzerV2 = require('../utils/CMVAnalyzerV2');
 const ContaAzulMapper = require('../utils/ContaAzulMapper');
 const logger = require('../utils/logger');
 const { gerarToken, verificarSenha, buscarUsuarioPorEmail, middlewareAutenticacao } = require('../auth');
-const { pool } = require('../database');
+const { pool, allAsync, getAsync, runAsync } = require('../database');
 const xlsx = require('xlsx');
 
 // Rate Limiting
@@ -26,6 +26,10 @@ const {
 
 // Error Handling
 const { ErrorTypes, Validators } = require('../utils/errorHandler');
+
+// Canais de venda (Salão, iFood Loja 1/2, 99Food Loja 1/2, Keeta)
+const { TODOS_CANAIS, SQL_TODOS_CANAIS, SQL_GRUPO_CANAL, sqlGrupoCanal } = require('../utils/canais');
+const { parseBrasilValue } = require('../utils/numberParser');
 
 // Configurar multer para upload de arquivos (XML, PDF, Excel)
 const upload = multer({
@@ -245,7 +249,7 @@ router.post('/faturamentos', createLimiter, async (req, res, next) => {
 
     Validators.requireDate(data);
     Validators.requirePositive(total, 'total');
-    Validators.requireEnum(categoria, ['Salão', 'iFood', 'Keeta', '99Food'], 'categoria');
+    Validators.requireEnum(categoria, TODOS_CANAIS, 'categoria');
     Validators.requireEnum(tipo, ['receita', 'despesa'], 'tipo');
 
     // Validação condicional para despesas
@@ -282,7 +286,7 @@ router.put('/faturamentos/:id', updateLimiter, async (req, res, next) => {
 
     Validators.requireDate(data);
     Validators.requirePositive(total, 'total');
-    Validators.requireEnum(categoria, ['Salão', 'iFood', 'Keeta', '99Food'], 'categoria');
+    Validators.requireEnum(categoria, TODOS_CANAIS, 'categoria');
 
     if (tipo) {
       Validators.requireEnum(tipo, ['receita', 'despesa'], 'tipo');
@@ -315,6 +319,104 @@ router.put('/faturamentos/:id', updateLimiter, async (req, res, next) => {
   } catch (error) {
     console.error(`❌ Erro ao atualizar faturamento:`, error.message);
     next(error);  // Passa para middleware de erro
+  }
+});
+
+// POST /api/faturamentos/lancamento-canal - Lançamento por canal (Receita Bruta + Taxa automática)
+// Body: { data: "YYYY-MM-DD", canal: "iFood Loja 1", receitaBruta: 1000.00, receitaLiquida: 880.00 }
+// Cria 2 registros em faturamento numa única transação:
+//   1) Receita = receitaBruta,               tipo=receita, categoria=canal
+//   2) Despesa = receitaBruta - receitaLiquida (Taxa), tipo=despesa, categoria=canal,
+//      tipo_despesa = Financeira / Taxas
+router.post('/faturamentos/lancamento-canal', createLimiter, async (req, res, next) => {
+  const client = await pool.connect();
+  try {
+    const { data, canal, receitaBruta, receitaLiquida } = req.body;
+
+    console.log(`📝 [POST lancamento-canal] Canal: ${canal}, Bruto: ${receitaBruta}, Líquido: ${receitaLiquida}`);
+
+    Validators.requireFields({ data, canal, receitaBruta, receitaLiquida },
+      ['data', 'canal', 'receitaBruta', 'receitaLiquida']);
+    Validators.requireDate(data);
+    Validators.requireEnum(canal, TODOS_CANAIS, 'canal');
+
+    const bruto = parseBrasilValue(receitaBruta);
+    const liquido = parseBrasilValue(receitaLiquida);
+
+    Validators.requirePositive(bruto, 'receitaBruta');
+    if (liquido <= 0) {
+      throw ErrorTypes.INVALID_VALUE('receitaLiquida', liquido, ['número positivo']);
+    }
+    if (liquido > bruto) {
+      throw ErrorTypes.INVALID_VALUE('receitaLiquida', liquido, [`menor ou igual à Receita Bruta (${bruto})`]);
+    }
+
+    const taxa = parseFloat((bruto - liquido).toFixed(2));
+
+    await client.query('BEGIN');
+
+    // 1) Registro de receita (valor bruto)
+    const receitaResult = await client.query(
+      `INSERT INTO faturamento (data, total, categoria, tipo, status, created_at, updated_at)
+       VALUES ($1, $2, $3, 'receita', false, NOW(), NOW())
+       RETURNING id`,
+      [data, bruto, canal]
+    );
+    const receitaId = receitaResult.rows[0].id;
+
+    let despesaId = null;
+    if (taxa > 0) {
+      // Localizar tipo_despesa Financeira / Taxas (tolerante a espaço em branco na subcategoria)
+      const tipoDespesaTaxas = await client.query(
+        `SELECT id FROM tipo_despesa WHERE classificacao = 'Financeira' AND TRIM(subcategoria) = 'Taxas' LIMIT 1`
+      );
+
+      if (tipoDespesaTaxas.rows.length === 0) {
+        throw ErrorTypes.SERVER_ERROR(
+          'Tipo de despesa "Financeira / Taxas" não encontrado',
+          'Cadastre um tipo_despesa com classificacao=Financeira e subcategoria=Taxas'
+        );
+      }
+
+      const tipoDespesaId = tipoDespesaTaxas.rows[0].id;
+
+      // 2) Registro de despesa (Taxa = Bruto - Líquido)
+      const despesaResult = await client.query(
+        `INSERT INTO faturamento (data, total, categoria, tipo, tipo_despesa_id, status, created_at, updated_at)
+         VALUES ($1, $2, $3, 'despesa', $4, false, NOW(), NOW())
+         RETURNING id`,
+        [data, taxa, canal, tipoDespesaId]
+      );
+      despesaId = despesaResult.rows[0].id;
+    }
+
+    await client.query('COMMIT');
+
+    console.log(`✅ [POST lancamento-canal] Criados: receita id=${receitaId}, despesa(taxa) id=${despesaId || 'nenhuma (taxa=0)'}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Lançamento por canal criado com sucesso',
+      data: {
+        canal,
+        data,
+        receitaBruta: bruto,
+        receitaLiquida: liquido,
+        taxa,
+        receitaId,
+        despesaId
+      }
+    });
+  } catch (error) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('❌ Erro ao fazer rollback:', rollbackErr.message);
+    }
+    console.error(`❌ Erro em lancamento-canal:`, error.message);
+    next(error);
+  } finally {
+    client.release();
   }
 });
 
@@ -519,12 +621,13 @@ router.get('/faturamentos/auditoria-alocacao', async (req, res) => {
     console.log(`  📊 Despesas Salão encontradas: ${despesasSalao.length} linhas, Total: R$ ${totalDespesaSalao.toFixed(2)}`);
 
     // 2. Get revenues for each category (to calculate proportions)
+    // Agrupado por marca: iFood/99Food somam as 2 lojas de cada
     const receitas = await allAsync(`
-      SELECT categoria, SUM(total) as receita_total
+      SELECT ${SQL_GRUPO_CANAL} as categoria, SUM(total) as receita_total
       FROM faturamento
       WHERE data >= ? AND data <= ?
         AND tipo = 'receita'
-        AND categoria IN ('Salão', 'iFood', 'Keeta', '99Food')
+        AND categoria IN (${SQL_TODOS_CANAIS})
       GROUP BY categoria
     `, [from, to]);
 
@@ -3951,7 +4054,7 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
         SUM(f.total) as total
       FROM faturamento f
       LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
-      WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
+      WHERE f.categoria != 'Salão'
         AND f.data BETWEEN $1 AND $2
       GROUP BY f.categoria, f.tipo_despesa_id, td.subcategoria, td.classificacao
       ORDER BY f.categoria, td.subcategoria
@@ -3961,20 +4064,21 @@ router.get('/faturamentos/taxas-plataforma', async (req, res) => {
 
     // Query: Get all taxes from faturamento (where subcategoria contains 'Taxas')
     // Aceita: Taxas, Taxas Ifood, Taxas Keeta, Taxas 99Food, etc
+    // Agrupado por marca: iFood/99Food somam as 2 lojas de cada
     const query = `
       SELECT
-        f.categoria as plataforma,
+        ${sqlGrupoCanal('f.categoria')} as plataforma,
         SUM(f.total) as total_taxa,
         COUNT(*) as quantidade_registros,
         AVG(f.total) as media_taxa
       FROM faturamento f
       LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
-      WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
+      WHERE f.categoria != 'Salão'
         AND f.tipo = 'despesa'
         AND td.subcategoria ILIKE '%Taxas%'
         AND f.data BETWEEN $1 AND $2
-      GROUP BY f.categoria
-      ORDER BY f.categoria
+      GROUP BY 1
+      ORDER BY 1
     `;
 
     const result = await client.query(query, [from, to]);
@@ -4112,7 +4216,7 @@ router.get('/debug/todas-plataformas', async (req, res) => {
         td.classificacao
       FROM faturamento f
       LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
-      WHERE f.categoria IN ('iFood', 'Keeta', '99Food', 'Salão')
+      WHERE f.categoria IN (${SQL_TODOS_CANAIS})
         AND f.data BETWEEN $1 AND $2
       ORDER BY f.categoria, f.data DESC, f.tipo DESC
     `;
@@ -4224,7 +4328,7 @@ router.get('/debug/tipo-despesa', async (req, res) => {
         td.classificacao
       FROM faturamento f
       LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
-      WHERE f.categoria IN ('iFood', 'Keeta', '99Food')
+      WHERE f.categoria != 'Salão'
         AND f.data BETWEEN $1 AND $2
       ORDER BY f.categoria, f.tipo DESC
     `;
