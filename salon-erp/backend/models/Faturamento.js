@@ -276,7 +276,10 @@ class Faturamento {
       sql += ` AND categoria IN (${SQL_TODOS_CANAIS})`;
     }
 
-    sql += ` GROUP BY categoria ORDER BY totalLiquido DESC`;
+    // GROUP BY 1 (posicional) — NÃO usar "GROUP BY categoria": o Postgres resolve o nome
+    // pela coluna real da tabela (não pelo alias do CASE de SQL_GRUPO_CANAL), o que faz
+    // iFood/99Food Loja 1 e Loja 2 ficarem em grupos separados em vez de somados.
+    sql += ` GROUP BY 1 ORDER BY totalLiquido DESC`;
 
     return await allAsync(sql, params);
   }
@@ -306,7 +309,8 @@ class Faturamento {
       sql += ` AND categoria IN (${SQL_TODOS_CANAIS})`;
     }
 
-    sql += ` GROUP BY categoria`;
+    // GROUP BY 1 (posicional) — ver comentário em obterStatsPorCategoria
+    sql += ` GROUP BY 1`;
 
     console.log(`📋 Query: ${sql}`, params);
 
@@ -822,7 +826,7 @@ class Faturamento {
         WHERE tipo = 'receita'
           AND categoria IN (${SQL_TODOS_CANAIS})
           AND data BETWEEN ? AND ?
-        GROUP BY categoria
+        GROUP BY 1
       `, [dataInicio, dataFim]);
 
       // Query 2: Taxas por canal (subcategoria = 'Taxas')

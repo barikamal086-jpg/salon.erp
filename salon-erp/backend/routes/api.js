@@ -638,7 +638,7 @@ router.get('/faturamentos/auditoria-alocacao', async (req, res) => {
       WHERE data >= ? AND data <= ?
         AND tipo = 'receita'
         AND categoria IN (${SQL_TODOS_CANAIS})
-      GROUP BY categoria
+      GROUP BY 1
     `, [from, to]);
 
     const totalReceitaGeral = receitas.reduce((sum, r) => sum + parseFloat(r.receita_total || 0), 0);
