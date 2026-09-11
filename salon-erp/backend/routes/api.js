@@ -2846,75 +2846,166 @@ function extrairLista(texto) {
   return detalhes;
 }
 
-// Função auxiliar: identificar o canal (marca) a partir do texto OCR do print da plataforma.
-// Não é possível identificar QUAL loja (1 ou 2) pela imagem — retorna a Loja 1 como padrão
-// (iFood/99Food) e o usuário confirma/ajusta a loja na tela antes de salvar.
-function extrairCanalReceita(texto) {
+// ============================================================================
+// Extração de Receita por Foto — regras específicas por plataforma
+// (99Food, iFood, Keeta), calibradas a partir de prints reais de cada painel.
+// ============================================================================
+
+// Acha o primeiro valor em R$ que aparece DEPOIS de um rótulo no texto OCR.
+// Não exige que estejam na mesma linha: os painéis desenham o rótulo ACIMA do
+// valor em cards lado a lado, e o OCR nem sempre preserva a ordem por linha —
+// então procuramos numa janela de caracteres após a posição do rótulo.
+function valorAposLabel(texto, labels, janela = 250) {
   const textoLower = texto.toLowerCase();
+  const labelsArr = Array.isArray(labels) ? labels : [labels];
 
-  if (textoLower.includes('ifood')) return 'iFood Loja 1';
-  if (textoLower.includes('99food') || /\b99\s*food\b/.test(textoLower)) return '99Food Loja 1';
-  if (textoLower.includes('keeta')) return 'Keeta';
+  for (const label of labelsArr) {
+    const idx = textoLower.indexOf(label.toLowerCase());
+    if (idx === -1) continue;
 
-  return ''; // Não identificado — usuário seleciona manualmente
+    const trecho = texto.substring(idx, idx + label.length + janela);
+    const match = trecho.match(/-?\s*R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/i);
+    if (match) {
+      return parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+    }
+  }
+  return null;
 }
 
-// Função auxiliar: extrair Valor Bruto e Valor Líquido de um relatório de plataforma.
-// Estratégia: procurar valores em R$ perto de palavras-chave típicas de "bruto" (total de
-// vendas, faturamento) e "líquido" (repasse, a receber). Se não achar por palavra-chave,
-// usa os 2 maiores valores distintos da imagem (maior = bruto, menor = líquido) como fallback.
-function extrairValoresReceita(texto) {
-  const PALAVRAS_BRUTO = [
-    'total de vendas', 'vendas totais', 'faturamento', 'total bruto',
-    'valor bruto', 'total do período', 'total de pedidos', 'total geral', 'vendas'
-  ];
-  const PALAVRAS_LIQUIDO = [
-    'valor líquido', 'total líquido', 'líquido a receber', 'repasse',
-    'a receber', 'valor a receber', 'valor recebido', 'total a receber'
-  ];
+// Todos os valores em R$ do texto, na ordem em que aparecem (usado nos fallbacks)
+function todosOsValores(texto) {
+  const regex = /R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
+  const valores = [];
+  let m;
+  while ((m = regex.exec(texto)) !== null) {
+    const v = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
+    if (v > 0) valores.push(v);
+  }
+  return valores;
+}
 
-  const regexValor = /R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
-
-  let candidatoBruto = null;
-  let candidatoLiquido = null;
-  const todosValores = [];
-
+// Retorna, para cada linha do texto que contém valores em R$, a lista desses
+// valores (em ordem) — usado nos painéis "em cards lado a lado" (iFood, Keeta):
+// o OCR agrupa todos os RÓTULOS numa linha e todos os VALORES na linha
+// seguinte, então o pareamento certo é por POSIÇÃO na linha de valores, não
+// por proximidade de texto com o rótulo (que não é confiável nesse layout).
+function linhasComValores(texto) {
+  const regex = /-?\s*R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
+  const linhas = [];
   for (const linha of texto.split('\n')) {
-    const linhaLower = linha.toLowerCase();
-    const matches = [...linha.matchAll(regexValor)];
+    const matches = [...linha.matchAll(regex)];
     if (matches.length === 0) continue;
+    linhas.push(matches.map(m => parseFloat(m[1].replace(/\./g, '').replace(',', '.'))));
+  }
+  return linhas;
+}
 
-    for (const m of matches) {
-      const valor = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-      if (!(valor > 0)) continue;
-      todosValores.push(valor);
+// --- iFood: 1 print, waterfall "Valor das vendas → Taxas e comissões →
+// Serviços e promoções → Ajustes → Total faturamento". Líquido = "Total
+// faturamento" (a última linha — NÃO uma linha intermediária).
+// Os 5 valores saem juntos numa única linha do OCR, nessa ordem fixa —
+// Bruto é sempre o 1º, Líquido é sempre o último.
+function extrairIFood(texto) {
+  const linhas = linhasComValores(texto);
+  const linhaValores = linhas.find(l => l.length >= 5) || linhas[linhas.length - 1] || [];
 
-      const ehLiquido = PALAVRAS_LIQUIDO.some(p => linhaLower.includes(p));
-      const ehBruto = !ehLiquido && PALAVRAS_BRUTO.some(p => linhaLower.includes(p));
+  const bruto = linhaValores.length > 0 ? linhaValores[0] : null;
+  const liquido = linhaValores.length > 0 ? linhaValores[linhaValores.length - 1] : null;
+  const confianca = linhaValores.length >= 5 ? 'media' : 'baixa';
 
-      if (ehLiquido && candidatoLiquido === null) {
-        candidatoLiquido = valor;
-      } else if (ehBruto && candidatoBruto === null) {
-        candidatoBruto = valor;
-      }
+  return {
+    canal: 'iFood Loja 1', // usuário confirma/ajusta a loja (1 ou 2) na tela
+    valorBruto: bruto || 0,
+    valorLiquido: liquido || 0,
+    data: extrairData(texto),
+    confianca
+  };
+}
+
+// --- Keeta: 1 print, cascata em 2 níveis (cada nível é uma linha de cards):
+//   linha 1 (5 valores): Pagamento total = Ganhos + Compensação − Dedução
+//                        vale-refeição − Outros
+//   linha 2 (4 valores): Ganhos = Ganhos totais − Despesas − Taxa de serviço
+// Bruto = Ganhos totais (2º valor da linha 2). Líquido (p/ cálculo de taxa) =
+// Ganhos totais − Despesas − Taxa de serviço + Compensação. NÃO usa
+// "Pagamento total": a dedução de vale-refeição é recebida pelo lojista por
+// outro canal, não é taxa da plataforma.
+function extrairKeeta(texto) {
+  const linhas = linhasComValores(texto);
+  const linha1 = linhas.find(l => l.length === 5); // Pagamento total, Ganhos, Compensação, Dedução VR, Outros
+  const linha2 = linhas.find(l => l.length === 4); // Ganhos, Ganhos totais, Despesas, Taxa de serviço
+
+  let bruto = null;
+  let liquido = null;
+  let confianca = 'media';
+
+  if (linha2 && linha2.length === 4) {
+    const [, ganhosTotais, despesas, taxaServico] = linha2;
+    const compensacao = (linha1 && linha1.length === 5) ? linha1[2] : 0;
+    bruto = ganhosTotais;
+    liquido = ganhosTotais - despesas - taxaServico + compensacao;
+  } else {
+    confianca = 'baixa';
+    // Fallback: não reconheceu as 2 linhas de cascata -> chuta com os 2 maiores valores da imagem
+    const valores = [...new Set(todosOsValores(texto))].sort((a, b) => b - a);
+    if (bruto === null && valores.length > 0) bruto = valores[0];
+    if (liquido === null && valores.length > 1) liquido = valores[1];
+  }
+
+  // O painel da Keeta mostra um seletor de mês, ex: "09-2026"
+  const matchMes = texto.match(/\b(\d{2})-(\d{4})\b/);
+  const data = matchMes ? `${matchMes[2]}-${matchMes[1]}-01` : extrairData(texto);
+
+  return {
+    canal: 'Keeta',
+    valorBruto: bruto || 0,
+    valorLiquido: liquido || 0,
+    data,
+    confianca
+  };
+}
+
+// --- 99Food: Bruto e Líquido vêm de 2 TELAS SEPARADAS no painel (2 prints).
+// Bruto: "Renda total das vendas" + período livre no topo — essa é a data real
+// do lançamento. Líquido: aba Financeiro > Cobranças, lista de faturas
+// semanais — a data de cada linha é a DATA DO DEPÓSITO (não da venda), por
+// isso é sempre ignorada; só o valor importa.
+function extrair99FoodBruto(texto) {
+  const valores = todosOsValores(texto);
+  let bruto = valorAposLabel(texto, ['renda total das vendas', 'total de vendas']);
+  let confianca = 'media';
+  if (bruto === null) {
+    confianca = 'baixa';
+    if (valores.length > 0) bruto = valores[0];
+  }
+  return {
+    valorBruto: bruto || 0,
+    data: extrairData(texto), // sempre usado — data do print do Líquido é ignorada
+    confianca
+  };
+}
+
+function extrair99FoodLiquido(texto) {
+  // Cada linha da tabela de Cobranças: "... AAAA/MM/DD - AAAA/MM/DD ... R$ valor ..."
+  const regexLinha = /(\d{4}\/\d{2}\/\d{2})\s*-\s*(\d{4}\/\d{2}\/\d{2}).{0,80}?R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/g;
+  const candidatos = [];
+  let m;
+  while ((m = regexLinha.exec(texto)) !== null) {
+    candidatos.push({
+      periodo: `${m[1]} - ${m[2]}`,
+      valor: parseFloat(m[3].replace(/\./g, '').replace(',', '.'))
+    });
+  }
+
+  if (candidatos.length === 0) {
+    // Fallback: não reconheceu o formato "período + valor" -> usa o maior valor da imagem
+    const valores = todosOsValores(texto);
+    if (valores.length > 0) {
+      candidatos.push({ periodo: null, valor: Math.max(...valores) });
     }
   }
 
-  let confianca = 'media';
-
-  // Fallback: não achou os 2 por palavra-chave -> usar os 2 maiores valores distintos da imagem
-  if (candidatoBruto === null || candidatoLiquido === null) {
-    confianca = 'baixa';
-    const unicos = [...new Set(todosValores)].sort((a, b) => b - a);
-    if (candidatoBruto === null && unicos.length > 0) candidatoBruto = unicos[0];
-    if (candidatoLiquido === null && unicos.length > 1) candidatoLiquido = unicos[1];
-  }
-
-  return {
-    valorBruto: candidatoBruto || 0,
-    valorLiquido: candidatoLiquido || 0,
-    confianca
-  };
+  return { candidatos };
 }
 
 // POST /api/processar-despesa-imagem - Processar despesa por imagem com Tesseract OCR
@@ -2990,52 +3081,90 @@ router.post('/processar-despesa-imagem', uploadLimiter, async (req, res) => {
 });
 
 // POST /api/processar-receita-imagem - Processar receita por foto (relatório 99Food/iFood/Keeta) com Tesseract OCR
-// Body: { image: "base64string" }
-// Retorna canal identificado + Valor Bruto + Valor Líquido + Taxa (Bruto - Líquido) para confirmação.
+// Body: { plataforma: 'iFood' | '99Food' | 'Keeta', imagens: ["base64..."] }
+//   iFood / Keeta: 1 imagem (imagens[0]) — Bruto e Líquido já vêm juntos no mesmo print
+//   99Food: 2 imagens — imagens[0] = print do Bruto, imagens[1] = print do Líquido
+//           (são 2 telas separadas no painel da 99Food; a data usada é sempre a do Bruto)
+// Retorna canal + Valor Bruto + Valor Líquido + Taxa (Bruto - Líquido) para confirmação.
 // O lançamento em si (Receita + Despesa de Taxa) é feito via POST /api/faturamentos/lancamento-canal
 // depois que o usuário confirma/ajusta os valores na tela.
 router.post('/processar-receita-imagem', uploadLimiter, async (req, res) => {
   try {
-    const { image } = req.body;
+    const { plataforma, imagens } = req.body;
 
-    if (!image) {
+    if (!plataforma || !['iFood', '99Food', 'Keeta'].includes(plataforma)) {
       return res.json({
         success: false,
-        error: 'Imagem não fornecida'
+        error: 'Plataforma inválida. Use "iFood", "99Food" ou "Keeta".'
+      });
+    }
+    if (!Array.isArray(imagens) || imagens.length === 0 || !imagens[0]) {
+      return res.json({
+        success: false,
+        error: 'Nenhuma imagem fornecida'
       });
     }
 
-    logger.info('Processando imagem de receita com Tesseract OCR...');
+    logger.info(`Processando imagem(ns) de receita (${plataforma}) com Tesseract OCR...`);
 
-    // OCR com timeout defensivo — ver comentário do withTimeout
-    const resultado = await withTimeout(
-      Tesseract.recognize(
-        `data:image/png;base64,${image}`,
-        'por',
-        {
-          logger: m => logger.debug(`OCR Progress: ${m.status} ${Math.round(m.progress * 100)}%`)
-        }
-      ),
-      60000,
-      'Não foi possível ler a imagem (arquivo corrompido ou inválido?)'
-    );
+    // OCR de 1 imagem, com timeout defensivo — ver comentário do withTimeout
+    async function ocr(imageBase64) {
+      const resultado = await withTimeout(
+        Tesseract.recognize(
+          `data:image/png;base64,${imageBase64}`,
+          'por',
+          {
+            logger: m => logger.debug(`OCR Progress: ${m.status} ${Math.round(m.progress * 100)}%`)
+          }
+        ),
+        60000,
+        'Não foi possível ler a imagem (arquivo corrompido ou inválido?)'
+      );
+      return resultado.data.text;
+    }
 
-    const textoExtraido = resultado.data.text;
-    logger.debug('Texto extraído (receita): ' + textoExtraido.substring(0, 100) + '...');
+    let dados;
 
-    const canal = extrairCanalReceita(textoExtraido);
-    const { valorBruto, valorLiquido, confianca } = extrairValoresReceita(textoExtraido);
-    const data = extrairData(textoExtraido);
-    const taxa = valorBruto > valorLiquido ? parseFloat((valorBruto - valorLiquido).toFixed(2)) : 0;
+    if (plataforma === 'iFood') {
+      const texto = await ocr(imagens[0]);
+      const r = extrairIFood(texto);
+      const taxa = r.valorBruto > r.valorLiquido ? parseFloat((r.valorBruto - r.valorLiquido).toFixed(2)) : 0;
+      dados = { ...r, taxa };
 
-    const dados = {
-      canal,       // '' se não identificou — usuário seleciona na tela
-      valorBruto,
-      valorLiquido,
-      taxa,
-      data,
-      confianca    // 'media' (achou por palavra-chave) | 'baixa' (chute pelos 2 maiores valores)
-    };
+    } else if (plataforma === 'Keeta') {
+      const texto = await ocr(imagens[0]);
+      const r = extrairKeeta(texto);
+      const taxa = r.valorBruto > r.valorLiquido ? parseFloat((r.valorBruto - r.valorLiquido).toFixed(2)) : 0;
+      dados = { ...r, taxa };
+
+    } else {
+      // 99Food: precisa das 2 telas (Bruto + Líquido)
+      if (imagens.length < 2 || !imagens[1]) {
+        return res.json({
+          success: false,
+          error: 'Na 99Food são necessários 2 prints: um do Bruto e outro do Líquido (aba Financeiro → Cobranças).'
+        });
+      }
+
+      const [textoBruto, textoLiquido] = await Promise.all([ocr(imagens[0]), ocr(imagens[1])]);
+      const bruto = extrair99FoodBruto(textoBruto);
+      const liquido = extrair99FoodLiquido(textoLiquido);
+
+      // Se a tela do Líquido trouxer mais de uma fatura semanal, usa a primeira como
+      // palpite — o usuário escolhe a certa na tela de confirmação (liquidoCandidatos)
+      const valorLiquido = liquido.candidatos.length > 0 ? liquido.candidatos[0].valor : 0;
+      const taxa = bruto.valorBruto > valorLiquido ? parseFloat((bruto.valorBruto - valorLiquido).toFixed(2)) : 0;
+
+      dados = {
+        canal: '99Food Loja 1', // usuário confirma/ajusta a loja (1 ou 2) na tela
+        valorBruto: bruto.valorBruto,
+        valorLiquido,
+        liquidoCandidatos: liquido.candidatos,
+        taxa,
+        data: bruto.data, // SEMPRE do print do Bruto — data do Líquido é a do depósito, não da venda
+        confianca: (bruto.confianca === 'media' && liquido.candidatos.length > 0) ? 'media' : 'baixa'
+      };
+    }
 
     logger.success('Dados de receita extraídos');
 

@@ -1735,8 +1735,19 @@
               Print do relatório de vendas do 99Food, iFood ou Keeta — a IA identifica o canal e os valores Bruto/Líquido para você confirmar antes de lançar.
             </p>
 
-            <!-- Upload Drag-and-Drop -->
-            <div class="mb-6">
+            <!-- Seletor de Plataforma -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Plataforma</label>
+              <select v-model="plataformaReceita" @change="mudarPlataformaReceita" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Selecione a plataforma...</option>
+                <option value="iFood">iFood (1 print, Bruto e Líquido juntos)</option>
+                <option value="99Food">99Food (2 prints: Bruto e Líquido separados)</option>
+                <option value="Keeta">Keeta (1 print)</option>
+              </select>
+            </div>
+
+            <!-- Upload: iFood / Keeta — 1 imagem só (Bruto + Líquido no mesmo print) -->
+            <div v-if="plataformaReceita === 'iFood' || plataformaReceita === 'Keeta'" class="mb-6">
               <div
                 @drop.prevent="handleDropReceitaImagem"
                 @dragover.prevent="isDraggingReceita = true"
@@ -1770,6 +1781,49 @@
               </button>
             </div>
 
+            <!-- Upload: 99Food — 2 imagens separadas (Bruto e Líquido são 2 telas diferentes) -->
+            <div v-if="plataformaReceita === '99Food'" class="mb-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p class="text-xs font-semibold text-gray-600 mb-1">1) Print do Bruto ("Renda total das vendas")</p>
+                  <div
+                    @drop.prevent="e => handleDrop99Food(e, 'bruto')"
+                    @dragover.prevent="dragging99Food.bruto = true"
+                    @dragleave="dragging99Food.bruto = false"
+                    @paste.prevent="e => handlePaste99Food(e, 'bruto')"
+                    tabindex="0"
+                    :class="['border-2 border-dashed rounded-lg p-4 text-center transition-all',
+                      dragging99Food.bruto ? 'border-blue-500 bg-blue-50' : (receitaImagens99Food.bruto ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50')]">
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp" @change="e => handleSelect99Food(e, 'bruto')" ref="receita99FoodBrutoInput" class="hidden" id="receita99FoodBrutoInput">
+                    <label for="receita99FoodBrutoInput" class="cursor-pointer">
+                      <div class="text-2xl mb-1">{{ receitaImagens99Food.bruto ? '✅' : '📸' }}</div>
+                      <p class="text-xs text-gray-600">{{ receitaImagens99Food.bruto ? receitaImagens99Food.bruto.name : 'Arraste, clique ou cole (Ctrl+V)' }}</p>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-600 mb-1">2) Print do Líquido (aba Financeiro → Cobranças)</p>
+                  <div
+                    @drop.prevent="e => handleDrop99Food(e, 'liquido')"
+                    @dragover.prevent="dragging99Food.liquido = true"
+                    @dragleave="dragging99Food.liquido = false"
+                    @paste.prevent="e => handlePaste99Food(e, 'liquido')"
+                    tabindex="0"
+                    :class="['border-2 border-dashed rounded-lg p-4 text-center transition-all',
+                      dragging99Food.liquido ? 'border-blue-500 bg-blue-50' : (receitaImagens99Food.liquido ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50')]">
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp" @change="e => handleSelect99Food(e, 'liquido')" ref="receita99FoodLiquidoInput" class="hidden" id="receita99FoodLiquidoInput">
+                    <label for="receita99FoodLiquidoInput" class="cursor-pointer">
+                      <div class="text-2xl mb-1">{{ receitaImagens99Food.liquido ? '✅' : '📸' }}</div>
+                      <p class="text-xs text-gray-600">{{ receitaImagens99Food.liquido ? receitaImagens99Food.liquido.name : 'Arraste, clique ou cole (Ctrl+V)' }}</p>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mt-2">Processa automaticamente assim que os 2 prints forem enviados.</p>
+            </div>
+
+            <p v-if="!plataformaReceita" class="text-sm text-gray-400 italic mb-2">Selecione a plataforma acima para habilitar o upload.</p>
+
             <!-- Status de Processamento -->
             <div v-if="processandoReceitaImagem" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
               <p class="text-sm text-blue-700">⏳ Lendo o relatório...</p>
@@ -1779,7 +1833,7 @@
             <div v-if="dadosReceitaExtraidos" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
               <h4 class="font-semibold text-gray-800 mb-1">✅ Dados Extraídos da Imagem:</h4>
               <p v-if="dadosReceitaExtraidos.confianca === 'baixa'" class="text-xs text-orange-600 mb-3">
-                ⚠️ Não encontrei rótulos claros de "Bruto"/"Líquido" na imagem — confira os valores antes de confirmar.
+                ⚠️ Não encontrei os rótulos esperados nessa imagem — confira os valores antes de confirmar.
               </p>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
@@ -1790,7 +1844,7 @@
                   <label class="block text-sm font-semibold text-gray-700 mb-1">Canal</label>
                   <select v-model="dadosReceitaExtraidos.canal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                     <option value="">Selecione o canal...</option>
-                    <option v-for="canal in canaisDeliveryDisponiveis" :key="canal" :value="canal">{{ canal }}</option>
+                    <option v-for="canal in canaisDaPlataformaReceita" :key="canal" :value="canal">{{ canal }}</option>
                   </select>
                 </div>
                 <div>
@@ -1802,6 +1856,16 @@
                   <input v-model.number="dadosReceitaExtraidos.valorLiquido" type="number" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
                 </div>
               </div>
+
+              <!-- 99Food: quando o print do Líquido tem mais de 1 fatura semanal, o usuário escolhe qual usar -->
+              <div v-if="dadosReceitaExtraidos.liquidoCandidatos && dadosReceitaExtraidos.liquidoCandidatos.length > 1" class="mb-4 p-3 bg-white border border-gray-200 rounded-lg">
+                <p class="text-xs font-semibold text-gray-700 mb-2">Mais de uma fatura encontrada no print do Líquido — qual é a certa?</p>
+                <label v-for="(cand, idx) in dadosReceitaExtraidos.liquidoCandidatos" :key="idx" class="flex items-center gap-2 text-sm mb-1 cursor-pointer">
+                  <input type="radio" :name="'liquidoCandidato'" :checked="dadosReceitaExtraidos.valorLiquido === cand.valor" @change="dadosReceitaExtraidos.valorLiquido = cand.valor">
+                  <span>{{ cand.periodo || 'Sem período identificado' }} — R$ {{ formatarValor(cand.valor) }}</span>
+                </label>
+              </div>
+
               <div v-if="taxaCalculadaReceitaImagem !== null" style="margin-bottom: 16px; padding: 10px 14px; background: #FEF3C7; border-radius: 8px; font-size: 0.9rem; color: #92400E; display: inline-block;">
                 💰 Taxa calculada: <strong>R$ {{ formatarValor(taxaCalculadaReceitaImagem) }}</strong>
               </div>
@@ -2508,7 +2572,10 @@
           novaClassificacao: 'Operacional',
           categoriaIdMap: { 'Salão': null, 'iFood Loja 1': null, 'iFood Loja 2': null, '99Food Loja 1': null, '99Food Loja 2': null, 'Keeta': null }, // Mapa de categoria -> ID
           // Receita por Imagem (print do relatório 99Food/iFood/Keeta)
-          isDraggingReceita: false,
+          plataformaReceita: '', // 'iFood' | '99Food' | 'Keeta'
+          isDraggingReceita: false, // dropzone única (iFood/Keeta)
+          dragging99Food: { bruto: false, liquido: false }, // dropzones separadas (99Food)
+          receitaImagens99Food: { bruto: null, liquido: null }, // Files pendentes até os 2 chegarem
           processandoReceitaImagem: false,
           dadosReceitaExtraidos: null,
           receitaImagemSalva: false,
@@ -2598,6 +2665,12 @@
           const liquido = parseFloat(this.dadosReceitaExtraidos.valorLiquido) || 0;
           if (!bruto || !liquido) return null;
           return bruto - liquido;
+        },
+
+        // Filtra o dropdown de Canal pra só mostrar as lojas da plataforma selecionada
+        canaisDaPlataformaReceita() {
+          if (!this.plataformaReceita) return this.canaisDeliveryDisponiveis;
+          return this.canaisDeliveryDisponiveis.filter(c => c.startsWith(this.plataformaReceita));
         },
 
         // Categorias únicas do histórico
@@ -4634,6 +4707,24 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         // 📷 Receitas por foto (IA) — print do relatório 99Food/iFood/Keeta
+        mudarPlataformaReceita() {
+          this.dadosReceitaExtraidos = null;
+          this.receitaImagens99Food = { bruto: null, liquido: null };
+          if (this.$refs.receitaImagemInput) this.$refs.receitaImagemInput.value = '';
+          if (this.$refs.receita99FoodBrutoInput) this.$refs.receita99FoodBrutoInput.value = '';
+          if (this.$refs.receita99FoodLiquidoInput) this.$refs.receita99FoodLiquidoInput.value = '';
+        },
+
+        fileParaBase64(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        },
+
+        // --- iFood / Keeta: 1 imagem só (Bruto + Líquido já vêm juntos no print) ---
         handleDropReceitaImagem(event) {
           this.isDraggingReceita = false;
           const files = event.dataTransfer.files;
@@ -4661,39 +4752,90 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         async processarReceitaImagem(file) {
+          if (!this.plataformaReceita) {
+            alert('❌ Selecione a plataforma antes de enviar a foto');
+            return;
+          }
+          this.processandoReceitaImagem = true;
           try {
-            this.processandoReceitaImagem = true;
+            const base64 = await this.fileParaBase64(file);
+            const response = await fetch(window.location.origin + '/api/processar-receita-imagem', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plataforma: this.plataformaReceita, imagens: [base64] })
+            });
+            const resultado = await response.json();
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              const base64 = e.target.result.split(',')[1];
-
-              try {
-                const serverUrl = window.location.origin;
-                const response = await fetch(serverUrl + '/api/processar-receita-imagem', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ image: base64 })
-                });
-
-                const resultado = await response.json();
-
-                if (resultado.success) {
-                  this.dadosReceitaExtraidos = resultado.dados;
-                  console.log('✅ Receita extraída:', resultado.dados);
-                } else {
-                  alert('❌ Erro ao processar imagem: ' + resultado.error);
-                }
-              } catch (error) {
-                console.error('❌ Erro na requisição:', error);
-                alert('Erro ao processar imagem');
-              } finally {
-                this.processandoReceitaImagem = false;
-              }
-            };
-            reader.readAsDataURL(file);
+            if (resultado.success) {
+              this.dadosReceitaExtraidos = resultado.dados;
+              console.log('✅ Receita extraída:', resultado.dados);
+            } else {
+              alert('❌ Erro ao processar imagem: ' + resultado.error);
+            }
           } catch (error) {
             console.error('❌ Erro ao processar receita:', error);
+            alert('Erro ao processar imagem');
+          } finally {
+            this.processandoReceitaImagem = false;
+          }
+        },
+
+        // --- 99Food: 2 imagens separadas (Bruto e Líquido são 2 telas diferentes no painel) ---
+        handleDrop99Food(event, lado) {
+          this.dragging99Food[lado] = false;
+          const files = event.dataTransfer.files;
+          if (files.length > 0) this.receberImagem99Food(files[0], lado);
+        },
+
+        handleSelect99Food(event, lado) {
+          const files = event.target.files;
+          if (files.length > 0) this.receberImagem99Food(files[0], lado);
+        },
+
+        handlePaste99Food(event, lado) {
+          const items = event.clipboardData.items;
+          for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+              this.receberImagem99Food(item.getAsFile(), lado);
+              return;
+            }
+          }
+        },
+
+        receberImagem99Food(file, lado) {
+          this.receitaImagens99Food[lado] = file;
+          // Só processa quando os 2 prints (Bruto e Líquido) já chegaram
+          if (this.receitaImagens99Food.bruto && this.receitaImagens99Food.liquido) {
+            this.processar99FoodImagens();
+          }
+        },
+
+        async processar99FoodImagens() {
+          this.processandoReceitaImagem = true;
+          try {
+            const [base64Bruto, base64Liquido] = await Promise.all([
+              this.fileParaBase64(this.receitaImagens99Food.bruto),
+              this.fileParaBase64(this.receitaImagens99Food.liquido)
+            ]);
+
+            const response = await fetch(window.location.origin + '/api/processar-receita-imagem', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plataforma: '99Food', imagens: [base64Bruto, base64Liquido] })
+            });
+            const resultado = await response.json();
+
+            if (resultado.success) {
+              this.dadosReceitaExtraidos = resultado.dados;
+              console.log('✅ Receita 99Food extraída:', resultado.dados);
+            } else {
+              alert('❌ Erro ao processar imagens: ' + resultado.error);
+              this.receitaImagens99Food = { bruto: null, liquido: null };
+            }
+          } catch (error) {
+            console.error('❌ Erro ao processar receita 99Food:', error);
+            alert('Erro ao processar imagens');
+          } finally {
             this.processandoReceitaImagem = false;
           }
         },
@@ -4746,7 +4888,10 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
         cancelarReceitaExtraida() {
           this.dadosReceitaExtraidos = null;
-          this.$refs.receitaImagemInput.value = '';
+          this.receitaImagens99Food = { bruto: null, liquido: null };
+          if (this.$refs.receitaImagemInput) this.$refs.receitaImagemInput.value = '';
+          if (this.$refs.receita99FoodBrutoInput) this.$refs.receita99FoodBrutoInput.value = '';
+          if (this.$refs.receita99FoodLiquidoInput) this.$refs.receita99FoodLiquidoInput.value = '';
         },
 
         async criarNovaCategoriaRapido() {
