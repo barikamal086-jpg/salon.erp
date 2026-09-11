@@ -1728,6 +1728,111 @@
             </div>
           </div>
 
+          <!-- RECEITAS POR IMAGEM - Upload e Processamento (print do relatório da plataforma) -->
+          <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">📷 Receitas por foto (IA)</h3>
+            <p class="text-sm text-gray-500 mb-4">
+              Print do relatório de vendas do 99Food, iFood ou Keeta — a IA identifica o canal e os valores Bruto/Líquido para você confirmar antes de lançar.
+            </p>
+
+            <!-- Upload Drag-and-Drop -->
+            <div class="mb-6">
+              <div
+                @drop.prevent="handleDropReceitaImagem"
+                @dragover.prevent="isDraggingReceita = true"
+                @dragleave="isDraggingReceita = false"
+                @paste.prevent="handlePasteReceitaImagem"
+                tabindex="0"
+                :class="['border-2 border-dashed rounded-lg p-8 text-center transition-all',
+                  isDraggingReceita ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50']">
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  @change="handleSelectReceitaImagem"
+                  ref="receitaImagemInput"
+                  class="hidden"
+                  id="receitaImagemInput">
+                <label for="receitaImagemInput" class="cursor-pointer">
+                  <div class="text-4xl mb-2">📸</div>
+                  <p class="text-gray-700 font-semibold">Arraste o print do relatório aqui, clique para selecionar ou cole (Ctrl+V)</p>
+                  <p class="text-gray-500 text-sm mt-1">Aceita: JPG, PNG, WebP</p>
+                </label>
+              </div>
+              <button
+                @click="$refs.receitaImagemInput.click()"
+                class="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center justify-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                Selecionar Imagem
+              </button>
+            </div>
+
+            <!-- Status de Processamento -->
+            <div v-if="processandoReceitaImagem" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm text-blue-700">⏳ Lendo o relatório...</p>
+            </div>
+
+            <!-- Dados Extraídos -->
+            <div v-if="dadosReceitaExtraidos" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h4 class="font-semibold text-gray-800 mb-1">✅ Dados Extraídos da Imagem:</h4>
+              <p v-if="dadosReceitaExtraidos.confianca === 'baixa'" class="text-xs text-orange-600 mb-3">
+                ⚠️ Não encontrei rótulos claros de "Bruto"/"Líquido" na imagem — confira os valores antes de confirmar.
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Data</label>
+                  <input v-model="dadosReceitaExtraidos.data" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Canal</label>
+                  <select v-model="dadosReceitaExtraidos.canal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="">Selecione o canal...</option>
+                    <option v-for="canal in canaisDeliveryDisponiveis" :key="canal" :value="canal">{{ canal }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Receita Bruta (R$)</label>
+                  <input v-model.number="dadosReceitaExtraidos.valorBruto" type="number" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-1">Receita Líquida (R$)</label>
+                  <input v-model.number="dadosReceitaExtraidos.valorLiquido" type="number" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                </div>
+              </div>
+              <div v-if="taxaCalculadaReceitaImagem !== null" style="margin-bottom: 16px; padding: 10px 14px; background: #FEF3C7; border-radius: 8px; font-size: 0.9rem; color: #92400E; display: inline-block;">
+                💰 Taxa calculada: <strong>R$ {{ formatarValor(taxaCalculadaReceitaImagem) }}</strong>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  @click="salvarReceitaExtraida"
+                  :disabled="salvandoReceitaImagem"
+                  class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="5 12 10 17 20 7"></polyline>
+                  </svg>
+                  {{ salvandoReceitaImagem ? 'Lançando...' : 'Confirmar e Lançar' }}
+                </button>
+                <button
+                  @click="cancelarReceitaExtraida"
+                  class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 font-medium flex items-center justify-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+
+            <!-- Mensagem de Sucesso -->
+            <div v-if="receitaImagemSalva" class="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700">
+              ✅ Receita e Taxa lançadas com sucesso!
+            </div>
+          </div>
+
           <!-- Tabela -->
           <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
             <div class="mb-6">
@@ -1828,10 +1933,10 @@
                     <td class="px-4 py-2">
                       <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full" :class="{
                         'bg-blue-100 text-blue-800': r.categoria === 'Salão',
-                        'bg-red-100 text-red-800': r.categoria === 'iFood',
-                        'bg-yellow-100 text-yellow-800': r.categoria === '99Food',
+                        'bg-red-100 text-red-800': r.categoria.includes('iFood'),
+                        'bg-yellow-100 text-yellow-800': r.categoria.includes('99Food'),
                         'bg-green-100 text-green-800': r.categoria === 'Keeta',
-                        'bg-purple-100 text-purple-800': r.categoria !== 'Salão' && r.categoria !== 'iFood' && r.categoria !== '99Food' && r.categoria !== 'Keeta'
+                        'bg-purple-100 text-purple-800': r.categoria !== 'Salão' && !r.categoria.includes('iFood') && !r.categoria.includes('99Food') && r.categoria !== 'Keeta'
                       }">
                         {{ r.categoria }}
                       </span>
@@ -2398,10 +2503,17 @@
           processandoDespesaImagem: false,
           dadosDespesaExtraidos: null,
           despesaImagemSalva: false,
-          tiposDespesaSimples: ['Salão', 'iFood', '99Food', 'Keeta'],
+          tiposDespesaSimples: ['Salão', 'iFood Loja 1', 'iFood Loja 2', '99Food Loja 1', '99Food Loja 2', 'Keeta'],
           novaCategoria: '',
           novaClassificacao: 'Operacional',
-          categoriaIdMap: { 'Salão': null, 'iFood': null, '99Food': null, 'Keeta': null }, // Mapa de categoria -> ID
+          categoriaIdMap: { 'Salão': null, 'iFood Loja 1': null, 'iFood Loja 2': null, '99Food Loja 1': null, '99Food Loja 2': null, 'Keeta': null }, // Mapa de categoria -> ID
+          // Receita por Imagem (print do relatório 99Food/iFood/Keeta)
+          isDraggingReceita: false,
+          processandoReceitaImagem: false,
+          dadosReceitaExtraidos: null,
+          receitaImagemSalva: false,
+          salvandoReceitaImagem: false,
+          canaisDeliveryDisponiveis: ['iFood Loja 1', 'iFood Loja 2', '99Food Loja 1', '99Food Loja 2', 'Keeta'],
           // Histórico: Filtros e Paginação
           filtroHistorico: {
             filtroPreset: 'ultimos30',  // DEFAULT: Últimos 30 dias
@@ -2475,6 +2587,15 @@
         taxaCalculadaCanal() {
           const bruto = parseBrasilValue(this.lancamentoCanal.receitaBruta);
           const liquido = parseBrasilValue(this.lancamentoCanal.receitaLiquida);
+          if (!bruto || !liquido) return null;
+          return bruto - liquido;
+        },
+
+        // Taxa recalculada em tempo real na confirmação de Receita por foto (IA)
+        taxaCalculadaReceitaImagem() {
+          if (!this.dadosReceitaExtraidos) return null;
+          const bruto = parseFloat(this.dadosReceitaExtraidos.valorBruto) || 0;
+          const liquido = parseFloat(this.dadosReceitaExtraidos.valorLiquido) || 0;
           if (!bruto || !liquido) return null;
           return bruto - liquido;
         },
@@ -4510,6 +4631,122 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         cancelarDespesaExtraida() {
           this.dadosDespesaExtraidos = null;
           this.$refs.despesaImagemInput.value = '';
+        },
+
+        // 📷 Receitas por foto (IA) — print do relatório 99Food/iFood/Keeta
+        handleDropReceitaImagem(event) {
+          this.isDraggingReceita = false;
+          const files = event.dataTransfer.files;
+          if (files.length > 0) {
+            this.processarReceitaImagem(files[0]);
+          }
+        },
+
+        handleSelectReceitaImagem(event) {
+          const files = event.target.files;
+          if (files.length > 0) {
+            this.processarReceitaImagem(files[0]);
+          }
+        },
+
+        handlePasteReceitaImagem(event) {
+          const items = event.clipboardData.items;
+          for (let item of items) {
+            if (item.type.indexOf('image') !== -1) {
+              const file = item.getAsFile();
+              this.processarReceitaImagem(file);
+              return;
+            }
+          }
+        },
+
+        async processarReceitaImagem(file) {
+          try {
+            this.processandoReceitaImagem = true;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              const base64 = e.target.result.split(',')[1];
+
+              try {
+                const serverUrl = window.location.origin;
+                const response = await fetch(serverUrl + '/api/processar-receita-imagem', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ image: base64 })
+                });
+
+                const resultado = await response.json();
+
+                if (resultado.success) {
+                  this.dadosReceitaExtraidos = resultado.dados;
+                  console.log('✅ Receita extraída:', resultado.dados);
+                } else {
+                  alert('❌ Erro ao processar imagem: ' + resultado.error);
+                }
+              } catch (error) {
+                console.error('❌ Erro na requisição:', error);
+                alert('Erro ao processar imagem');
+              } finally {
+                this.processandoReceitaImagem = false;
+              }
+            };
+            reader.readAsDataURL(file);
+          } catch (error) {
+            console.error('❌ Erro ao processar receita:', error);
+            this.processandoReceitaImagem = false;
+          }
+        },
+
+        // Confirma os dados extraídos e lança Receita (Bruto) + Despesa (Taxa) via lancamento-canal
+        async salvarReceitaExtraida() {
+          if (!this.dadosReceitaExtraidos.canal) {
+            alert('❌ Selecione o canal (a foto não deixou claro qual é)');
+            return;
+          }
+          if (!this.dadosReceitaExtraidos.valorBruto || parseFloat(this.dadosReceitaExtraidos.valorBruto) <= 0) {
+            alert('❌ Informe a Receita Bruta');
+            return;
+          }
+          if (!this.dadosReceitaExtraidos.valorLiquido || parseFloat(this.dadosReceitaExtraidos.valorLiquido) <= 0) {
+            alert('❌ Informe a Receita Líquida');
+            return;
+          }
+          if (parseFloat(this.dadosReceitaExtraidos.valorLiquido) > parseFloat(this.dadosReceitaExtraidos.valorBruto)) {
+            alert('❌ Receita Líquida não pode ser maior que a Receita Bruta');
+            return;
+          }
+
+          this.salvandoReceitaImagem = true;
+          try {
+            await api.lancarPorCanal(
+              this.dadosReceitaExtraidos.data,
+              this.dadosReceitaExtraidos.canal,
+              this.dadosReceitaExtraidos.valorBruto,
+              this.dadosReceitaExtraidos.valorLiquido
+            );
+
+            this.receitaImagemSalva = true;
+            this.dadosReceitaExtraidos = null;
+
+            setTimeout(() => {
+              this.receitaImagemSalva = false;
+            }, 3000);
+
+            await this.atualizarPeriodo();
+          } catch (error) {
+            console.error('❌ Erro ao salvar receita:', error);
+            const erroApi = error.response?.data?.error;
+            const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
+            alert('❌ Erro ao salvar: ' + mensagem);
+          } finally {
+            this.salvandoReceitaImagem = false;
+          }
+        },
+
+        cancelarReceitaExtraida() {
+          this.dadosReceitaExtraidos = null;
+          this.$refs.receitaImagemInput.value = '';
         },
 
         async criarNovaCategoriaRapido() {

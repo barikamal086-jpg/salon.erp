@@ -1,3 +1,14 @@
+// 🛡️ Rede de segurança contra crash do processo inteiro
+// Ex.: Tesseract.js pode emitir um erro no worker fora da Promise de recognize()
+// (imagem corrompida) — sem isso, esse erro derruba o servidor pra TODOS os usuários.
+// Loga e mantém o processo vivo em vez de matar o servidor.
+process.on('uncaughtException', (err) => {
+  console.error('🚨 [uncaughtException] Erro não tratado (processo mantido vivo):', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('🚨 [unhandledRejection] Promise rejeitada sem catch (processo mantido vivo):', reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');

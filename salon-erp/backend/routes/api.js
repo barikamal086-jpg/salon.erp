@@ -31,6 +31,16 @@ const { ErrorTypes, Validators } = require('../utils/errorHandler');
 const { TODOS_CANAIS, SQL_TODOS_CANAIS, SQL_GRUPO_CANAL, sqlGrupoCanal } = require('../utils/canais');
 const { parseBrasilValue } = require('../utils/numberParser');
 
+// Timeout defensivo: algumas falhas do Tesseract.js (ex.: imagem corrompida) escapam
+// da Promise de recognize() e nunca resolvem/rejeitam sozinhas — sem isso, a requisição
+// fica pendurada indefinidamente. Ver process.on('uncaughtException') em app.js.
+function withTimeout(promise, ms, mensagemErro) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(mensagemErro)), ms))
+  ]);
+}
+
 // Configurar multer para upload de arquivos (XML, PDF, Excel)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -2748,8 +2758,9 @@ function classificarDespesa(texto) {
 
   if (textoLower.includes('adiantamento')) return 'Salário';
   if (textoLower.includes('folha') || textoLower.includes('salário')) return 'Salário';
-  if (textoLower.includes('ifood') || textoLower.includes('rappi') || textoLower.includes('uber eats')) return 'iFood';
-  if (textoLower.includes('99food') || textoLower.includes('99')) return '99Food';
+  // Loja não é identificável pela imagem — default para Loja 1, usuário confirma/ajusta na tela
+  if (textoLower.includes('ifood') || textoLower.includes('rappi') || textoLower.includes('uber eats')) return 'iFood Loja 1';
+  if (textoLower.includes('99food') || textoLower.includes('99')) return '99Food Loja 1';
   if (textoLower.includes('keeta')) return 'Keeta';
   if (textoLower.includes('cabelo') || textoLower.includes('corte') || textoLower.includes('salão') || textoLower.includes('beleza')) return 'Salão';
   return 'Outro';
@@ -2835,6 +2846,77 @@ function extrairLista(texto) {
   return detalhes;
 }
 
+// Função auxiliar: identificar o canal (marca) a partir do texto OCR do print da plataforma.
+// Não é possível identificar QUAL loja (1 ou 2) pela imagem — retorna a Loja 1 como padrão
+// (iFood/99Food) e o usuário confirma/ajusta a loja na tela antes de salvar.
+function extrairCanalReceita(texto) {
+  const textoLower = texto.toLowerCase();
+
+  if (textoLower.includes('ifood')) return 'iFood Loja 1';
+  if (textoLower.includes('99food') || /\b99\s*food\b/.test(textoLower)) return '99Food Loja 1';
+  if (textoLower.includes('keeta')) return 'Keeta';
+
+  return ''; // Não identificado — usuário seleciona manualmente
+}
+
+// Função auxiliar: extrair Valor Bruto e Valor Líquido de um relatório de plataforma.
+// Estratégia: procurar valores em R$ perto de palavras-chave típicas de "bruto" (total de
+// vendas, faturamento) e "líquido" (repasse, a receber). Se não achar por palavra-chave,
+// usa os 2 maiores valores distintos da imagem (maior = bruto, menor = líquido) como fallback.
+function extrairValoresReceita(texto) {
+  const PALAVRAS_BRUTO = [
+    'total de vendas', 'vendas totais', 'faturamento', 'total bruto',
+    'valor bruto', 'total do período', 'total de pedidos', 'total geral', 'vendas'
+  ];
+  const PALAVRAS_LIQUIDO = [
+    'valor líquido', 'total líquido', 'líquido a receber', 'repasse',
+    'a receber', 'valor a receber', 'valor recebido', 'total a receber'
+  ];
+
+  const regexValor = /R\$\s*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2})/gi;
+
+  let candidatoBruto = null;
+  let candidatoLiquido = null;
+  const todosValores = [];
+
+  for (const linha of texto.split('\n')) {
+    const linhaLower = linha.toLowerCase();
+    const matches = [...linha.matchAll(regexValor)];
+    if (matches.length === 0) continue;
+
+    for (const m of matches) {
+      const valor = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
+      if (!(valor > 0)) continue;
+      todosValores.push(valor);
+
+      const ehLiquido = PALAVRAS_LIQUIDO.some(p => linhaLower.includes(p));
+      const ehBruto = !ehLiquido && PALAVRAS_BRUTO.some(p => linhaLower.includes(p));
+
+      if (ehLiquido && candidatoLiquido === null) {
+        candidatoLiquido = valor;
+      } else if (ehBruto && candidatoBruto === null) {
+        candidatoBruto = valor;
+      }
+    }
+  }
+
+  let confianca = 'media';
+
+  // Fallback: não achou os 2 por palavra-chave -> usar os 2 maiores valores distintos da imagem
+  if (candidatoBruto === null || candidatoLiquido === null) {
+    confianca = 'baixa';
+    const unicos = [...new Set(todosValores)].sort((a, b) => b - a);
+    if (candidatoBruto === null && unicos.length > 0) candidatoBruto = unicos[0];
+    if (candidatoLiquido === null && unicos.length > 1) candidatoLiquido = unicos[1];
+  }
+
+  return {
+    valorBruto: candidatoBruto || 0,
+    valorLiquido: candidatoLiquido || 0,
+    confianca
+  };
+}
+
 // POST /api/processar-despesa-imagem - Processar despesa por imagem com Tesseract OCR
 // Body: { image: "base64string" }
 router.post('/processar-despesa-imagem', uploadLimiter, async (req, res) => {
@@ -2850,13 +2932,17 @@ router.post('/processar-despesa-imagem', uploadLimiter, async (req, res) => {
 
     logger.info('Processando imagem com Tesseract OCR...');
 
-    // Fazer OCR da imagem
-    const resultado = await Tesseract.recognize(
-      `data:image/png;base64,${image}`,
-      'por',
-      {
-        logger: m => logger.debug(`OCR Progress: ${m.status} ${Math.round(m.progress * 100)}%`)
-      }
+    // Fazer OCR da imagem (com timeout defensivo — ver comentário do withTimeout)
+    const resultado = await withTimeout(
+      Tesseract.recognize(
+        `data:image/png;base64,${image}`,
+        'por',
+        {
+          logger: m => logger.debug(`OCR Progress: ${m.status} ${Math.round(m.progress * 100)}%`)
+        }
+      ),
+      60000,
+      'Não foi possível ler a imagem (arquivo corrompido ou inválido?)'
     );
 
     const textoExtraido = resultado.data.text;
@@ -2896,6 +2982,69 @@ router.post('/processar-despesa-imagem', uploadLimiter, async (req, res) => {
     });
   } catch (error) {
     logger.error(`Erro ao processar imagem: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// POST /api/processar-receita-imagem - Processar receita por foto (relatório 99Food/iFood/Keeta) com Tesseract OCR
+// Body: { image: "base64string" }
+// Retorna canal identificado + Valor Bruto + Valor Líquido + Taxa (Bruto - Líquido) para confirmação.
+// O lançamento em si (Receita + Despesa de Taxa) é feito via POST /api/faturamentos/lancamento-canal
+// depois que o usuário confirma/ajusta os valores na tela.
+router.post('/processar-receita-imagem', uploadLimiter, async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    if (!image) {
+      return res.json({
+        success: false,
+        error: 'Imagem não fornecida'
+      });
+    }
+
+    logger.info('Processando imagem de receita com Tesseract OCR...');
+
+    // OCR com timeout defensivo — ver comentário do withTimeout
+    const resultado = await withTimeout(
+      Tesseract.recognize(
+        `data:image/png;base64,${image}`,
+        'por',
+        {
+          logger: m => logger.debug(`OCR Progress: ${m.status} ${Math.round(m.progress * 100)}%`)
+        }
+      ),
+      60000,
+      'Não foi possível ler a imagem (arquivo corrompido ou inválido?)'
+    );
+
+    const textoExtraido = resultado.data.text;
+    logger.debug('Texto extraído (receita): ' + textoExtraido.substring(0, 100) + '...');
+
+    const canal = extrairCanalReceita(textoExtraido);
+    const { valorBruto, valorLiquido, confianca } = extrairValoresReceita(textoExtraido);
+    const data = extrairData(textoExtraido);
+    const taxa = valorBruto > valorLiquido ? parseFloat((valorBruto - valorLiquido).toFixed(2)) : 0;
+
+    const dados = {
+      canal,       // '' se não identificou — usuário seleciona na tela
+      valorBruto,
+      valorLiquido,
+      taxa,
+      data,
+      confianca    // 'media' (achou por palavra-chave) | 'baixa' (chute pelos 2 maiores valores)
+    };
+
+    logger.success('Dados de receita extraídos');
+
+    res.json({
+      success: true,
+      dados: dados
+    });
+  } catch (error) {
+    logger.error(`Erro ao processar imagem de receita: ${error.message}`);
     res.status(500).json({
       success: false,
       error: error.message
