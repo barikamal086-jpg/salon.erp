@@ -331,7 +331,7 @@
                 'border-left-color': cat.categoria === 'Salão' ? 'var(--salao)' :
                                    cat.categoria === 'iFood' ? 'var(--ifood)' :
                                    cat.categoria === '99Food' ? '#F5D400' :
-                                   cat.categoria === 'Keeta' ? 'var(--keeta)' : 'var(--primary)'
+                                   cat.categoria === 'Keeta' ? '#00CDAC' : 'var(--primary)'
               }"
               @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'"
               @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'"
@@ -341,8 +341,8 @@
                 'background': cat.categoria === 'Salão' ? '#166534' :
                             cat.categoria === 'iFood' ? '#991B1B' :
                             cat.categoria === '99Food' ? '#F5D400' :
-                            cat.categoria === 'Keeta' ? '#5B21B6' : 'var(--primary)',
-                'color': cat.categoria === '99Food' ? '#000000' : 'white',
+                            cat.categoria === 'Keeta' ? '#00CDAC' : 'var(--primary)',
+                'color': (cat.categoria === '99Food' || cat.categoria === 'Keeta') ? '#000000' : 'white',
                 'padding': '16px',
                 'font-size': '1.1rem',
                 'font-weight': '700'
