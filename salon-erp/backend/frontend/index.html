@@ -187,15 +187,26 @@
           <h2 style="font-size: 1.5rem; font-weight: 700; color: #000000 !important;">
             Visão Geral
           </h2>
-          <a
-            href="#secao-lancar-receita-despesa"
-            @click.prevent="irParaLancarReceitaDespesa"
-            style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
-            onmouseover="this.style.background='var(--bg-secondary)'"
-            onmouseout="this.style.background='transparent'"
-          >
-            Lançar Receita/Despesa
-          </a>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <a
+              href="#secao-lancar-receita-despesa"
+              @click.prevent="irParaLancarReceitaDespesa"
+              style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='transparent'"
+            >
+              Lançar Receita/Despesa
+            </a>
+            <a
+              href="#secao-processar-notas-fiscais"
+              @click.prevent="irParaProcessarNotasFiscais"
+              style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='transparent'"
+            >
+              Processar Notas Fiscais
+            </a>
+          </div>
         </div>
       </div>
 
@@ -1240,7 +1251,7 @@
           </div>
 
           <!-- NOTAS FISCAIS - Upload e Processamento -->
-          <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+          <div id="secao-processar-notas-fiscais" class="lg:col-span-2 bg-white rounded-lg shadow-md p-6" style="scroll-margin-top: 24px;">
             <div class="flex justify-between items-center mb-4">
               <h3 class="text-lg font-bold text-gray-900">📄 Processar Notas Fiscais</h3>
             </div>
@@ -2733,6 +2744,18 @@
           el.style.transition = 'box-shadow 0.3s';
           el.style.boxShadow = '0 0 0 3px var(--primary)';
           setTimeout(() => { el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; }, 1200);
+        },
+
+        // Atalho no topo: rola até a seção "Processar Notas Fiscais"
+        irParaProcessarNotasFiscais() {
+          const el = document.getElementById('secao-processar-notas-fiscais');
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          // Piscar uma borda pra chamar atenção pra seção
+          el.style.transition = 'box-shadow 0.3s';
+          el.style.boxShadow = '0 0 0 3px var(--primary)';
+          setTimeout(() => { el.style.boxShadow = ''; }, 1200);
         },
 
         async fazerLogin() {
