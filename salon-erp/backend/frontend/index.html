@@ -183,18 +183,18 @@
     <main class="flex-1 ml-64 overflow-auto">
       <!-- Top Bar -->
       <div style="background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-bottom: 1px solid var(--border);">
-        <div style="padding: 32px 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="padding: 32px 16px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;">
           <h2 style="font-size: 1.5rem; font-weight: 700; color: #000000 !important;">
             Visão Geral
           </h2>
           <a
             href="#secao-lancar-receita-despesa"
             @click.prevent="irParaLancarReceitaDespesa"
-            style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 6px; transition: background 0.2s;"
+            style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
             onmouseover="this.style.background='var(--bg-secondary)'"
             onmouseout="this.style.background='transparent'"
           >
-            📝 Lançar Receita/Despesa
+            Lançar Receita/Despesa
           </a>
         </div>
       </div>
