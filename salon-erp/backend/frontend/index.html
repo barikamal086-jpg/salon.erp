@@ -330,7 +330,7 @@
               :style="{
                 'border-left-color': cat.categoria === 'Salão' ? 'var(--salao)' :
                                    cat.categoria === 'iFood' ? 'var(--ifood)' :
-                                   cat.categoria === '99Food' ? 'var(--99food)' :
+                                   cat.categoria === '99Food' ? '#F5D400' :
                                    cat.categoria === 'Keeta' ? 'var(--keeta)' : 'var(--primary)'
               }"
               @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'"
@@ -340,9 +340,9 @@
               <div :style="{
                 'background': cat.categoria === 'Salão' ? '#166534' :
                             cat.categoria === 'iFood' ? '#991B1B' :
-                            cat.categoria === '99Food' ? '#92400E' :
+                            cat.categoria === '99Food' ? '#F5D400' :
                             cat.categoria === 'Keeta' ? '#5B21B6' : 'var(--primary)',
-                'color': 'white',
+                'color': cat.categoria === '99Food' ? '#000000' : 'white',
                 'padding': '16px',
                 'font-size': '1.1rem',
                 'font-weight': '700'
