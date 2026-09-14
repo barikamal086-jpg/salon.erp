@@ -206,6 +206,15 @@
             >
               Processar Notas Fiscais
             </a>
+            <a
+              href="#secao-despesas-por-foto"
+              @click.prevent="irParaDespesasPorFoto"
+              style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='transparent'"
+            >
+              Despesas por foto (IA)
+            </a>
           </div>
         </div>
       </div>
@@ -1626,7 +1635,7 @@
           </div>
 
           <!-- DESPESAS POR IMAGEM - Upload e Processamento com Claude AI -->
-          <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+          <div id="secao-despesas-por-foto" class="lg:col-span-2 bg-white rounded-lg shadow-md p-6" style="scroll-margin-top: 24px;">
             <h3 class="text-lg font-bold text-gray-900 mb-4">📷 Despesas por foto (IA)</h3>
 
             <!-- Upload Drag-and-Drop -->
@@ -2749,6 +2758,18 @@
         // Atalho no topo: rola até a seção "Processar Notas Fiscais"
         irParaProcessarNotasFiscais() {
           const el = document.getElementById('secao-processar-notas-fiscais');
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          // Piscar uma borda pra chamar atenção pra seção
+          el.style.transition = 'box-shadow 0.3s';
+          el.style.boxShadow = '0 0 0 3px var(--primary)';
+          setTimeout(() => { el.style.boxShadow = ''; }, 1200);
+        },
+
+        // Atalho no topo: rola até a seção "Despesas por foto (IA)"
+        irParaDespesasPorFoto() {
+          const el = document.getElementById('secao-despesas-por-foto');
           if (!el) return;
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
