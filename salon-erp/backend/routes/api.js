@@ -169,6 +169,50 @@ async function checkIntelligentDuplicate(client, dados, hoursWindow = 24) {
   }
 }
 
+/**
+ * Detectar lançamento (receita/despesa) possivelmente duplicado, para os fluxos
+ * manuais que não passam pela importação de Notas Fiscais: "Lançar Receita/Despesa",
+ * "Lançamento por Canal" e "Receitas por foto (IA)".
+ *
+ * Critério: mesmo canal (categoria) + mesmo tipo + mesma data + valor dentro de
+ * ±1% de tolerância. Não bloqueia sozinho — quem chama decide se avisa o usuário
+ * e deixa ele confirmar mesmo assim (forcarDuplicata).
+ */
+async function verificarLancamentoDuplicado(categoria, tipo, total, data) {
+  try {
+    const totalNum = parseFloat(total);
+    if (!totalNum) return { isDuplicate: false, similar: null };
+
+    const margem = Math.abs(totalNum) * 0.01; // ±1%
+
+    const sql = `
+      SELECT id, data, total, categoria, tipo, created_at
+      FROM faturamento
+      WHERE categoria = ?
+        AND tipo = ?
+        AND data = ?
+        AND ABS(total - ?) <= ?
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    const existente = await getAsync(sql, [categoria, tipo, data, totalNum, margem]);
+
+    if (existente) {
+      return {
+        isDuplicate: true,
+        similar: existente,
+        motivo: `Já existe um lançamento de ${tipo} para "${categoria}" em ${data} com valor parecido (R$ ${parseFloat(existente.total).toFixed(2)}, id ${existente.id}).`
+      };
+    }
+
+    return { isDuplicate: false, similar: null };
+  } catch (erro) {
+    console.error('❌ Erro ao verificar lançamento duplicado:', erro.message);
+    // Se der erro na checagem, não bloqueia o lançamento
+    return { isDuplicate: false, similar: null };
+  }
+}
+
 // ============================================
 // AUTENTICAÇÃO
 // ============================================
@@ -251,7 +295,7 @@ router.get('/faturamentos', async (req, res) => {
 // Body: { data: "YYYY-MM-DD", total: 1234.56, categoria: "Salão", tipo: "receita" ou "despesa", tipo_despesa_id: 1 }
 router.post('/faturamentos', createLimiter, async (req, res, next) => {
   try {
-    const { data, total, categoria, tipo = 'receita', tipo_despesa_id, categoria_produto = 'Comida' } = req.body;
+    const { data, total, categoria, tipo = 'receita', tipo_despesa_id, categoria_produto = 'Comida', forcarDuplicata = false } = req.body;
 
     // Validações com novo error handler
     Validators.requireFields({ data, total, categoria },
@@ -268,6 +312,21 @@ router.post('/faturamentos', createLimiter, async (req, res, next) => {
     }
 
     const tipoNormalizado = tipo.toLowerCase();
+
+    // Checagem de duplicidade (mesmo canal + tipo + data + valor parecido) — não bloqueia
+    // sozinha, só avisa; usuário confirma mandando forcarDuplicata=true de novo.
+    if (!forcarDuplicata) {
+      const dupCheck = await verificarLancamentoDuplicado(categoria, tipoNormalizado, total, data);
+      if (dupCheck.isDuplicate) {
+        return res.status(409).json({
+          success: false,
+          duplicataDetectada: true,
+          lancamentoSimilar: dupCheck.similar,
+          error: dupCheck.motivo
+        });
+      }
+    }
+
     const result = await Faturamento.criar(data, total, categoria, tipoNormalizado, tipo_despesa_id, categoria_produto);
 
     res.status(201).json({
@@ -341,7 +400,7 @@ router.put('/faturamentos/:id', updateLimiter, async (req, res, next) => {
 router.post('/faturamentos/lancamento-canal', createLimiter, async (req, res, next) => {
   const client = await pool.connect();
   try {
-    const { data, canal, receitaBruta, receitaLiquida } = req.body;
+    const { data, canal, receitaBruta, receitaLiquida, forcarDuplicata = false } = req.body;
 
     console.log(`📝 [POST lancamento-canal] Canal: ${canal}, Bruto: ${receitaBruta}, Líquido: ${receitaLiquida}`);
 
@@ -362,6 +421,21 @@ router.post('/faturamentos/lancamento-canal', createLimiter, async (req, res, ne
     }
 
     const taxa = parseFloat((bruto - liquido).toFixed(2));
+
+    // Checagem de duplicidade (mesmo canal + mesma data + receita bruta parecida) — evita o
+    // caso real de reenviar o formulário 2x e duplicar receita+taxa. Não bloqueia sozinha,
+    // só avisa; usuário confirma mandando forcarDuplicata=true de novo.
+    if (!forcarDuplicata) {
+      const dupCheck = await verificarLancamentoDuplicado(canal, 'receita', bruto, data);
+      if (dupCheck.isDuplicate) {
+        return res.status(409).json({
+          success: false,
+          duplicataDetectada: true,
+          lancamentoSimilar: dupCheck.similar,
+          error: dupCheck.motivo
+        });
+      }
+    }
 
     await client.query('BEGIN');
 

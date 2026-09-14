@@ -3660,6 +3660,21 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           }
         },
 
+        // Verifica se um erro de request é a checagem de duplicidade (HTTP 409 do backend).
+        // Se for, mostra os dados do lançamento parecido e pergunta se confirma mesmo assim.
+        // Retorna: true (usuário confirmou, pode reenviar com forcarDuplicata) | false (usuário
+        // cancelou) | null (não é um erro de duplicidade — quem chamou trata normalmente).
+        confirmarApesarDeDuplicata(error) {
+          const resp = error.response;
+          if (resp?.status !== 409 || !resp?.data?.duplicataDetectada) return null;
+
+          const sim = resp.data.lancamentoSimilar;
+          const detalhe = sim
+            ? `\n\nLançado em ${new Date(sim.created_at).toLocaleString('pt-BR')}.`
+            : '';
+          return confirm('⚠️ ' + (resp.data.error || 'Já existe um lançamento parecido.') + detalhe + '\n\nConfirma mesmo assim?');
+        },
+
         async salvarReceita() {
           if (!this.novaReceita.data || !this.novaReceita.total) {
             alert('Preencha todos os campos');
@@ -3688,28 +3703,26 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             ? this.outraCategoria.trim()
             : this.novaReceita.categoria;
 
-          try {
-            // ✨ Normalizar total: converter formato brasileiro para número
-            let totalParaEnviar = this.novaReceita.total;
+          // ✨ Normalizar total: converter formato brasileiro para número
+          let totalParaEnviar = this.novaReceita.total;
+          if (typeof totalParaEnviar === 'string') {
+            // Remove espaços, depois converte: "1.348,32" → "1348.32"
+            totalParaEnviar = parseFloat(
+              totalParaEnviar
+                .replace(/\s/g, '')        // Remove espaços
+                .replace(/\./g, '')        // Remove pontos de milhar
+                .replace(',', '.')         // Converte vírgula em ponto
+            );
+          }
+          totalParaEnviar = parseFloat(totalParaEnviar);
 
-            // Se é string (formatada), converter para número
-            if (typeof totalParaEnviar === 'string') {
-              // Remove espaços, depois converte: "1.348,32" → "1348.32"
-              totalParaEnviar = parseFloat(
-                totalParaEnviar
-                  .replace(/\s/g, '')        // Remove espaços
-                  .replace(/\./g, '')        // Remove pontos de milhar
-                  .replace(',', '.')         // Converte vírgula em ponto
-              );
-            }
-            totalParaEnviar = parseFloat(totalParaEnviar);
-
+          const enviar = async (forcarDuplicata) => {
             console.log('📤 Enviando para API:', {
               data: this.novaReceita.data,
               total: totalParaEnviar,
-              tipo: typeof totalParaEnviar,
               categoria: categoria,
-              tipo_receita: this.novaReceita.tipo
+              tipo_receita: this.novaReceita.tipo,
+              forcarDuplicata
             });
 
             await api.criarFaturamento(
@@ -3717,7 +3730,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               totalParaEnviar,
               categoria,
               this.novaReceita.tipo,
-              this.novaReceita.tipoDespesaId
+              this.novaReceita.tipoDespesaId,
+              forcarDuplicata
             );
             this.novaReceita.data = getLocalDateISO();
             this.novaReceita.total = null;
@@ -3753,8 +3767,22 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             }
 
             alert('✅ Lançamento adicionado com sucesso!');
+          };
+
+          try {
+            await enviar(false);
           } catch (error) {
-            alert('Erro ao salvar: ' + error.message);
+            const confirmou = this.confirmarApesarDeDuplicata(error);
+            if (confirmou === true) {
+              try {
+                await enviar(true);
+              } catch (error2) {
+                alert('Erro ao salvar: ' + error2.message);
+              }
+            } else if (confirmou === null) {
+              alert('Erro ao salvar: ' + error.message);
+            }
+            // confirmou === false: usuário cancelou, não faz nada
           }
         },
 
@@ -3781,13 +3809,13 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             return;
           }
 
-          this.salvandoLancamentoCanal = true;
-          try {
+          const enviar = async (forcarDuplicata) => {
             const response = await api.lancarPorCanal(
               this.lancamentoCanal.data,
               this.lancamentoCanal.canal,
               bruto,
-              liquido
+              liquido,
+              forcarDuplicata
             );
 
             const taxa = response.data?.data?.taxa ?? (bruto - liquido);
@@ -3805,11 +3833,28 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             console.log('🔄 [salvarLancamentoCanal] Recarregando dados...');
             await this.atualizarPeriodo();
             await nextTick();
+          };
+
+          this.salvandoLancamentoCanal = true;
+          try {
+            await enviar(false);
           } catch (error) {
-            console.error('❌ Erro ao lançar por canal:', error);
-            const erroApi = error.response?.data?.error;
-            const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
-            alert('❌ Erro ao lançar: ' + mensagem);
+            const confirmou = this.confirmarApesarDeDuplicata(error);
+            if (confirmou === true) {
+              try {
+                await enviar(true);
+              } catch (error2) {
+                console.error('❌ Erro ao lançar por canal:', error2);
+                const erroApi2 = error2.response?.data?.error;
+                alert('❌ Erro ao lançar: ' + ((erroApi2 && typeof erroApi2 === 'object' ? erroApi2.message : erroApi2) || error2.message));
+              }
+            } else if (confirmou === null) {
+              console.error('❌ Erro ao lançar por canal:', error);
+              const erroApi = error.response?.data?.error;
+              const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
+              alert('❌ Erro ao lançar: ' + mensagem);
+            }
+            // confirmou === false: usuário cancelou, não faz nada
           } finally {
             this.salvandoLancamentoCanal = false;
           }
@@ -4868,13 +4913,13 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             return;
           }
 
-          this.salvandoReceitaImagem = true;
-          try {
+          const enviar = async (forcarDuplicata) => {
             await api.lancarPorCanal(
               this.dadosReceitaExtraidos.data,
               this.dadosReceitaExtraidos.canal,
               this.dadosReceitaExtraidos.valorBruto,
-              this.dadosReceitaExtraidos.valorLiquido
+              this.dadosReceitaExtraidos.valorLiquido,
+              forcarDuplicata
             );
 
             this.receitaImagemSalva = true;
@@ -4885,11 +4930,28 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             }, 3000);
 
             await this.atualizarPeriodo();
+          };
+
+          this.salvandoReceitaImagem = true;
+          try {
+            await enviar(false);
           } catch (error) {
-            console.error('❌ Erro ao salvar receita:', error);
-            const erroApi = error.response?.data?.error;
-            const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
-            alert('❌ Erro ao salvar: ' + mensagem);
+            const confirmou = this.confirmarApesarDeDuplicata(error);
+            if (confirmou === true) {
+              try {
+                await enviar(true);
+              } catch (error2) {
+                console.error('❌ Erro ao salvar receita:', error2);
+                const erroApi2 = error2.response?.data?.error;
+                alert('❌ Erro ao salvar: ' + ((erroApi2 && typeof erroApi2 === 'object' ? erroApi2.message : erroApi2) || error2.message));
+              }
+            } else if (confirmou === null) {
+              console.error('❌ Erro ao salvar receita:', error);
+              const erroApi = error.response?.data?.error;
+              const mensagem = (erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message;
+              alert('❌ Erro ao salvar: ' + mensagem);
+            }
+            // confirmou === false: usuário cancelou, não faz nada
           } finally {
             this.salvandoReceitaImagem = false;
           }

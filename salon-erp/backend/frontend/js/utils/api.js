@@ -20,8 +20,8 @@ const api = {
   },
 
   // POST /api/faturamentos
-  criarFaturamento(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null) {
-    return axios.post(`${API_BASE}/faturamentos`, { data, total, categoria, tipo, tipo_despesa_id: tipoDespesaId });
+  criarFaturamento(data, total, categoria = 'Salão', tipo = 'receita', tipoDespesaId = null, forcarDuplicata = false) {
+    return axios.post(`${API_BASE}/faturamentos`, { data, total, categoria, tipo, tipo_despesa_id: tipoDespesaId, forcarDuplicata });
   },
 
   // GET /api/tipo-despesa
@@ -45,12 +45,13 @@ const api = {
   },
 
   // POST /api/faturamentos/lancamento-canal - Lançamento por canal (Receita Bruta + Taxa automática)
-  lancarPorCanal(data, canal, receitaBruta, receitaLiquida) {
+  lancarPorCanal(data, canal, receitaBruta, receitaLiquida, forcarDuplicata = false) {
     return axios.post(`${API_BASE}/faturamentos/lancamento-canal`, {
       data,
       canal,
       receitaBruta,
-      receitaLiquida
+      receitaLiquida,
+      forcarDuplicata
     });
   },
 
