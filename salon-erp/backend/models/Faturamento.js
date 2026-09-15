@@ -242,6 +242,23 @@ class Faturamento {
     return await allAsync(sql, params);
   }
 
+  // Despesas agrupadas por classificação (CMV, Operacional, Administrativa, Financeira) no período
+  static async obterDespesasPorClassificacao(dataInicio, dataFim) {
+    const sql = `
+      SELECT
+        COALESCE(td.classificacao, 'Sem Classificação') as classificacao,
+        COALESCE(SUM(f.total), 0) as total
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      WHERE f.tipo = 'despesa' AND f.status = false
+        AND f.data >= ? AND f.data <= ?
+      GROUP BY 1
+      ORDER BY total DESC
+    `;
+    const linhas = await allAsync(sql, [dataInicio, dataFim]);
+    return linhas.map(l => ({ classificacao: l.classificacao, total: parseFloat(l.total) || 0 }));
+  }
+
   // Fluxo de Caixa: despesas ao longo do período, combinando
   //  - REALIZADO: despesas já lançadas (faturamento), na data real do lançamento
   //  - PREVISTO: notas fiscais ainda pendentes, na data de vencimento (ainda não viraram lançamento)

@@ -283,6 +283,11 @@ const api = {
   // 📅 GET /api/faturamentos/fluxo-caixa - Fluxo de caixa (despesas realizadas + previstas)
   obterFluxoCaixa(from, to) {
     return axios.get(`${API_BASE}/faturamentos/fluxo-caixa?from=${from}&to=${to}`);
+  },
+
+  // 🥧 GET /api/faturamentos/despesas-por-classificacao - Despesas por classificação (CMV, Operacional, etc)
+  obterDespesasPorClassificacao(from, to) {
+    return axios.get(`${API_BASE}/faturamentos/despesas-por-classificacao?from=${from}&to=${to}`);
   }
 };
 

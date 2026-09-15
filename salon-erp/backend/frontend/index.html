@@ -428,7 +428,7 @@
 
         <!-- Gráfico Mensal - INLINE -->
         <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
-          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">Receitas vs Despesas por Dia</h3>
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">Despesas por Categoria</h3>
           <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
               <div>
@@ -454,8 +454,8 @@
               </div>
             </div>
           </div>
-          <div class="w-full">
-            <canvas id="graficoMensalInline" height="80"></canvas>
+          <div style="max-width: 420px; margin: 0 auto;">
+            <canvas id="graficoMensalInline"></canvas>
           </div>
         </div>
 
@@ -4385,70 +4385,56 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
         async renderizarGraficoMensal() {
           try {
-            console.log('📊 Renderizando gráfico mensal:', this.graficoMes, '/', this.graficoAno);
+            console.log('🥧 Renderizando despesas por categoria:', this.graficoMes, '/', this.graficoAno);
             const dataInicio = `${this.graficoAno}-${this.graficoMes}-01`;
             const ultimoDia = new Date(this.graficoAno, parseInt(this.graficoMes), 0).getDate();
             const dataFim = `${this.graficoAno}-${this.graficoMes}-${String(ultimoDia).padStart(2, '0')}`;
 
-            const response = await window.api.obterDadosGrafico(dataInicio, dataFim);
+            const response = await window.api.obterDespesasPorClassificacao(dataInicio, dataFim);
             if (response.data.success) {
-              const dados = response.data.data;
-              const diasDoMes = [];
-              const receitas = [];
-              const despesas = [];
+              const dados = response.data.data.filter(d => d.total > 0);
+              const coresPorClassificacao = {
+                'CMV': '#DC2626',
+                'Operacional': '#1D4ED8',
+                'Administrativa': '#7C3AED',
+                'Financeira': '#F59E0B',
+                'Sem Classificação': '#94A3B8'
+              };
 
-              for (let i = 1; i <= ultimoDia; i++) {
-                diasDoMes.push(i);
-                const registro = dados.find(d => {
-                  const partes = d.data.split('-');
-                  return parseInt(partes[2]) === i;
-                });
-                receitas.push(registro ? parseFloat(registro.receita || 0) : 0);
-                despesas.push(registro ? parseFloat(registro.despesa || 0) : 0);
-              }
+              const labels = dados.map(d => d.classificacao);
+              const valores = dados.map(d => d.total);
+              const cores = dados.map(d => coresPorClassificacao[d.classificacao] || '#64748B');
 
               const canvas = document.getElementById('graficoMensalInline');
               if (canvas && window.Chart) {
                 if (this.graficoMensalChart) this.graficoMensalChart.destroy();
                 const ctx = canvas.getContext('2d');
                 this.graficoMensalChart = new window.Chart(ctx, {
-                  type: 'bar',
+                  type: 'pie',
                   data: {
-                    labels: diasDoMes,
+                    labels: labels,
                     datasets: [{
-                      label: 'Receitas (R$)',
-                      data: receitas,
-                      backgroundColor: '#16A34A',
-                      borderColor: '#15803D',
-                      borderWidth: 1,
-                      borderRadius: 4
-                    }, {
-                      label: 'Despesas (R$)',
-                      data: despesas,
-                      backgroundColor: '#DC2626',
-                      borderColor: '#991B1B',
-                      borderWidth: 1,
-                      borderRadius: 4
+                      data: valores,
+                      backgroundColor: cores,
+                      borderColor: '#FFFFFF',
+                      borderWidth: 2
                     }]
                   },
                   options: {
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                      legend: { display: true, position: 'top' }
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          stepSize: 5000,
-                          callback: function(value) {
-                            return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                      legend: { display: true, position: 'bottom' },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const valor = context.parsed;
+                            const pct = total > 0 ? ((valor / total) * 100).toFixed(1) : '0.0';
+                            const valorFmt = 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                            return `${context.label}: ${valorFmt} (${pct}%)`;
                           }
                         }
-                      },
-                      x: {
-                        stacked: false
                       }
                     }
                   }
