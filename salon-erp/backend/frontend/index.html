@@ -497,10 +497,17 @@
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--error);">
               <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Realizado</p>
               <p style="font-size: 1.5rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalRealizado) }}</p>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdRealizado }} lançamento(s)</p>
+            </div>
+            <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid #991B1B;">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">🔴 Vencido (não pago)</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: #991B1B; margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalVencido) }}</p>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdVencido }} nota(s) já venceu</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--warning);">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Previsto (pendente)</p>
-              <p style="font-size: 1.5rem; font-weight: 800; color: var(--warning); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalPrevisto) }}</p>
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">🟡 A Vencer</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: var(--warning); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalAVencer) }}</p>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdAVencer }} nota(s) ainda no prazo</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--text-primary);">
               <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Total do Mês</p>
@@ -537,9 +544,17 @@
                   </td>
                   <td style="padding: 10px 12px; text-align: right; font-weight: 600;">R$ {{ formatarValor(item.valor) }}</td>
                   <td style="padding: 10px 12px;">
-                    <span :style="item.status === 'realizado' ? 'background: var(--bg-error); color: var(--error);' : 'background: rgba(245, 158, 11, 0.1); color: var(--warning);'"
-                          style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
-                      {{ item.status === 'realizado' ? 'Realizado' : 'Pendente' }}
+                    <span v-if="item.status === 'realizado'"
+                          style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: var(--bg-error); color: var(--error);">
+                      Realizado
+                    </span>
+                    <span v-else-if="item.vencimentoStatus === 'vencido'"
+                          style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: rgba(153, 27, 27, 0.1); color: #991B1B;">
+                      🔴 Vencido
+                    </span>
+                    <span v-else
+                          style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                      🟡 A vencer
                     </span>
                   </td>
                 </tr>

@@ -298,8 +298,19 @@ class Faturamento {
       return (data instanceof Date ? data.toISOString() : String(data)).split('T')[0];
     };
 
+    const hoje = normalizarData(new Date());
+
     const detalhes = [...realizado, ...previsto]
-      .map(item => ({ ...item, data: normalizarData(item.data), valor: parseFloat(item.valor) || 0 }))
+      .map(item => {
+        const data = normalizarData(item.data);
+        const valor = parseFloat(item.valor) || 0;
+        // Para itens "previsto" (notas ainda não pagas): já venceu ou ainda vai vencer?
+        // Itens "realizado" não têm esse status (já foram lançados/pagos).
+        const vencimentoStatus = item.status === 'pendente'
+          ? (data && data < hoje ? 'vencido' : 'a_vencer')
+          : null;
+        return { ...item, data, valor, vencimentoStatus };
+      })
       .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
 
     // Agregação por dia (para o gráfico)
@@ -319,6 +330,12 @@ class Faturamento {
 
     const totalRealizado = realizado.reduce((soma, r) => soma + (parseFloat(r.valor) || 0), 0);
     const totalPrevisto = previsto.reduce((soma, r) => soma + (parseFloat(r.valor) || 0), 0);
+    const totalVencido = detalhes
+      .filter(d => d.vencimentoStatus === 'vencido')
+      .reduce((soma, d) => soma + d.valor, 0);
+    const totalAVencer = detalhes
+      .filter(d => d.vencimentoStatus === 'a_vencer')
+      .reduce((soma, d) => soma + d.valor, 0);
 
     return {
       porDia,
@@ -326,9 +343,13 @@ class Faturamento {
       resumo: {
         totalRealizado,
         totalPrevisto,
+        totalVencido,
+        totalAVencer,
         totalGeral: totalRealizado + totalPrevisto,
         qtdRealizado: realizado.length,
-        qtdPrevisto: previsto.length
+        qtdPrevisto: previsto.length,
+        qtdVencido: detalhes.filter(d => d.vencimentoStatus === 'vencido').length,
+        qtdAVencer: detalhes.filter(d => d.vencimentoStatus === 'a_vencer').length
       }
     };
   }
