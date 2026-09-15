@@ -242,6 +242,97 @@ class Faturamento {
     return await allAsync(sql, params);
   }
 
+  // Fluxo de Caixa: despesas ao longo do período, combinando
+  //  - REALIZADO: despesas já lançadas (faturamento), na data real do lançamento
+  //  - PREVISTO: notas fiscais ainda pendentes, na data de vencimento (ainda não viraram lançamento)
+  // Uma nota fiscal já processada não entra 2x: assim que vira lançamento ela some do "pendente"
+  // e passa a contar como "realizado" através do próprio faturamento gerado.
+  static async obterFluxoCaixa(dataInicio, dataFim) {
+    const sqlRealizado = `
+      SELECT
+        f.id,
+        f.data,
+        f.total as valor,
+        f.categoria,
+        td.subcategoria,
+        td.classificacao,
+        nf.fornecedor_nome,
+        nf.numero_nf,
+        'realizado' as status,
+        'lancamento' as origem
+      FROM faturamento f
+      LEFT JOIN tipo_despesa td ON f.tipo_despesa_id = td.id
+      LEFT JOIN notas_fiscais nf ON f.id = nf.faturamento_id
+      WHERE f.tipo = 'despesa' AND f.status = false
+        AND f.data >= ? AND f.data <= ?
+      ORDER BY f.data ASC
+    `;
+
+    const sqlPrevisto = `
+      SELECT
+        nf.id,
+        nf.data_vencimento as data,
+        nf.valor_total as valor,
+        nf.classificacao_sugerida as categoria,
+        td.subcategoria,
+        td.classificacao,
+        nf.fornecedor_nome,
+        nf.numero_nf,
+        'pendente' as status,
+        'nota_fiscal' as origem
+      FROM notas_fiscais nf
+      LEFT JOIN tipo_despesa td ON nf.tipo_despesa_id = td.id
+      WHERE nf.status = 'pendente'
+        AND nf.data_vencimento IS NOT NULL
+        AND nf.data_vencimento >= ? AND nf.data_vencimento <= ?
+      ORDER BY nf.data_vencimento ASC
+    `;
+
+    const [realizado, previsto] = await Promise.all([
+      allAsync(sqlRealizado, [dataInicio, dataFim]),
+      allAsync(sqlPrevisto, [dataInicio, dataFim])
+    ]);
+
+    const normalizarData = (data) => {
+      if (!data) return null;
+      return (data instanceof Date ? data.toISOString() : String(data)).split('T')[0];
+    };
+
+    const detalhes = [...realizado, ...previsto]
+      .map(item => ({ ...item, data: normalizarData(item.data), valor: parseFloat(item.valor) || 0 }))
+      .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+
+    // Agregação por dia (para o gráfico)
+    const porDiaMap = {};
+    detalhes.forEach(item => {
+      if (!item.data) return;
+      if (!porDiaMap[item.data]) {
+        porDiaMap[item.data] = { data: item.data, realizado: 0, previsto: 0 };
+      }
+      if (item.status === 'realizado') porDiaMap[item.data].realizado += item.valor;
+      else porDiaMap[item.data].previsto += item.valor;
+    });
+
+    const porDia = Object.values(porDiaMap)
+      .map(d => ({ ...d, total: d.realizado + d.previsto }))
+      .sort((a, b) => a.data.localeCompare(b.data));
+
+    const totalRealizado = realizado.reduce((soma, r) => soma + (parseFloat(r.valor) || 0), 0);
+    const totalPrevisto = previsto.reduce((soma, r) => soma + (parseFloat(r.valor) || 0), 0);
+
+    return {
+      porDia,
+      detalhes,
+      resumo: {
+        totalRealizado,
+        totalPrevisto,
+        totalGeral: totalRealizado + totalPrevisto,
+        qtdRealizado: realizado.length,
+        qtdPrevisto: previsto.length
+      }
+    };
+  }
+
   // Obter estatísticas separadas por categoria (receitas e despesas)
   static async obterStatsPorCategoria(dataInicio, dataFim, restaurante = null) {
     let sql = `

@@ -278,6 +278,11 @@ const api = {
       url += `&from=${from}&to=${to}`;
     }
     return axios.get(url);
+  },
+
+  // 📅 GET /api/faturamentos/fluxo-caixa - Fluxo de caixa (despesas realizadas + previstas)
+  obterFluxoCaixa(from, to) {
+    return axios.get(`${API_BASE}/faturamentos/fluxo-caixa?from=${from}&to=${to}`);
   }
 };
 

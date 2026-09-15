@@ -207,6 +207,15 @@
               Processar Notas Fiscais
             </a>
             <a
+              href="#secao-fluxo-caixa"
+              @click.prevent="irParaFluxoCaixa"
+              style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='transparent'"
+            >
+              Fluxo de Caixa
+            </a>
+            <a
               href="#secao-despesas-por-foto"
               @click.prevent="irParaDespesasPorFoto"
               style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
@@ -1167,6 +1176,98 @@
           </div>
           <div class="w-full">
             <canvas id="graficoMensalInline" height="80"></canvas>
+          </div>
+        </div>
+
+        <!-- Fluxo de Caixa: despesas realizadas + previstas (por vencimento) ao longo do mês -->
+        <div id="secao-fluxo-caixa" style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border); scroll-margin-top: 24px;">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">💰 Fluxo de Caixa</h3>
+          <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: -12px; margin-bottom: 16px;">
+            Despesas já lançadas (realizado) + notas fiscais pendentes na data de vencimento (previsto).
+          </p>
+
+          <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+              <div>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Mês</label>
+                <select v-model="fluxoCaixaMes" @change="carregarFluxoCaixa" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
+                  <option value="01">Janeiro</option>
+                  <option value="02">Fevereiro</option>
+                  <option value="03">Março</option>
+                  <option value="04">Abril</option>
+                  <option value="05">Maio</option>
+                  <option value="06">Junho</option>
+                  <option value="07">Julho</option>
+                  <option value="08">Agosto</option>
+                  <option value="09">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11">Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Ano</label>
+                <input v-model.number="fluxoCaixaAno" type="number" @change="carregarFluxoCaixa" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumo -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--error);">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Realizado</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalRealizado) }}</p>
+            </div>
+            <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--warning);">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Previsto (pendente)</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: var(--warning); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalPrevisto) }}</p>
+            </div>
+            <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--text-primary);">
+              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Total do Mês</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalGeral) }}</p>
+            </div>
+          </div>
+
+          <div class="w-full" style="margin-bottom: 24px;">
+            <canvas id="graficoFluxoCaixa" height="80"></canvas>
+          </div>
+
+          <!-- Tabela detalhada -->
+          <div v-if="fluxoCaixaDados.detalhes.length > 0" style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+              <thead style="background: var(--bg-secondary);">
+                <tr>
+                  <th style="padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Data</th>
+                  <th style="padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Categoria</th>
+                  <th style="padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Fornecedor / NF</th>
+                  <th style="padding: 10px 12px; text-align: right; font-weight: 600; border-bottom: 2px solid var(--border);">Valor</th>
+                  <th style="padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--border);">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in fluxoCaixaDados.detalhes" :key="item.origem + '-' + item.id" style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 10px 12px;">{{ item.data?.split('-').reverse().join('/') }}</td>
+                  <td style="padding: 10px 12px;">
+                    {{ item.subcategoria || item.categoria || '—' }}
+                    <span v-if="item.classificacao" style="color: var(--text-secondary); font-size: 0.8rem;">({{ item.classificacao }})</span>
+                  </td>
+                  <td style="padding: 10px 12px; color: var(--text-secondary);">
+                    {{ item.fornecedor_nome || '—' }}
+                    <span v-if="item.numero_nf" style="font-size: 0.8rem;">· NF {{ item.numero_nf }}</span>
+                  </td>
+                  <td style="padding: 10px 12px; text-align: right; font-weight: 600;">R$ {{ formatarValor(item.valor) }}</td>
+                  <td style="padding: 10px 12px;">
+                    <span :style="item.status === 'realizado' ? 'background: var(--bg-error); color: var(--error);' : 'background: rgba(245, 158, 11, 0.1); color: var(--warning);'"
+                          style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                      {{ item.status === 'realizado' ? 'Realizado' : 'Pendente' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else style="text-align: center; padding: 24px; color: var(--text-secondary);">
+            Nenhuma despesa realizada ou pendente encontrada nesse período.
           </div>
         </div>
 
@@ -2592,6 +2693,11 @@
           graficoMes: String(new Date().getMonth() + 1).padStart(2, '0'),
           graficoAno: new Date().getFullYear(),
           graficoMensalChart: null,
+          // Fluxo de Caixa
+          fluxoCaixaMes: String(new Date().getMonth() + 1).padStart(2, '0'),
+          fluxoCaixaAno: new Date().getFullYear(),
+          fluxoCaixaChart: null,
+          fluxoCaixaDados: { porDia: [], detalhes: [], resumo: { totalRealizado: 0, totalPrevisto: 0, totalGeral: 0 } },
           // Despesa por Imagem
           isDraggingDespesa: false,
           processandoDespesaImagem: false,
@@ -2758,6 +2864,18 @@
         // Atalho no topo: rola até a seção "Processar Notas Fiscais"
         irParaProcessarNotasFiscais() {
           const el = document.getElementById('secao-processar-notas-fiscais');
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          // Piscar uma borda pra chamar atenção pra seção
+          el.style.transition = 'box-shadow 0.3s';
+          el.style.boxShadow = '0 0 0 3px var(--primary)';
+          setTimeout(() => { el.style.boxShadow = ''; }, 1200);
+        },
+
+        // Atalho no topo: rola até a seção "Fluxo de Caixa"
+        irParaFluxoCaixa() {
+          const el = document.getElementById('secao-fluxo-caixa');
           if (!el) return;
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -5155,6 +5273,85 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
           } catch (error) {
             console.error('❌ Erro ao renderizar gráfico:', error);
           }
+        },
+
+        // Fluxo de Caixa: despesas realizadas + notas pendentes (por vencimento) ao longo do mês
+        async carregarFluxoCaixa() {
+          try {
+            const mes = String(this.fluxoCaixaMes).padStart(2, '0');
+            const dataInicio = `${this.fluxoCaixaAno}-${mes}-01`;
+            const ultimoDia = new Date(this.fluxoCaixaAno, parseInt(mes), 0).getDate();
+            const dataFim = `${this.fluxoCaixaAno}-${mes}-${String(ultimoDia).padStart(2, '0')}`;
+
+            const response = await window.api.obterFluxoCaixa(dataInicio, dataFim);
+            if (!response.data.success) return;
+
+            this.fluxoCaixaDados = response.data.data;
+
+            const diasDoMes = [];
+            const realizado = [];
+            const previsto = [];
+
+            for (let i = 1; i <= ultimoDia; i++) {
+              diasDoMes.push(i);
+              const registro = this.fluxoCaixaDados.porDia.find(d => {
+                const partes = d.data.split('-');
+                return parseInt(partes[2]) === i;
+              });
+              realizado.push(registro ? parseFloat(registro.realizado || 0) : 0);
+              previsto.push(registro ? parseFloat(registro.previsto || 0) : 0);
+            }
+
+            const canvas = document.getElementById('graficoFluxoCaixa');
+            if (canvas && window.Chart) {
+              if (this.fluxoCaixaChart) this.fluxoCaixaChart.destroy();
+              const ctx = canvas.getContext('2d');
+              this.fluxoCaixaChart = new window.Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: diasDoMes,
+                  datasets: [{
+                    label: 'Realizado (R$)',
+                    data: realizado,
+                    backgroundColor: '#DC2626',
+                    borderColor: '#991B1B',
+                    borderWidth: 1,
+                    borderRadius: 4
+                  }, {
+                    label: 'Previsto - pendente (R$)',
+                    data: previsto,
+                    backgroundColor: '#F59E0B',
+                    borderColor: '#B45309',
+                    borderWidth: 1,
+                    borderRadius: 4
+                  }]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  plugins: {
+                    legend: { display: true, position: 'top' }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      stacked: true,
+                      ticks: {
+                        callback: function(value) {
+                          return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        }
+                      }
+                    },
+                    x: {
+                      stacked: true
+                    }
+                  }
+                }
+              });
+            }
+          } catch (error) {
+            console.error('❌ Erro ao carregar fluxo de caixa:', error);
+          }
         }
       },
 
@@ -5304,6 +5501,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         this.carregarTiposDespesa();
         this.atualizarPeriodo();
         this.renderizarGraficoMensal(); // Renderizar gráfico mensal inline
+        this.carregarFluxoCaixa(); // Renderizar fluxo de caixa (realizado + previsto)
         this.carregarNotasPendentes();
         this.carregarDadosCMV(); // Carregar dados de CMV ao iniciar
 

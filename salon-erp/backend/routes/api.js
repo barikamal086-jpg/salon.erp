@@ -574,6 +574,32 @@ router.get('/faturamentos/stats', async (req, res) => {
   }
 });
 
+// GET /api/faturamentos/fluxo-caixa - Fluxo de caixa (despesas) ao longo do período
+// Combina: despesas já lançadas (realizado, na data do lançamento) + notas fiscais
+// pendentes (previsto, na data de vencimento) — sem duplicar quando a nota é processada.
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/faturamentos/fluxo-caixa', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        error: 'Parâmetros "from" e "to" são obrigatórios'
+      });
+    }
+
+    const dados = await Faturamento.obterFluxoCaixa(from, to);
+    res.json({ success: true, data: dados });
+  } catch (error) {
+    logger.error(`Erro ao obter fluxo de caixa: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // GET /api/faturamentos/chart - Obter dados para gráfico
 // ?from=YYYY-MM-DD&to=YYYY-MM-DD
 router.get('/faturamentos/chart', async (req, res) => {
