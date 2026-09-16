@@ -470,12 +470,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
               <div>
                 <p style="font-size: 1.1rem; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0;">CMV em função do Faturamento</p>
-                <p style="font-size: 0.95rem; font-weight: 700; color: rgba(255,255,255,0.85); margin: 0;">
+                <p style="font-size: 0.95rem; font-weight: 700; color: rgba(255,255,255,0.85); margin: 0; font-variant-numeric: tabular-nums;">
                   R$ {{ formatarValor(cmvIndicador.cmvTotal) }} de CMV ÷ R$ {{ formatarValor(cmvIndicador.totalReceita) }} de faturamento
                 </p>
               </div>
               <div style="text-align: right;">
-                <p :style="{ fontSize: '2.25rem', fontWeight: '800', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
+                <p :style="{ fontSize: '2.25rem', fontWeight: '800', color: cmvIndicadorStatus.cor, margin: 0, fontFamily: '\'Space Grotesk\', \'Inter\', sans-serif !important', fontVariantNumeric: 'tabular-nums' }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
                 <p :style="{ fontSize: '0.9rem', fontWeight: '700', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicadorStatus.label }}</p>
               </div>
             </div>
@@ -4491,7 +4491,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                      legend: { display: true, position: 'bottom', labels: { color: '#FFFFFF', font: { size: 14, weight: 'bold' } } },
+                      legend: { display: true, position: 'bottom', labels: { color: '#FFFFFF', font: { size: 14, weight: 'bold', family: "'Inter', sans-serif" } } },
                       tooltip: {
                         callbacks: {
                           label: function(context) {
@@ -4507,7 +4507,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                       datalabels: {
                         display: true,
                         color: '#FFFFFF',
-                        font: { weight: 'bold', size: 15 },
+                        font: { weight: 'bold', size: 15, family: "'Inter', sans-serif" },
                         textAlign: 'center',
                         formatter: function(valor, context) {
                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
