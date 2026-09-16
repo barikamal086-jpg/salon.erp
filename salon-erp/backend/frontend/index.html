@@ -436,12 +436,12 @@
         </div>
 
         <!-- Gráfico Mensal - INLINE -->
-        <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--border);">
-          <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">Despesas por Categoria</h3>
-          <div style="margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border);">
+        <div style="background: var(--bg-dark); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid var(--bg-dark);">
+          <h3 style="font-size: 1.125rem; font-weight: 700; color: #FFFFFF; margin-bottom: 16px;">Despesas por Categoria</h3>
+          <div style="margin-bottom: 24px; padding: 16px; background: rgba(255,255,255,0.06); border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
               <div>
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Mês</label>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: #FFFFFF; margin-bottom: 8px;">Mês</label>
                 <select v-model="graficoMes" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
                   <option value="01">Janeiro</option>
                   <option value="02">Fevereiro</option>
@@ -458,7 +458,7 @@
                 </select>
               </div>
               <div>
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Ano</label>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: #FFFFFF; margin-bottom: 8px;">Ano</label>
                 <input v-model.number="graficoAno" type="number" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
               </div>
             </div>
@@ -4451,7 +4451,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                      legend: { display: true, position: 'bottom' },
+                      legend: { display: true, position: 'bottom', labels: { color: '#FFFFFF' } },
                       tooltip: {
                         callbacks: {
                           label: function(context) {
