@@ -490,6 +490,9 @@
                 <input v-model.number="fluxoCaixaAno" type="number" @change="carregarFluxoCaixa" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
               </div>
             </div>
+            <div style="margin-top: 16px; padding: 12px; background: white; border-radius: 6px; font-size: 0.85rem; color: var(--text-secondary);">
+              Período deste card: <strong style="color: var(--text-primary);">{{ fluxoCaixaPeriodoLabel }}</strong> (mês calendário completo — independente do filtro "Selecione o Período" lá em cima, por isso os totais podem ser diferentes)
+            </div>
           </div>
 
           <!-- Resumo -->
@@ -2063,6 +2066,15 @@
       },
 
       computed: {
+        // Período exato do Fluxo de Caixa (mês calendário completo, INDEPENDENTE do
+        // filtro "Selecione o Período" lá em cima — por isso os totais podem divergir
+        // do card "Indicadores de Performance", que usa o período filtrado).
+        fluxoCaixaPeriodoLabel() {
+          const mes = String(this.fluxoCaixaMes).padStart(2, '0');
+          const ultimoDia = new Date(this.fluxoCaixaAno, parseInt(mes), 0).getDate();
+          return `01/${mes}/${this.fluxoCaixaAno} a ${String(ultimoDia).padStart(2, '0')}/${mes}/${this.fluxoCaixaAno}`;
+        },
+
         // Taxa calculada automaticamente no Lançamento por Canal (Bruto - Líquido)
         taxaCalculadaCanal() {
           const bruto = parseBrasilValue(this.lancamentoCanal.receitaBruta);
