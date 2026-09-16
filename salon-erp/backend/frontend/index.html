@@ -10,6 +10,15 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+  <script>
+    // Plugin registrado globalmente mas desligado por padrão — só liga explicitamente
+    // (plugins.datalabels.display: true) no gráfico que precisa, pra não poluir os outros.
+    if (window.Chart && window.ChartDataLabels) {
+      Chart.register(ChartDataLabels);
+      Chart.defaults.set('plugins.datalabels', { display: false });
+    }
+  </script>
 
   <!-- Vue 3 CDN -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -4452,6 +4461,19 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                             const valorFmt = 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
                             return `${context.label}: ${valorFmt} (${pct}%)`;
                           }
+                        }
+                      },
+                      // Mostra valor + % direto em cada fatia (não só no hover)
+                      datalabels: {
+                        display: true,
+                        color: '#FFFFFF',
+                        font: { weight: 'bold', size: 12 },
+                        textAlign: 'center',
+                        formatter: function(valor, context) {
+                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                          const pct = total > 0 ? ((valor / total) * 100).toFixed(1) : '0.0';
+                          const valorFmt = 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                          return `${valorFmt}\n(${pct}%)`;
                         }
                       }
                     }
