@@ -4491,7 +4491,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                      legend: { display: true, position: 'bottom', labels: { color: '#FFFFFF' } },
+                      legend: { display: true, position: 'bottom', labels: { color: '#FFFFFF', font: { size: 14, weight: 'bold' } } },
                       tooltip: {
                         callbacks: {
                           label: function(context) {
@@ -4507,7 +4507,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                       datalabels: {
                         display: true,
                         color: '#FFFFFF',
-                        font: { weight: 'bold', size: 12 },
+                        font: { weight: 'bold', size: 15 },
                         textAlign: 'center',
                         formatter: function(valor, context) {
                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
