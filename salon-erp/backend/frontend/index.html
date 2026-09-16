@@ -463,6 +463,24 @@
               </div>
             </div>
           </div>
+
+          <!-- CMV em função do Faturamento (indicador clássico de restaurante, separado do %
+               que a pizza mostra — ali é CMV/total de despesas, aqui é CMV/Receita) -->
+          <div :style="{ marginBottom: '24px', padding: '16px', borderRadius: '8px', background: cmvIndicadorStatus.bg, border: '1px solid ' + cmvIndicadorStatus.cor }">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <p style="font-size: 0.85rem; font-weight: 600; color: #FFFFFF; margin: 0 0 4px 0;">CMV em função do Faturamento</p>
+                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin: 0;">
+                  R$ {{ formatarValor(cmvIndicador.cmvTotal) }} de CMV ÷ R$ {{ formatarValor(cmvIndicador.totalReceita) }} de faturamento
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <p :style="{ fontSize: '1.75rem', fontWeight: '800', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
+                <p :style="{ fontSize: '0.75rem', fontWeight: '600', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicadorStatus.label }}</p>
+              </div>
+            </div>
+          </div>
+
           <div style="max-width: 420px; margin: 0 auto;">
             <canvas id="graficoMensalInline"></canvas>
           </div>
@@ -1982,6 +2000,7 @@
           graficoMes: String(new Date().getMonth() + 1).padStart(2, '0'),
           graficoAno: new Date().getFullYear(),
           graficoMensalChart: null,
+          cmvIndicador: { cmvTotal: 0, totalReceita: 0, percentual: 0 },
           // Fluxo de Caixa
           fluxoCaixaMes: String(new Date().getMonth() + 1).padStart(2, '0'),
           fluxoCaixaAno: new Date().getFullYear(),
@@ -2082,6 +2101,15 @@
           const mes = String(this.fluxoCaixaMes).padStart(2, '0');
           const ultimoDia = new Date(this.fluxoCaixaAno, parseInt(mes), 0).getDate();
           return `01/${mes}/${this.fluxoCaixaAno} a ${String(ultimoDia).padStart(2, '0')}/${mes}/${this.fluxoCaixaAno}`;
+        },
+
+        // Status do indicador CMV/Faturamento, usando as mesmas metas já usadas na
+        // análise de CMV do sistema (CMV_META: 22%, CMV_ALERTA: 25%, CMV_CRITICO: 30%).
+        cmvIndicadorStatus() {
+          const pct = this.cmvIndicador.percentual;
+          if (pct <= 22) return { cor: 'var(--success)', bg: 'var(--bg-success)', label: 'Dentro da meta (≤22%)' };
+          if (pct <= 25) return { cor: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.12)', label: 'Atenção (meta: 22%)' };
+          return { cor: 'var(--error)', bg: 'var(--bg-error)', label: 'Crítico (meta: 22%)' };
         },
 
         // Taxa calculada automaticamente no Lançamento por Canal (Bruto - Líquido)
@@ -4419,7 +4447,12 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
             const response = await window.api.obterDespesasPorClassificacao(dataInicio, dataFim);
             if (response.data.success) {
-              const dados = response.data.data.filter(d => d.total > 0);
+              this.cmvIndicador = {
+                cmvTotal: response.data.data.cmvTotal || 0,
+                totalReceita: response.data.data.totalReceita || 0,
+                percentual: response.data.data.cmvPercentualFaturamento || 0
+              };
+              const dados = response.data.data.classificacoes.filter(d => d.total > 0);
               const coresPorClassificacao = {
                 'CMV': '#DC2626',
                 'Operacional': '#1D4ED8',

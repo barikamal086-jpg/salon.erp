@@ -242,7 +242,9 @@ class Faturamento {
     return await allAsync(sql, params);
   }
 
-  // Despesas agrupadas por classificação (CMV, Operacional, Administrativa, Financeira) no período
+  // Despesas agrupadas por classificação (CMV, Operacional, Administrativa, Financeira) no período,
+  // + CMV em função do faturamento (receita) do mesmo período — o indicador clássico de restaurante
+  // (CMV / Receita), separado do % que a pizza mostra (CMV / total de despesas).
   static async obterDespesasPorClassificacao(dataInicio, dataFim) {
     const sql = `
       SELECT
@@ -255,8 +257,24 @@ class Faturamento {
       GROUP BY 1
       ORDER BY total DESC
     `;
-    const linhas = await allAsync(sql, [dataInicio, dataFim]);
-    return linhas.map(l => ({ classificacao: l.classificacao, total: parseFloat(l.total) || 0 }));
+    const sqlReceita = `
+      SELECT COALESCE(SUM(total), 0) as total
+      FROM faturamento
+      WHERE tipo = 'receita' AND status = false
+        AND data >= ? AND data <= ?
+    `;
+
+    const [linhas, receitaRow] = await Promise.all([
+      allAsync(sql, [dataInicio, dataFim]),
+      getAsync(sqlReceita, [dataInicio, dataFim])
+    ]);
+
+    const classificacoes = linhas.map(l => ({ classificacao: l.classificacao, total: parseFloat(l.total) || 0 }));
+    const totalReceita = parseFloat(receitaRow?.total) || 0;
+    const cmvTotal = classificacoes.find(c => c.classificacao === 'CMV')?.total || 0;
+    const cmvPercentualFaturamento = totalReceita > 0 ? (cmvTotal / totalReceita) * 100 : 0;
+
+    return { classificacoes, totalReceita, cmvTotal, cmvPercentualFaturamento };
   }
 
   // Fluxo de Caixa: despesas ao longo do período, combinando
