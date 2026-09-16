@@ -469,14 +469,14 @@
           <div :style="{ marginBottom: '24px', padding: '16px', borderRadius: '8px', background: cmvIndicadorStatus.bg, border: '1px solid ' + cmvIndicadorStatus.cor }">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
               <div>
-                <p style="font-size: 0.85rem; font-weight: 600; color: #FFFFFF; margin: 0 0 4px 0;">CMV em função do Faturamento</p>
-                <p style="font-size: 0.8rem; color: rgba(255,255,255,0.7); margin: 0;">
+                <p style="font-size: 1.1rem; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0;">CMV em função do Faturamento</p>
+                <p style="font-size: 0.95rem; font-weight: 700; color: rgba(255,255,255,0.85); margin: 0;">
                   R$ {{ formatarValor(cmvIndicador.cmvTotal) }} de CMV ÷ R$ {{ formatarValor(cmvIndicador.totalReceita) }} de faturamento
                 </p>
               </div>
               <div style="text-align: right;">
-                <p :style="{ fontSize: '1.75rem', fontWeight: '800', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
-                <p :style="{ fontSize: '0.75rem', fontWeight: '600', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicadorStatus.label }}</p>
+                <p :style="{ fontSize: '2.25rem', fontWeight: '800', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
+                <p :style="{ fontSize: '0.9rem', fontWeight: '700', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicadorStatus.label }}</p>
               </div>
             </div>
           </div>
