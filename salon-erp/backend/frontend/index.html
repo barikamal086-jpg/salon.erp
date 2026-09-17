@@ -436,13 +436,13 @@
         </div>
 
         <!-- Gráfico Mensal - INLINE -->
-        <div style="background: #0F1E3D; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid #0F1E3D;">
-          <h3 style="font-size: 1.125rem; font-weight: 700; color: #FFFFFF !important; margin-bottom: 16px;">Despesas por Categoria</h3>
+        <div class="theme-dark" style="background: #0F1E3D; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; border: 1px solid #0F1E3D;">
+          <h3 style="margin-bottom: 16px;">Despesas por Categoria</h3>
           <div style="margin-bottom: 24px; padding: 16px; background: rgba(255,255,255,0.06); border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);">
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
               <div>
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: #FFFFFF; margin-bottom: 8px;">Mês</label>
-                <select v-model="graficoMes" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
+                <label class="field-label" style="display: block; margin-bottom: 8px;">Mês</label>
+                <select v-model="graficoMes" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
                   <option value="01">Janeiro</option>
                   <option value="02">Fevereiro</option>
                   <option value="03">Março</option>
@@ -458,8 +458,8 @@
                 </select>
               </div>
               <div>
-                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: #FFFFFF; margin-bottom: 8px;">Ano</label>
-                <input v-model.number="graficoAno" type="number" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
+                <label class="field-label" style="display: block; margin-bottom: 8px;">Ano</label>
+                <input v-model.number="graficoAno" type="number" @change="renderizarGraficoMensal" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit;">
               </div>
             </div>
           </div>
@@ -469,14 +469,14 @@
           <div :style="{ marginBottom: '24px', padding: '16px', borderRadius: '8px', background: cmvIndicadorStatus.bg, border: '1px solid ' + cmvIndicadorStatus.cor }">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
               <div>
-                <p style="font-size: 1.1rem; font-weight: 800; color: #FFFFFF; margin: 0 0 4px 0;">CMV em função do Faturamento</p>
+                <p class="card-subtitle" style="color: #FFFFFF; margin: 0 0 4px 0;">CMV em função do Faturamento</p>
                 <p style="font-size: 0.95rem; font-weight: 700; color: rgba(255,255,255,0.85); margin: 0; font-variant-numeric: tabular-nums;">
                   R$ {{ formatarValor(cmvIndicador.cmvTotal) }} de CMV ÷ R$ {{ formatarValor(cmvIndicador.totalReceita) }} de faturamento
                 </p>
               </div>
               <div style="text-align: right;">
-                <p :style="{ fontSize: '2.25rem', fontWeight: '800', color: cmvIndicadorStatus.cor, margin: 0, fontFamily: '\'Space Grotesk\', \'Inter\', sans-serif !important', fontVariantNumeric: 'tabular-nums' }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
-                <p :style="{ fontSize: '0.9rem', fontWeight: '700', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicadorStatus.label }}</p>
+                <p :style="{ fontSize: '32px', fontWeight: '700', color: cmvIndicadorStatus.cor, margin: 0, fontVariantNumeric: 'tabular-nums' }">{{ cmvIndicador.percentual.toFixed(1) }}%</p>
+                <p :style="{ fontSize: '12px', fontWeight: '500', color: cmvIndicadorStatus.cor, margin: 0 }">{{ cmvIndicadorStatus.label }}</p>
               </div>
             </div>
           </div>
@@ -4491,7 +4491,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                      legend: { display: true, position: 'bottom', labels: { color: '#FFFFFF', font: { size: 14, weight: 'bold', family: "'Inter', sans-serif" } } },
+                      legend: { display: true, position: 'bottom', labels: { color: 'rgba(255,255,255,0.7)', font: { size: 12, weight: '500', family: "'Inter', sans-serif" } } },
                       tooltip: {
                         callbacks: {
                           label: function(context) {
@@ -4507,7 +4507,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                       datalabels: {
                         display: true,
                         color: '#FFFFFF',
-                        font: { weight: 'bold', size: 15, family: "'Inter', sans-serif" },
+                        font: { weight: '600', size: 12, family: "'Inter', sans-serif" },
                         textAlign: 'center',
                         formatter: function(valor, context) {
                           const total = context.dataset.data.reduce((a, b) => a + b, 0);

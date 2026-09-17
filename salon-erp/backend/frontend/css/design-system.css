@@ -43,9 +43,14 @@
 
   /* Typography Tokens */
   --font-primary: 'Inter', sans-serif;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
   --color-text-primary: #1A1A1A;
   --color-text-secondary: #6B7280;
   --color-text-on-dark: #FFFFFF;
+  --color-text-on-dark-muted: rgba(255, 255, 255, 0.7);
   --color-green: #10B981;
   --color-red: #EF4444;
 }
@@ -141,9 +146,33 @@ input, select, textarea {
 /* Valores monetários em destaque (ex: "R$ 148.270,19") */
 .money-value {
   font-size: 30px !important;
-  font-weight: 700 !important;
+  font-weight: var(--fw-bold) !important;
   letter-spacing: -0.03em !important;
   font-variant-numeric: tabular-nums !important;
+}
+
+/* Subtítulo de card (ex: "CMV em função do Faturamento") */
+.card-subtitle {
+  font-size: 15px !important;
+  font-weight: var(--fw-semibold) !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* Rótulos de campo (ex: "Mês", "Ano") — mesma hierarquia nos dois temas,
+   só a cor muda: cinza no tema claro, branco 70% dentro de .theme-dark */
+.field-label {
+  font-size: 12px !important;
+  font-weight: var(--fw-medium) !important;
+  color: var(--color-text-secondary) !important;
+}
+
+/* Cards com fundo escuro (ex: "Despesas por Categoria") */
+.theme-dark h3 {
+  color: var(--color-text-on-dark) !important;
+}
+
+.theme-dark .field-label {
+  color: var(--color-text-on-dark-muted) !important;
 }
 
 /* Sidebar Override */
