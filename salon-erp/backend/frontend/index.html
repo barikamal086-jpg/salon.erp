@@ -3162,6 +3162,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             console.log('✅ [salvarNovaReceita] Lançamento salvo. Recarregando dados...');
             await this.atualizarPeriodo();
             this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
             await nextTick();  // Forçar re-render imediato
 
             // Garantir que o filtro inclua a data do novo lançamento
@@ -3251,6 +3252,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             console.log('🔄 [salvarLancamentoCanal] Recarregando dados...');
             await this.atualizarPeriodo();
             this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
             await nextTick();
           };
 
@@ -3313,6 +3315,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               console.log(`🔄 [Frontend] Recarregando dados...`);
               await this.atualizarPeriodo();
               this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
               await nextTick();  // Forçar re-render imediato
               console.log(`✅ [Frontend] Dados recarregados e UI atualizada`);
 
@@ -3439,6 +3442,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             await this.carregarStatsPorCategoria();
             await this.carregarTaxasPlataforma();
             this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
 
             // 🔄 Forçar re-render do Vue (sem esperar por watcher)
             console.log('🔄 Forçando re-render do Vue...');
@@ -3777,6 +3781,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               await this.carregarNotasPendentes();
               await this.atualizarPeriodo();
               this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
             }
           } catch (error) {
             console.error('Erro ao processar nota:', error);
@@ -4170,6 +4175,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
             await this.atualizarPeriodo();
             this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
           } catch (error) {
             console.error('❌ Erro ao salvar despesa:', error);
             alert('❌ Erro ao salvar: ' + error.message);
@@ -4360,6 +4366,7 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
 
             await this.atualizarPeriodo();
             this.renderizarGraficoMensal(); // Atualiza pizza + indicador CMV/Faturamento também
+            this.carregarFluxoCaixa(); // Atualiza Fluxo de Caixa também
           };
 
           this.salvandoReceitaImagem = true;
