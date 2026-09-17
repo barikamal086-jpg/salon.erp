@@ -335,15 +335,25 @@ class Faturamento {
 
     const hoje = normalizarData(new Date());
 
+    // Domingo da semana atual (semana de calendário: segunda a domingo), pra separar
+    // "vence esta semana" de "vence depois" dentro do que ainda não venceu.
+    const hojeDate = new Date(hoje + 'T00:00:00');
+    const diaSemana = hojeDate.getDay(); // 0 = domingo, 1 = segunda, ... 6 = sábado
+    const diasAteDomingo = diaSemana === 0 ? 0 : (7 - diaSemana);
+    const domingoDestaSemana = normalizarData(new Date(hojeDate.getTime() + diasAteDomingo * 24 * 60 * 60 * 1000));
+
     const detalhes = [...realizado, ...previsto]
       .map(item => {
         const data = normalizarData(item.data);
         const valor = parseFloat(item.valor) || 0;
-        // Para itens "previsto" (notas ainda não pagas): já venceu ou ainda vai vencer?
-        // Itens "realizado" não têm esse status (já foram lançados/pagos).
-        const vencimentoStatus = item.status === 'pendente'
-          ? (data && data < hoje ? 'vencido' : 'a_vencer')
-          : null;
+        // Para itens "previsto" (notas ainda não pagas): já venceu, vence esta semana
+        // (até domingo) ou vence depois? Itens "realizado" não têm esse status.
+        let vencimentoStatus = null;
+        if (item.status === 'pendente') {
+          if (data && data < hoje) vencimentoStatus = 'vencido';
+          else if (data && data <= domingoDestaSemana) vencimentoStatus = 'a_vencer_semana';
+          else vencimentoStatus = 'a_vencer_depois';
+        }
         return { ...item, data, valor, vencimentoStatus };
       })
       .sort((a, b) => (a.data || '').localeCompare(b.data || ''));
@@ -365,12 +375,12 @@ class Faturamento {
 
     const totalRealizado = realizado.reduce((soma, r) => soma + (parseFloat(r.valor) || 0), 0);
     const totalPrevisto = previsto.reduce((soma, r) => soma + (parseFloat(r.valor) || 0), 0);
-    const totalVencido = detalhes
-      .filter(d => d.vencimentoStatus === 'vencido')
-      .reduce((soma, d) => soma + d.valor, 0);
-    const totalAVencer = detalhes
-      .filter(d => d.vencimentoStatus === 'a_vencer')
-      .reduce((soma, d) => soma + d.valor, 0);
+    const somaPor = (status) => detalhes.filter(d => d.vencimentoStatus === status).reduce((soma, d) => soma + d.valor, 0);
+    const qtdPor = (status) => detalhes.filter(d => d.vencimentoStatus === status).length;
+
+    const totalVencido = somaPor('vencido');
+    const totalAVencerSemana = somaPor('a_vencer_semana');
+    const totalAVencerDepois = somaPor('a_vencer_depois');
 
     return {
       porDia,
@@ -379,12 +389,17 @@ class Faturamento {
         totalRealizado,
         totalPrevisto,
         totalVencido,
-        totalAVencer,
+        totalAVencerSemana,
+        totalAVencerDepois,
+        // Soma das duas (compatibilidade e visão geral do que ainda não venceu)
+        totalAVencer: totalAVencerSemana + totalAVencerDepois,
         totalGeral: totalRealizado + totalPrevisto,
         qtdRealizado: realizado.length,
         qtdPrevisto: previsto.length,
-        qtdVencido: detalhes.filter(d => d.vencimentoStatus === 'vencido').length,
-        qtdAVencer: detalhes.filter(d => d.vencimentoStatus === 'a_vencer').length
+        qtdVencido: qtdPor('vencido'),
+        qtdAVencerSemana: qtdPor('a_vencer_semana'),
+        qtdAVencerDepois: qtdPor('a_vencer_depois'),
+        qtdAVencer: qtdPor('a_vencer_semana') + qtdPor('a_vencer_depois')
       }
     };
   }

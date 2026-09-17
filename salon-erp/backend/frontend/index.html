@@ -534,9 +534,14 @@
               <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdVencido }} nota(s) já venceu</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--warning);">
-              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">🟡 A Vencer</p>
-              <p style="font-size: 1.5rem; font-weight: 800; color: var(--warning); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalAVencer) }}</p>
-              <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdAVencer }} nota(s) ainda no prazo</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">🟡 Vence esta semana</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: var(--warning); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalAVencerSemana) }}</p>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdAVencerSemana }} nota(s) até domingo</p>
+            </div>
+            <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--info);">
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">🔵 Vence depois</p>
+              <p style="font-size: 1.5rem; font-weight: 800; color: var(--info); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalAVencerDepois) }}</p>
+              <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdAVencerDepois }} nota(s) depois desta semana</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--text-primary);">
               <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">Total do Mês</p>
@@ -581,9 +586,13 @@
                           style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: rgba(153, 27, 27, 0.1); color: #991B1B;">
                       🔴 Vencido
                     </span>
-                    <span v-else
+                    <span v-else-if="item.vencimentoStatus === 'a_vencer_semana'"
                           style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: rgba(245, 158, 11, 0.1); color: var(--warning);">
-                      🟡 A vencer
+                      🟡 Esta semana
+                    </span>
+                    <span v-else
+                          style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; background: var(--bg-info); color: var(--info);">
+                      🔵 Depois
                     </span>
                   </td>
                 </tr>
