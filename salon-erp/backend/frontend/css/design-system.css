@@ -112,12 +112,8 @@ h3 {
 
 .sidebar-menu-item {
   font-size: 14px !important;
-  font-weight: 500 !important;
+  font-weight: 700 !important;
   color: var(--color-text-on-dark) !important;
-}
-
-.sidebar-menu-item.is-active {
-  font-weight: 600 !important;
 }
 
 /* Nav do topo (atalhos "Lançar Receita/Despesa", "Fluxo de Caixa", etc) */
