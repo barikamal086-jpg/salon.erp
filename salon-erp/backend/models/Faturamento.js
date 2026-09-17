@@ -323,9 +323,20 @@ class Faturamento {
       ORDER BY nf.data_vencimento ASC
     `;
 
-    const [realizado, previsto] = await Promise.all([
+    // Receita já lançada no período (não existe "receita prevista" no sistema —
+    // só entra aqui o que já foi de fato vendido/recebido), usada pro saldo acumulado.
+    const sqlReceita = `
+      SELECT data, COALESCE(SUM(total), 0) as total
+      FROM faturamento
+      WHERE tipo = 'receita' AND status = false
+        AND data >= ? AND data <= ?
+      GROUP BY data
+    `;
+
+    const [realizado, previsto, receitaPorDiaRows] = await Promise.all([
       allAsync(sqlRealizado, [dataInicio, dataFim]),
-      allAsync(sqlPrevisto, [dataInicio, dataFim])
+      allAsync(sqlPrevisto, [dataInicio, dataFim]),
+      allAsync(sqlReceita, [dataInicio, dataFim])
     ]);
 
     const normalizarData = (data) => {
@@ -363,10 +374,20 @@ class Faturamento {
     detalhes.forEach(item => {
       if (!item.data) return;
       if (!porDiaMap[item.data]) {
-        porDiaMap[item.data] = { data: item.data, realizado: 0, previsto: 0 };
+        porDiaMap[item.data] = { data: item.data, realizado: 0, previsto: 0, receita: 0 };
       }
       if (item.status === 'realizado') porDiaMap[item.data].realizado += item.valor;
       else porDiaMap[item.data].previsto += item.valor;
+    });
+
+    // Mescla a receita já lançada de cada dia (pro saldo acumulado)
+    receitaPorDiaRows.forEach(row => {
+      const data = normalizarData(row.data);
+      if (!data) return;
+      if (!porDiaMap[data]) {
+        porDiaMap[data] = { data, realizado: 0, previsto: 0, receita: 0 };
+      }
+      porDiaMap[data].receita += parseFloat(row.total) || 0;
     });
 
     const porDia = Object.values(porDiaMap)
@@ -382,12 +403,15 @@ class Faturamento {
     const totalAVencerSemana = somaPor('a_vencer_semana');
     const totalAVencerDepois = somaPor('a_vencer_depois');
 
+    const totalReceitaLancada = receitaPorDiaRows.reduce((soma, r) => soma + (parseFloat(r.total) || 0), 0);
+
     return {
       porDia,
       detalhes,
       resumo: {
         totalRealizado,
         totalPrevisto,
+        totalReceitaLancada,
         totalVencido,
         totalAVencerSemana,
         totalAVencerDepois,

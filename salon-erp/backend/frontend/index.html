@@ -515,9 +515,15 @@
                 <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Ano</label>
                 <input v-model.number="fluxoCaixaAno" type="number" @change="carregarFluxoCaixa" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
               </div>
+              <div>
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Saldo inicial do caixa (dia 01)</label>
+                <input v-model="fluxoCaixaSaldoInicialInput" @change="onMudarSaldoInicial" type="text" placeholder="0,00" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-family: inherit;">
+              </div>
             </div>
             <div style="margin-top: 16px; padding: 12px; background: white; border-radius: 6px; font-size: 0.85rem; color: var(--text-secondary);">
               Período deste card: <strong style="color: var(--text-primary);">{{ fluxoCaixaPeriodoLabel }}</strong> (mês calendário completo — independente do filtro "Selecione o Período" lá em cima, por isso os totais podem ser diferentes)
+              <br>
+              O saldo acumulado (linha do gráfico) usa só receitas <strong>já lançadas</strong> — o sistema não projeta vendas futuras esperadas, então a linha tende a cair nos dias com despesa prevista e sem receita lançada ainda.
             </div>
           </div>
 
@@ -2013,6 +2019,7 @@
           fluxoCaixaAno: new Date().getFullYear(),
           fluxoCaixaChart: null,
           fluxoCaixaDados: { porDia: [], detalhes: [], resumo: { totalRealizado: 0, totalPrevisto: 0, totalGeral: 0 } },
+          fluxoCaixaSaldoInicialInput: '0,00', // Saldo inicial do caixa (salvo no navegador, por mês/ano)
           // Despesa por Imagem
           isDraggingDespesa: false,
           processandoDespesaImagem: false,
@@ -4533,8 +4540,38 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         },
 
         // Fluxo de Caixa: despesas realizadas + notas pendentes (por vencimento) ao longo do mês
+        // Chave do localStorage do saldo inicial, uma por mês/ano (cada mês tem o seu)
+        chaveSaldoInicialFluxoCaixa() {
+          const mes = String(this.fluxoCaixaMes).padStart(2, '0');
+          return `caixa360_saldoInicial_${this.fluxoCaixaAno}_${mes}`;
+        },
+
+        carregarSaldoInicialDoStorage() {
+          try {
+            const salvo = localStorage.getItem(this.chaveSaldoInicialFluxoCaixa());
+            const valor = salvo !== null ? parseFloat(salvo) : 0;
+            this.fluxoCaixaSaldoInicialInput = formatBrasilValue(isNaN(valor) ? 0 : valor);
+          } catch (e) {
+            this.fluxoCaixaSaldoInicialInput = '0,00';
+          }
+        },
+
+        onMudarSaldoInicial() {
+          const valor = parseBrasilValue(this.fluxoCaixaSaldoInicialInput);
+          this.fluxoCaixaSaldoInicialInput = formatBrasilValue(valor);
+          try {
+            localStorage.setItem(this.chaveSaldoInicialFluxoCaixa(), String(valor));
+          } catch (e) {
+            console.warn('⚠️ Não foi possível salvar o saldo inicial no navegador:', e);
+          }
+          this.carregarFluxoCaixa();
+        },
+
         async carregarFluxoCaixa() {
           try {
+            this.carregarSaldoInicialDoStorage();
+            const saldoInicial = parseBrasilValue(this.fluxoCaixaSaldoInicialInput);
+
             const mes = String(this.fluxoCaixaMes).padStart(2, '0');
             const dataInicio = `${this.fluxoCaixaAno}-${mes}-01`;
             const ultimoDia = new Date(this.fluxoCaixaAno, parseInt(mes), 0).getDate();
@@ -4548,6 +4585,8 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
             const diasDoMes = [];
             const realizado = [];
             const previsto = [];
+            const saldoAcumulado = [];
+            let saldoCorrente = saldoInicial;
 
             for (let i = 1; i <= ultimoDia; i++) {
               diasDoMes.push(i);
@@ -4555,8 +4594,14 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                 const partes = d.data.split('-');
                 return parseInt(partes[2]) === i;
               });
+              const despesaDia = registro ? (parseFloat(registro.realizado || 0) + parseFloat(registro.previsto || 0)) : 0;
+              const receitaDia = registro ? parseFloat(registro.receita || 0) : 0;
+
               realizado.push(registro ? parseFloat(registro.realizado || 0) : 0);
               previsto.push(registro ? parseFloat(registro.previsto || 0) : 0);
+
+              saldoCorrente += receitaDia - despesaDia;
+              saldoAcumulado.push(saldoCorrente);
             }
 
             const canvas = document.getElementById('graficoFluxoCaixa');
@@ -4564,23 +4609,41 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
               if (this.fluxoCaixaChart) this.fluxoCaixaChart.destroy();
               const ctx = canvas.getContext('2d');
               this.fluxoCaixaChart = new window.Chart(ctx, {
-                type: 'bar',
                 data: {
                   labels: diasDoMes,
                   datasets: [{
+                    type: 'bar',
                     label: 'Realizado (R$)',
                     data: realizado,
                     backgroundColor: '#DC2626',
                     borderColor: '#991B1B',
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                    order: 2
                   }, {
+                    type: 'bar',
                     label: 'Previsto - pendente (R$)',
                     data: previsto,
                     backgroundColor: '#F59E0B',
                     borderColor: '#B45309',
                     borderWidth: 1,
-                    borderRadius: 4
+                    borderRadius: 4,
+                    yAxisID: 'y',
+                    order: 2
+                  }, {
+                    type: 'line',
+                    label: 'Saldo acumulado (R$)',
+                    data: saldoAcumulado,
+                    borderColor: '#1D4ED8',
+                    backgroundColor: 'rgba(29, 78, 216, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.2,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#1D4ED8',
+                    fill: false,
+                    yAxisID: 'y1',
+                    order: 1
                   }]
                 },
                 options: {
@@ -4593,6 +4656,18 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
                     y: {
                       beginAtZero: true,
                       stacked: true,
+                      position: 'left',
+                      ticks: {
+                        callback: function(value) {
+                          return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        }
+                      }
+                    },
+                    y1: {
+                      type: 'linear',
+                      beginAtZero: false,
+                      position: 'right',
+                      grid: { drawOnChartArea: false },
                       ticks: {
                         callback: function(value) {
                           return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
