@@ -307,18 +307,18 @@
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
             <!-- Receita -->
             <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--success); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Receita</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ {{ formatarValor(stats.totalReceita) }}</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 12px 0;">Total Receita</p>
+              <p class="money-value" style="color: var(--success); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ {{ formatarValor(stats.totalReceita) }}</p>
             </div>
             <!-- Despesa -->
             <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--error); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Despesa</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(stats.totalDespesa) }}</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 12px 0;">Total Despesa</p>
+              <p class="money-value" style="color: var(--error); margin: 0;">R$ {{ formatarValor(stats.totalDespesa) }}</p>
             </div>
             <!-- Líquido -->
             <div style="border-radius: 8px; padding: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: none; border-left: 3px solid var(--success); transition: all 0.2s;" @mouseenter="$event.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'" @mouseleave="$event.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)'">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin-bottom: 12px; margin: 0; margin-bottom: 12px;">Total Líquido</p>
-              <p style="font-size: 2rem; font-weight: 800; color: var(--success); margin: 0;">R$ {{ formatarValor(stats.totalLiquido) }}</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 12px 0;">Total Líquido</p>
+              <p class="money-value" style="color: var(--success); margin: 0;">R$ {{ formatarValor(stats.totalLiquido) }}</p>
             </div>
           </div>
         </div>
@@ -372,7 +372,7 @@
               <div style="padding: 16px;">
                 <!-- Receita -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                  <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Receita</span>
+                  <span class="stat-label" style="color: var(--text-secondary);">Receita</span>
                   <span style="font-size: 1rem; font-weight: 700; color: var(--success);">R$ {{ formatarValor(cat.totalReceita) }}</span>
                 </div>
 
@@ -383,7 +383,7 @@
                 <template v-if="cat.categoria !== 'Salão'">
                   <!-- Taxa Plataforma com Badge -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Taxa</span>
+                    <span class="stat-label" style="color: var(--text-secondary);">Taxa</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                       <span style="font-size: 0.9rem; font-weight: 700; color: #F59E0B;">R$ {{ formatarValor(cat.totalTaxas || 0) }}</span>
                       <span style="background: #FEF3C7; color: #92400E; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;">{{ cat.percentualTaxas || '0.00' }}%</span>
@@ -392,7 +392,7 @@
 
                   <!-- Despesas Alocadas -->
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Despesa</span>
+                    <span class="stat-label" style="color: var(--text-secondary);">Despesa</span>
                     <span style="font-size: 0.9rem; font-weight: 700;" :style="{ color: (cat.totalDespesasAlocadas || 0) === 0 ? '#9CA3AF' : 'var(--error)' }">R$ {{ formatarValor(cat.totalDespesasAlocadas || 0) }}</span>
                   </div>
                 </template>
@@ -400,7 +400,7 @@
                 <!-- Para Salão: mostrar apenas Despesa Total -->
                 <template v-else>
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">Despesa</span>
+                    <span class="stat-label" style="color: var(--text-secondary);">Despesa</span>
                     <span style="font-size: 0.9rem; font-weight: 700;" :style="{ color: cat.totalDespesa === 0 ? '#9CA3AF' : 'var(--error)' }">R$ {{ formatarValor(cat.totalDespesa) }}</span>
                   </div>
                 </template>
@@ -410,7 +410,7 @@
 
                 <!-- Líquido em destaque -->
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0;">
-                  <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">Líquido</span>
+                  <span class="stat-label" style="color: var(--text-secondary);">Líquido</span>
                   <span style="font-size: 1.5rem; font-weight: 800; color: var(--info);">
                     R$ {{
                       formatarValor(
@@ -525,22 +525,22 @@
           <!-- Resumo -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--error);">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Realizado</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">Realizado</p>
               <p style="font-size: 1.5rem; font-weight: 800; color: var(--error); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalRealizado) }}</p>
               <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdRealizado }} lançamento(s)</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid #991B1B;">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">🔴 Vencido (não pago)</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">🔴 Vencido (não pago)</p>
               <p style="font-size: 1.5rem; font-weight: 800; color: #991B1B; margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalVencido) }}</p>
               <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdVencido }} nota(s) já venceu</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--warning);">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">🟡 A Vencer</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">🟡 A Vencer</p>
               <p style="font-size: 1.5rem; font-weight: 800; color: var(--warning); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalAVencer) }}</p>
               <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 4px 0 0 0;">{{ fluxoCaixaDados.resumo.qtdAVencer }} nota(s) ainda no prazo</p>
             </div>
             <div style="border-radius: 8px; padding: 16px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid var(--text-primary);">
-              <p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; margin: 0 0 8px 0;">Total do Mês</p>
+              <p class="stat-label" style="color: var(--text-secondary); margin: 0 0 8px 0;">Total do Mês</p>
               <p style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin: 0;">R$ {{ formatarValor(fluxoCaixaDados.resumo.totalGeral) }}</p>
             </div>
           </div>

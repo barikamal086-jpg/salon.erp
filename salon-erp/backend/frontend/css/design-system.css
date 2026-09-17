@@ -55,7 +55,7 @@
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Poppins', 'Inter', sans-serif !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   font-weight: 700 !important;
 }
 
@@ -64,6 +64,49 @@ body {
   color: var(--text-primary) !important;
   font-size: 0.95rem !important;
   line-height: 1.5 !important;
+  -webkit-font-smoothing: antialiased !important;
+  font-variant-numeric: tabular-nums !important; /* números alinhados em toda a página */
+}
+
+/* ============================================
+   HIERARQUIA TIPOGRÁFICA (Inter)
+   ============================================ */
+
+/* Títulos de seção (cada card do dashboard usa <h3>) */
+h3 {
+  font-size: 18px !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Nav do topo (atalhos "Lançar Receita/Despesa", "Fluxo de Caixa", etc) */
+a[href^="#secao-"] {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+/* Inputs, selects e textareas em todo o app */
+input, select, textarea {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+}
+
+/* Rótulos de KPI: usamos .stat-label (não .kpi-label) de propósito — o
+   seletor [class*="kpi"] mais abaixo neste arquivo aplica estilo de card
+   inteiro (fundo, borda, padding, box-shadow) em qualquer classe que
+   contenha a substring "kpi", o que quebraria esses rótulos. */
+.stat-label {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Valores monetários em destaque (ex: "R$ 148.270,19") */
+.money-value {
+  font-size: 30px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  font-variant-numeric: tabular-nums !important;
 }
 
 /* Sidebar Override */
@@ -176,7 +219,8 @@ textarea {
   border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   padding: 10px 12px !important;
-  font-size: 0.95rem !important;
+  /* font-size/font-weight definidos uma única vez, na regra de hierarquia
+     tipográfica no topo do arquivo (14px/400) — não duplicar aqui */
   transition: all 0.2s !important;
   background: white !important;
 }
