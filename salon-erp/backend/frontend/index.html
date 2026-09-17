@@ -254,9 +254,8 @@
               >
                 <option value="hoje">Hoje</option>
                 <option value="semana">Esta semana</option>
-                <option value="mes">Este mês</option>
+                <option value="mes" selected>Este mês</option>
                 <option value="ano">Este ano</option>
-                <option value="ultimos30" selected>Últimos 30 dias</option>
                 <option value="ultimos12">Últimos 12 meses</option>
                 <option value="todo">Todo o período</option>
                 <option value="customizado">Personalizado</option>
@@ -1370,9 +1369,8 @@
                   >
                     <option value="hoje">Hoje</option>
                     <option value="semana">Esta semana</option>
-                    <option value="mes">Este mês</option>
+                    <option value="mes" selected>Este mês</option>
                     <option value="ano">Este ano</option>
-                    <option value="ultimos30" selected>Últimos 30 dias</option>
                     <option value="ultimos12">Últimos 12 meses</option>
                     <option value="todo">Todo o período</option>
                     <option value="customizado">Personalizado</option>
@@ -1915,9 +1913,9 @@
             dataFim: this.obterDataHoje()
           },
           periodo: {
-            filtroPreset: 'ultimos30',  // DEFAULT: Últimos 30 dias
-            dataInicio: this.obterDataUltimos30Dias(),
-            dataFim: this.obterDataHoje()
+            filtroPreset: 'mes',  // DEFAULT: Este mês (mês calendário completo)
+            dataInicio: this.obterDataInicioMes(),
+            dataFim: this.obterDataFimMes()
           },
           stats: {
             total: 0,
@@ -2027,9 +2025,9 @@
           canaisDeliveryDisponiveis: ['iFood Loja 1', 'iFood Loja 2', '99Food Loja 1', '99Food Loja 2', 'Keeta'],
           // Histórico: Filtros e Paginação
           filtroHistorico: {
-            filtroPreset: 'ultimos30',  // DEFAULT: Últimos 30 dias
-            dataInicio: this.obterDataUltimos30Dias(),
-            dataFim: this.obterDataHoje(),
+            filtroPreset: 'mes',  // DEFAULT: Este mês (mês calendário completo)
+            dataInicio: this.obterDataInicioMes(),
+            dataFim: this.obterDataFimMes(),
             categoria: ''
           },
           paginacao: {
@@ -2305,12 +2303,6 @@
 
         // ========== NOVOS MÉTODOS PARA FILTRO DE PERÍODO ==========
 
-        obterDataUltimos30Dias() {
-          const hoje = new Date();
-          const dias30atras = new Date(hoje.getTime() - (30 * 24 * 60 * 60 * 1000));
-          return getLocalDateISO(dias30atras);
-        },
-
         obterDataInicioSemana() {
           const hoje = new Date();
           const dia = hoje.getDay(); // 0 = domingo, 1 = segunda, etc
@@ -2349,13 +2341,12 @@
             'semana': { inicio: this.obterDataInicioSemana(), fim: hoje },
             'mes': { inicio: this.obterDataInicioMes(), fim: this.obterDataFimMes() },
             'ano': { inicio: this.obterDataInicioAno(), fim: hoje },
-            'ultimos30': { inicio: this.obterDataUltimos30Dias(), fim: hoje },
             'ultimos12': { inicio: this.obterDataUltimos12Meses(), fim: hoje },
             'todo': { inicio: this.obterDataTodoOPeriodo(), fim: hoje },
             'customizado': { inicio: this.periodo.dataInicio, fim: this.periodo.dataFim }
           };
 
-          const datas = mapeamentoFiltros[filtro] || mapeamentoFiltros['ultimos30'];
+          const datas = mapeamentoFiltros[filtro] || mapeamentoFiltros['mes'];
           this.periodo.dataInicio = datas.inicio;
           this.periodo.dataFim = datas.fim;
 
@@ -2365,13 +2356,13 @@
 
         // Limpar filtros do histórico (volta para últimos 90 dias)
         limparFiltrosHistorico() {
-          this.filtroHistorico.filtroPreset = 'ultimos30';
-          this.aplicarFiltroPresetHistorico('ultimos30');
+          this.filtroHistorico.filtroPreset = 'mes';
+          this.aplicarFiltroPresetHistorico('mes');
           this.filtroHistorico.categoria = '';
           this.paginacao.paginaAtual = 1;
           // 🔄 Sincronizar Dashboard quando limpar filtros
-          this.periodo.filtroPreset = 'ultimos30';
-          this.aplicarFiltroPreset('ultimos30');
+          this.periodo.filtroPreset = 'mes';
+          this.aplicarFiltroPreset('mes');
           console.log('🔄 Filtros histórico limpos (Dashboard sincronizado)');
         },
 
@@ -2382,13 +2373,12 @@
             'semana': { inicio: this.obterDataInicioSemana(), fim: hoje },
             'mes': { inicio: this.obterDataInicioMes(), fim: this.obterDataFimMes() },
             'ano': { inicio: this.obterDataInicioAno(), fim: hoje },
-            'ultimos30': { inicio: this.obterDataUltimos30Dias(), fim: hoje },
             'ultimos12': { inicio: this.obterDataUltimos12Meses(), fim: hoje },
             'todo': { inicio: this.obterDataTodoOPeriodo(), fim: hoje },
             'customizado': { inicio: this.filtroHistorico.dataInicio, fim: this.filtroHistorico.dataFim }
           };
 
-          const datas = mapeamentoFiltros[filtro] || mapeamentoFiltros['ultimos30'];
+          const datas = mapeamentoFiltros[filtro] || mapeamentoFiltros['mes'];
           this.filtroHistorico.dataInicio = datas.inicio;
           this.filtroHistorico.dataFim = datas.fim;
           this.paginacao.paginaAtual = 1;
