@@ -40,6 +40,14 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+
+  /* Typography Tokens */
+  --font-primary: 'Inter', sans-serif;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6B7280;
+  --color-text-on-dark: #FFFFFF;
+  --color-green: #10B981;
+  --color-red: #EF4444;
 }
 
 /* ============================================
@@ -51,11 +59,11 @@
    ============================================ */
 
 * {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-family: var(--font-primary) !important;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-family: var(--font-primary) !important;
   font-weight: 700 !important;
 }
 
@@ -65,6 +73,7 @@ body {
   font-size: 0.95rem !important;
   line-height: 1.5 !important;
   -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
   font-variant-numeric: tabular-nums !important; /* números alinhados em toda a página */
 }
 
@@ -73,9 +82,37 @@ body {
    ============================================ */
 
 /* Títulos de seção (cada card do dashboard usa <h3>) */
+/* A cor (--color-text-primary) é aplicada mais abaixo, depois da regra
+   "Headings" que também seta color em h1-h6 — ver comentário lá. */
 h3 {
   font-size: 18px !important;
   letter-spacing: -0.02em !important;
+}
+
+/* Sidebar: logo/nome, subtítulo e itens de menu */
+.sidebar-brand-name {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--color-text-on-dark) !important;
+}
+
+.sidebar-brand-subtitle {
+  font-size: 9px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  color: var(--color-text-on-dark) !important;
+  opacity: 0.7 !important;
+}
+
+.sidebar-menu-item {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--color-text-on-dark) !important;
+}
+
+.sidebar-menu-item.is-active {
+  font-weight: 600 !important;
 }
 
 /* Nav do topo (atalhos "Lançar Receita/Despesa", "Fluxo de Caixa", etc) */
@@ -269,6 +306,13 @@ h1, h2, h3, h4, h5, h6 {
 
 h2 {
   color: var(--primary) !important;
+}
+
+/* h3 = títulos de seção: precisa vir DEPOIS da regra "Headings" acima
+   (mesma especificidade + !important nas duas = quem vem depois no
+   arquivo ganha) pra realmente aplicar o token --color-text-primary. */
+h3 {
+  color: var(--color-text-primary) !important;
 }
 
 /* Tables - Modern Style */
