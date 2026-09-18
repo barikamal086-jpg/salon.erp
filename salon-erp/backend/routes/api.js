@@ -2461,6 +2461,7 @@ router.post('/fatura-cartao/processar', uploadLimiter, upload.single('arquivo'),
     res.json({
       success: true,
       data: {
+        banco: resultado.banco,
         dataVencimento: resultado.dataVencimento,
         totalDeclarado: resultado.totalDeclarado,
         totalExtraido: resultado.totalExtraido,

@@ -1325,6 +1325,7 @@
             <!-- Itens extraídos, pra revisão -->
             <div v-if="faturaCartaoDados">
               <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+                <strong>Banco identificado:</strong> {{ faturaCartaoDados.banco || 'não identificado (tentei os dois formatos)' }} ·
                 <strong>Vencimento:</strong> {{ faturaCartaoDados.dataVencimento?.split('-').reverse().join('/') || '—' }} ·
                 <strong>Total da fatura:</strong> R$ {{ formatarValor(faturaCartaoDados.totalDeclarado) }} ·
                 <strong>Total extraído:</strong> R$ {{ formatarValor(faturaCartaoDados.totalExtraido) }}
