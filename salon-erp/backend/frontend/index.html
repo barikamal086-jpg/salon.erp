@@ -217,6 +217,14 @@
         >
           <i class="fas fa-camera mr-2"></i> Despesas por foto (IA)
         </div>
+
+        <div
+          @click="irParaFaturaCartao"
+          class="sidebar-menu-item opacity-80 hover:opacity-100"
+          style="padding: 12px 16px; border-radius: 8px; color: white; cursor: pointer; transition: all 0.2s; margin-bottom: 8px;"
+        >
+          <i class="fas fa-credit-card mr-2"></i> Fatura de Cartão
+        </div>
       </nav>
     </aside>
 
@@ -264,6 +272,15 @@
               onmouseout="this.style.background='transparent'"
             >
               Despesas por foto (IA)
+            </a>
+            <a
+              href="#secao-fatura-cartao"
+              @click.prevent="irParaFaturaCartao"
+              style="font-size: 1rem; font-weight: 700; color: #000000; text-decoration: none; padding: 8px 14px; border-radius: 6px; transition: background 0.2s; white-space: nowrap;"
+              onmouseover="this.style.background='var(--bg-secondary)'"
+              onmouseout="this.style.background='transparent'"
+            >
+              Fatura de Cartão
             </a>
           </div>
         </div>
@@ -1269,6 +1286,126 @@
             </div>
           </div>
 
+          <!-- FATURA DE CARTÃO - Upload de PDF (extrato), revisão item a item e lançamento em lote -->
+          <div id="secao-fatura-cartao" class="lg:col-span-2 bg-white rounded-lg shadow-md p-6" style="scroll-margin-top: 24px;">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">💳 Processar Fatura de Cartão</h3>
+            <p class="text-sm text-gray-600 mb-4">
+              Envie o PDF do extrato da fatura (formato Bradesco Net Empresa). O sistema lê cada lançamento,
+              sugere uma categoria por fornecedor e você revisa antes de lançar tudo de uma vez.
+            </p>
+
+            <!-- Upload Drag-and-Drop -->
+            <div v-if="!faturaCartaoDados" class="mb-6">
+              <div
+                @drop.prevent="handleDropFaturaCartao"
+                @dragover.prevent="isDraggingFaturaCartao = true"
+                @dragleave="isDraggingFaturaCartao = false"
+                :class="['border-2 border-dashed rounded-lg p-8 text-center transition-all',
+                  isDraggingFaturaCartao ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50']">
+                <input
+                  type="file"
+                  accept=".pdf"
+                  @change="handleSelectFaturaCartao"
+                  ref="faturaCartaoInput"
+                  class="hidden"
+                  id="faturaCartaoInput">
+                <label for="faturaCartaoInput" class="cursor-pointer">
+                  <div class="text-4xl mb-2">📄</div>
+                  <p class="text-gray-700 font-semibold">Arraste o PDF da fatura aqui ou clique para selecionar</p>
+                  <p class="text-gray-500 text-sm mt-1">Aceita: PDF</p>
+                </label>
+              </div>
+            </div>
+
+            <!-- Status de Processamento -->
+            <div v-if="faturaCartaoProcessando" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm text-blue-700">⏳ Lendo o PDF da fatura...</p>
+            </div>
+
+            <!-- Itens extraídos, pra revisão -->
+            <div v-if="faturaCartaoDados">
+              <div class="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+                <strong>Vencimento:</strong> {{ faturaCartaoDados.dataVencimento?.split('-').reverse().join('/') || '—' }} ·
+                <strong>Total da fatura:</strong> R$ {{ formatarValor(faturaCartaoDados.totalDeclarado) }} ·
+                <strong>Total extraído:</strong> R$ {{ formatarValor(faturaCartaoDados.totalExtraido) }}
+                <span v-if="Math.abs(faturaCartaoDados.totalDeclarado - faturaCartaoDados.totalExtraido) > 0.05" class="text-red-600 font-semibold">
+                  ⚠️ Os totais não batem — confira os itens abaixo antes de lançar.
+                </span>
+              </div>
+
+              <div style="overflow-x: auto;" class="mb-4">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                  <thead style="background: var(--bg-secondary);">
+                    <tr>
+                      <th style="padding: 8px; text-align: center;">Incluir</th>
+                      <th style="padding: 8px; text-align: left;">Data</th>
+                      <th style="padding: 8px; text-align: left;">Fornecedor / Histórico</th>
+                      <th style="padding: 8px; text-align: right;">Valor</th>
+                      <th style="padding: 8px; text-align: left;">Categoria</th>
+                      <th style="padding: 8px; text-align: left;">Canal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in faturaCartaoDados.itens" :key="item.indice" style="border-bottom: 1px solid var(--border);" :style="!item.incluir ? 'opacity: 0.5;' : ''">
+                      <td style="padding: 6px; text-align: center;">
+                        <input type="checkbox" v-model="item.incluir">
+                      </td>
+                      <td style="padding: 6px; white-space: nowrap;">{{ item.data.split('-').reverse().join('/') }}</td>
+                      <td style="padding: 6px;">{{ item.historico }}</td>
+                      <td style="padding: 6px; text-align: right; white-space: nowrap;">R$ {{ formatarValor(item.valor) }}</td>
+                      <td style="padding: 6px;">
+                        <select v-model.number="item.tipoDespesaId" style="width: 100%; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;">
+                          <option :value="null">-- Selecionar --</option>
+                          <optgroup v-for="(subgrupo, classificacao) in tiposDespesaAgrupados" :key="classificacao" :label="classificacao">
+                            <option v-for="tipo in subgrupo" :key="tipo.id" :value="tipo.id">{{ tipo.subcategoria }}</option>
+                          </optgroup>
+                        </select>
+                      </td>
+                      <td style="padding: 6px;">
+                        <select v-model="item.categoria" style="width: 100%; padding: 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.85rem;">
+                          <option v-for="canal in canaisDisponiveis" :key="canal" :value="canal">{{ canal }}</option>
+                        </select>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="mb-4 text-sm text-gray-700">
+                <strong>{{ faturaCartaoItensSelecionados.length }}</strong> de {{ faturaCartaoDados.itens.length }} itens selecionados ·
+                Total selecionado: <strong>R$ {{ formatarValor(faturaCartaoTotalSelecionado) }}</strong>
+              </div>
+
+              <div class="flex gap-2">
+                <button
+                  @click="confirmarLancamentoFaturaCartao"
+                  :disabled="faturaCartaoLancando || faturaCartaoItensSelecionados.length === 0"
+                  class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                  {{ faturaCartaoLancando ? 'Lançando...' : `Confirmar e Lançar ${faturaCartaoItensSelecionados.length} item(ns)` }}
+                </button>
+                <button
+                  @click="cancelarFaturaCartao"
+                  class="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 font-medium">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+
+            <!-- Resultado do lançamento em lote -->
+            <div v-if="faturaCartaoResultado" class="mt-4 p-4 rounded-lg" :class="faturaCartaoResultado.totalErros > 0 ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'">
+              <p class="font-semibold mb-2">
+                ✅ {{ faturaCartaoResultado.totalLancados }} lançado(s)
+                <span v-if="faturaCartaoResultado.totalPulados > 0">· ⚠️ {{ faturaCartaoResultado.totalPulados }} pulado(s) por duplicidade</span>
+                <span v-if="faturaCartaoResultado.totalErros > 0">· ❌ {{ faturaCartaoResultado.totalErros }} com erro</span>
+              </p>
+              <ul v-if="faturaCartaoResultado.pulados.length > 0" class="text-sm text-gray-700 list-disc pl-5">
+                <li v-for="(p, idx) in faturaCartaoResultado.pulados" :key="idx">
+                  {{ p.item.historico }} (R$ {{ formatarValor(p.item.valor) }}) — {{ p.motivo }}
+                </li>
+              </ul>
+            </div>
+          </div>
+
           <!-- RECEITAS POR IMAGEM - Upload e Processamento (print do relatório da plataforma) -->
           <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
             <h3 class="text-lg font-bold text-gray-900 mb-2">📷 Receitas por foto (IA)</h3>
@@ -2095,6 +2232,12 @@
           fluxoCaixaPaginacao: { paginaAtual: 1, porPagina: 10 },
           // Despesa por Imagem
           isDraggingDespesa: false,
+          // Fatura de Cartão (extrato PDF)
+          isDraggingFaturaCartao: false,
+          faturaCartaoProcessando: false,
+          faturaCartaoDados: null,
+          faturaCartaoResultado: null,
+          faturaCartaoLancando: false,
           processandoDespesaImagem: false,
           dadosDespesaExtraidos: null,
           despesaImagemSalva: false,
@@ -2204,6 +2347,15 @@
         fluxoCaixaDetalhesPaginados() {
           const inicio = (this.fluxoCaixaPaginacao.paginaAtual - 1) * this.fluxoCaixaPaginacao.porPagina;
           return this.fluxoCaixaDados.detalhes.slice(inicio, inicio + this.fluxoCaixaPaginacao.porPagina);
+        },
+
+        // Fatura de Cartão: itens marcados pra lançar
+        faturaCartaoItensSelecionados() {
+          if (!this.faturaCartaoDados) return [];
+          return this.faturaCartaoDados.itens.filter(i => i.incluir && i.tipoDespesaId);
+        },
+        faturaCartaoTotalSelecionado() {
+          return this.faturaCartaoItensSelecionados.reduce((soma, i) => soma + i.valor, 0);
         },
 
         // Status do indicador CMV/Faturamento, usando as mesmas metas já usadas na
@@ -2324,6 +2476,18 @@
         // Atalho no topo: rola até a seção "Despesas por foto (IA)"
         irParaDespesasPorFoto() {
           const el = document.getElementById('secao-despesas-por-foto');
+          if (!el) return;
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          // Piscar uma borda pra chamar atenção pra seção
+          el.style.transition = 'box-shadow 0.3s';
+          el.style.boxShadow = '0 0 0 3px var(--primary)';
+          setTimeout(() => { el.style.boxShadow = ''; }, 1200);
+        },
+
+        // Atalho no topo: rola até a seção "Processar Fatura de Cartão"
+        irParaFaturaCartao() {
+          const el = document.getElementById('secao-fatura-cartao');
           if (!el) return;
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -4287,6 +4451,77 @@ ${analise.recomendacoes.map(r => `   • [${r.prioridade}] ${r.acao}: ${r.detalh
         cancelarDespesaExtraida() {
           this.dadosDespesaExtraidos = null;
           this.$refs.despesaImagemInput.value = '';
+        },
+
+        // 💳 Fatura de Cartão (extrato PDF) — upload, revisão item a item, lançamento em lote
+        handleDropFaturaCartao(event) {
+          this.isDraggingFaturaCartao = false;
+          const files = event.dataTransfer.files;
+          if (files.length > 0) this.processarArquivoFaturaCartao(files[0]);
+        },
+
+        handleSelectFaturaCartao(event) {
+          const files = event.target.files;
+          if (files.length > 0) this.processarArquivoFaturaCartao(files[0]);
+        },
+
+        async processarArquivoFaturaCartao(file) {
+          if (!file.name.toLowerCase().endsWith('.pdf')) {
+            alert('❌ Envie o extrato em PDF');
+            return;
+          }
+          this.faturaCartaoProcessando = true;
+          this.faturaCartaoResultado = null;
+          try {
+            const response = await window.api.processarFaturaCartao(file);
+            if (response.data.success) {
+              const dados = response.data.data;
+              dados.itens = dados.itens.map(item => ({ ...item, incluir: true }));
+              this.faturaCartaoDados = dados;
+            } else {
+              alert('❌ Erro: ' + response.data.error);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao processar fatura de cartão:', error);
+            const erroApi = error.response?.data?.error;
+            alert('❌ Erro ao processar fatura: ' + ((erroApi && typeof erroApi === 'object' ? erroApi.message : erroApi) || error.message));
+          } finally {
+            this.faturaCartaoProcessando = false;
+            if (this.$refs.faturaCartaoInput) this.$refs.faturaCartaoInput.value = '';
+          }
+        },
+
+        async confirmarLancamentoFaturaCartao() {
+          if (this.faturaCartaoItensSelecionados.length === 0) return;
+          this.faturaCartaoLancando = true;
+          try {
+            const itensParaEnviar = this.faturaCartaoItensSelecionados.map(i => ({
+              data: i.data,
+              valor: i.valor,
+              tipoDespesaId: i.tipoDespesaId,
+              categoria: i.categoria
+            }));
+            const response = await window.api.lancarLoteFaturaCartao(itensParaEnviar);
+            if (response.data.success) {
+              this.faturaCartaoResultado = response.data.data;
+              this.faturaCartaoDados = null;
+              await this.atualizarPeriodo();
+              this.renderizarGraficoMensal();
+              this.carregarFluxoCaixa();
+            } else {
+              alert('❌ Erro: ' + response.data.error);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao lançar fatura de cartão:', error);
+            alert('❌ Erro ao lançar: ' + (error.response?.data?.error || error.message));
+          } finally {
+            this.faturaCartaoLancando = false;
+          }
+        },
+
+        cancelarFaturaCartao() {
+          this.faturaCartaoDados = null;
+          if (this.$refs.faturaCartaoInput) this.$refs.faturaCartaoInput.value = '';
         },
 
         // 📷 Receitas por foto (IA) — print do relatório 99Food/iFood/Keeta

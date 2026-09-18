@@ -288,6 +288,20 @@ const api = {
   // 🥧 GET /api/faturamentos/despesas-por-classificacao - Despesas por classificação (CMV, Operacional, etc)
   obterDespesasPorClassificacao(from, to) {
     return axios.get(`${API_BASE}/faturamentos/despesas-por-classificacao?from=${from}&to=${to}`);
+  },
+
+  // 💳 POST /api/fatura-cartao/processar - Lê o PDF da fatura de cartão e devolve os itens
+  processarFaturaCartao(arquivo) {
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+    return axios.post(`${API_BASE}/fatura-cartao/processar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+
+  // 💳 POST /api/fatura-cartao/lancar-lote - Lança os itens revisados da fatura de cartão
+  lancarLoteFaturaCartao(itens) {
+    return axios.post(`${API_BASE}/fatura-cartao/lancar-lote`, { itens });
   }
 };
 

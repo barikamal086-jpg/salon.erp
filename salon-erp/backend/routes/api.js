@@ -6,6 +6,7 @@ const Faturamento = require('../models/Faturamento');
 const TipoDespesa = require('../models/TipoDespesa');
 const NotaFiscal = require('../models/NotaFiscal');
 const NotaFiscalParser = require('../utils/NotaFiscalParser');
+const FaturaCartaoParser = require('../utils/FaturaCartaoParser');
 const CMVAnalyzer = require('../utils/CMVAnalyzer');
 const CMVAnalyzerV2 = require('../utils/CMVAnalyzerV2');
 const ContaAzulMapper = require('../utils/ContaAzulMapper');
@@ -2408,6 +2409,119 @@ router.post('/notas-fiscais/upload', uploadLimiter, upload.array('files', 100), 
       error: error.message,
       stack: error.stack
     });
+  }
+});
+
+// ============================================
+// FATURA DE CARTÃO (extrato PDF) — lê, sugere categoria por fornecedor,
+// deixa o usuário revisar e lança tudo de uma vez (com checagem de duplicidade).
+// ============================================
+
+// POST /api/fatura-cartao/processar - Lê o PDF da fatura e devolve os itens pra revisão
+router.post('/fatura-cartao/processar', uploadLimiter, upload.single('arquivo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Nenhum arquivo foi enviado' });
+    }
+
+    const ext = require('path').extname(req.file.originalname).toLowerCase();
+    if (ext !== '.pdf') {
+      return res.status(400).json({ success: false, error: 'Envie o extrato em PDF' });
+    }
+
+    const resultado = await FaturaCartaoParser.parsePDF(req.file.buffer);
+
+    if (resultado.itens.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Não consegui identificar nenhum lançamento nesse PDF. O layout pode ser diferente do esperado.'
+      });
+    }
+
+    // Resolve o tipo_despesa_id de cada categoria sugerida (classificação + subcategoria)
+    const tiposDespesa = await allAsync('SELECT id, classificacao, subcategoria FROM tipo_despesa WHERE ativa = ?', [true]);
+    const acharTipoDespesaId = (classificacao, subcategoria) => {
+      const tipo = tiposDespesa.find(t =>
+        t.classificacao === classificacao && t.subcategoria.trim() === subcategoria.trim()
+      );
+      return tipo ? tipo.id : null;
+    };
+
+    const itens = resultado.itens.map((item, index) => ({
+      indice: index,
+      data: item.data,
+      historico: item.historico,
+      valor: item.valor,
+      classificacaoSugerida: item.classificacaoSugerida,
+      subcategoriaSugerida: item.subcategoriaSugerida,
+      tipoDespesaId: acharTipoDespesaId(item.classificacaoSugerida, item.subcategoriaSugerida),
+      categoria: 'Salão' // canal padrão — quase toda fatura de cartão corporativo é do Salão
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        dataVencimento: resultado.dataVencimento,
+        totalDeclarado: resultado.totalDeclarado,
+        totalExtraido: resultado.totalExtraido,
+        itens
+      }
+    });
+  } catch (error) {
+    logger.error(`Erro ao processar fatura de cartão: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/fatura-cartao/lancar-lote - Lança os itens revisados/confirmados pelo usuário
+// Cada item passa pela MESMA checagem de duplicidade do lançamento manual — se achar
+// parecido, não lança automaticamente: fica de fora e volta na lista de "pulados" pro
+// usuário decidir (evita popup de confirmação 52 vezes seguidas).
+router.post('/fatura-cartao/lancar-lote', async (req, res) => {
+  try {
+    const { itens } = req.body;
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhum item para lançar' });
+    }
+
+    const lancados = [];
+    const pulados = [];
+    const erros = [];
+
+    for (const item of itens) {
+      try {
+        const { data, valor, tipoDespesaId, categoria } = item;
+        if (!data || !valor || !tipoDespesaId || !categoria) {
+          erros.push({ item, motivo: 'Faltam campos obrigatórios (data, valor, tipoDespesaId, categoria)' });
+          continue;
+        }
+
+        const checagem = await verificarLancamentoDuplicado(categoria, 'despesa', valor, data);
+        if (checagem.isDuplicate) {
+          pulados.push({ item, motivo: checagem.motivo });
+          continue;
+        }
+
+        await Faturamento.criar(data, valor, categoria, 'despesa', tipoDespesaId);
+        lancados.push(item);
+      } catch (erroItem) {
+        erros.push({ item, motivo: erroItem.message });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        totalLancados: lancados.length,
+        totalPulados: pulados.length,
+        totalErros: erros.length,
+        pulados,
+        erros
+      }
+    });
+  } catch (error) {
+    logger.error(`Erro ao lançar lote de fatura de cartão: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
