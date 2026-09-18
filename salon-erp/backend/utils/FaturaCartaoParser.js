@@ -1,26 +1,36 @@
 const { PDFParse } = require('pdf-parse');
 
-// Parser específico do extrato de fatura de cartão corporativo Bradesco Net Empresa.
-// Layout de cada linha do "Detalhe do Extrato": "DD/MM Histórico US$ R$"
-// Ex: "24/07 G E F EMBALAGENS LTDA 0,00 319,60"
+// Parser de extrato de fatura de cartão corporativo. Suporta hoje dois layouts:
+//   - Bradesco Net Empresa: "DD/MM Histórico US$ R$" (2 números no fim da linha)
+//   - Itaú Empresas:        "DD/MM Estabelecimento R$" (1 número no fim da linha,
+//     às vezes negativo pra créditos/ajustes, ex: "27/07 RAMPC IMPRESSOS GRAFIC - 0,10")
+//
+// O Itaú também imprime uma "categoria" (DIVERSOS/ALIMENTAÇÃO/etc + cidade) pra cada
+// lançamento, só que numa lista SEPARADA logo depois (o PDF tem duas colunas lado a
+// lado, e a extração de texto linear junta tudo bagunçado). Em vez de tentar casar
+// posição a posição com essa lista (frágil — quebra fácil se algum item some ou se
+// um cartão tiver uma tabela extra de "próximas faturas" misturada no meio, como
+// aconteceu num teste real), a sugestão de categoria usa a MESMA regra por
+// fornecedor dos dois bancos — mais simples e mais confiável, e o usuário sempre
+// revisa/ajusta antes de lançar de qualquer forma.
 //
 // Se um dia o banco/layout mudar, é aqui que se ajusta — o resto do sistema
 // (rotas, frontend) não precisa saber do formato exato do PDF.
 class FaturaCartaoParser {
-  // Regras de sugestão de categoria por palavra-chave no histórico (fornecedor).
+  // Regras de sugestão de categoria por palavra-chave no histórico/estabelecimento.
   // Primeira regra que combinar (case-insensitive, substring) vence.
   static REGRAS_CATEGORIA = [
     { palavras: ['embalagens'], classificacao: 'CMV', subcategoria: 'Embalagem' },
-    { palavras: ['carnes', 'acougue', 'açougue'], classificacao: 'CMV', subcategoria: 'Carne' },
+    { palavras: ['carnes', 'acougue', 'açougue', 'frigo'], classificacao: 'CMV', subcategoria: 'Carne' },
     { palavras: ['laticinios', 'laticínios'], classificacao: 'CMV', subcategoria: 'Laticínios' },
     { palavras: ['adega'], classificacao: 'CMV', subcategoria: 'Bebidas' },
-    { palavras: ['mercado', 'sacolao', 'sacolão', 'atacad', 'hortifruti', 'doces', 'alimentos', 'padaria'], classificacao: 'CMV', subcategoria: 'Comidas' },
+    { palavras: ['mercado', 'sacolao', 'sacolão', 'atacad', 'hortifruti', 'doces', 'alimentos', 'padaria', 'pao ao bolo', 'assai'], classificacao: 'CMV', subcategoria: 'Comidas' },
     { palavras: ['uberrides', 'uber', '99app', 'ifood entregador'], classificacao: 'Operacional', subcategoria: 'Transporte' },
     { palavras: ['contabilidade', 'hubs cont'], classificacao: 'Administrativa', subcategoria: 'Contador' },
     { palavras: ['advogado', 'jusbrasil'], classificacao: 'Administrativa', subcategoria: 'Jurídico' },
     { palavras: ['facebk', 'facebook', 'instagram', 'google ads', 'meta '], classificacao: 'Administrativa', subcategoria: 'Marketing' },
-    { palavras: ['kalunga', 'papelaria'], classificacao: 'Administrativa', subcategoria: 'Material Administrativo' },
-    { palavras: ['spotify', 'apple.com', 'canva', 'openai', 'chatgpt', 'serasa', 'conta azul', 'magalu', 'consumer', 'netflix', 'amazon prime'], classificacao: 'Administrativa', subcategoria: 'Assinaturas/Software' },
+    { palavras: ['kalunga', 'papelaria', 'impressos', 'copi'], classificacao: 'Administrativa', subcategoria: 'Material Administrativo' },
+    { palavras: ['spotify', 'apple.com', 'canva', 'openai', 'chatgpt', 'serasa', 'conta azul', 'magalu', 'consumer', 'netflix', 'amazon prime', 'google one'], classificacao: 'Administrativa', subcategoria: 'Assinaturas/Software' },
     { palavras: ['anuidade', 'juros', 'iof', 'multa'], classificacao: 'Financeira', subcategoria: 'Custos Financeiros' }
   ];
 
@@ -35,11 +45,17 @@ class FaturaCartaoParser {
     return { classificacao: 'Administrativa', subcategoria: 'Cartão de Crédito' };
   }
 
+  // Identifica qual banco/layout é esse extrato, pelo texto extraído do PDF.
+  static detectarBanco(texto) {
+    if (/bradesco/i.test(texto)) return 'bradesco';
+    if (/ita[uú]/i.test(texto)) return 'itau';
+    return 'desconhecido';
+  }
+
   // Extrai a data de vencimento da fatura (usada como referência de ano pros
-  // itens do extrato, que só trazem DD/MM). Ex: "Data de vencimento: 05/09/2026"
+  // itens do extrato, que só trazem DD/MM). Cobre os dois formatos observados:
+  // "Vencimento: 28/09/2026" (rótulo antes) e "05/09/2026\tData de vencimento:" (rótulo depois).
   static extrairDataVencimento(texto) {
-    // O PDF pode trazer "Data de vencimento: 05/09/2026" OU, como no extrato
-    // Bradesco Net Empresa, o valor ANTES do rótulo: "05/09/2026\tData de vencimento:"
     let match = texto.match(/[Vv]encimento:?\s*(\d{2})\/(\d{2})\/(\d{4})/);
     if (!match) {
       match = texto.match(/(\d{2})\/(\d{2})\/(\d{4})\s*[\t\n]*\s*Data de vencimento/i);
@@ -56,39 +72,63 @@ class FaturaCartaoParser {
     return mesItem > referencia.mes ? referencia.ano - 1 : referencia.ano;
   }
 
-  // Extrai os itens do "Detalhe do Extrato" a partir do texto já extraído do PDF.
-  static extrairItens(texto, referenciaVencimento) {
-    const linhas = texto.split('\n');
-    const itens = [];
+  static montarItem(dia, mes, historico, valor, referenciaVencimento) {
+    if (!valor || isNaN(valor) || valor <= 0) return null; // ignora créditos/ajustes negativos
+    const ano = this.inferirAno(parseInt(mes), referenciaVencimento);
+    const data = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+    const categoria = this.sugerirCategoria(historico);
+    return {
+      data,
+      historico: historico.trim(),
+      valor,
+      classificacaoSugerida: categoria.classificacao,
+      subcategoriaSugerida: categoria.subcategoria
+    };
+  }
 
-    // "20/01 CONTA AZUL 008/012 0,00 316,68" → dia, mês, histórico, valor (R$, último número da linha)
+  // Bradesco Net Empresa: "DD/MM Histórico US$ R$" (2 números no fim, o 2º é o valor em R$)
+  static extrairItensBradesco(texto, referenciaVencimento) {
     const regexLinha = /^(\d{2})\/(\d{2})\s+(.+?)\s+[\d.,]+\s+([\d.,]+)\s*$/;
+    const itens = [];
+    for (const linhaBruta of texto.split('\n')) {
+      const m = linhaBruta.trim().match(regexLinha);
+      if (!m) continue;
+      const [, dia, mes, historico, valorStr] = m;
+      const valor = parseFloat(valorStr.replace(/\./g, '').replace(',', '.'));
+      const item = this.montarItem(dia, mes, historico, valor, referenciaVencimento);
+      if (item) itens.push(item);
+    }
+    return itens;
+  }
 
-    for (const linhaBruta of linhas) {
+  // Itaú Empresas: "DD/MM Estabelecimento R$" (1 número no fim, opcionalmente
+  // negativo com um "-" antes — créditos/ajustes, que são ignorados).
+  static extrairItensItau(texto, referenciaVencimento) {
+    const regexLinha = /^(\d{2})\/(\d{2})\s+(.+?)\s+(-)?\s*([\d.,]+)\s*$/;
+    const itens = [];
+    for (const linhaBruta of texto.split('\n')) {
       const linha = linhaBruta.trim();
       const m = linha.match(regexLinha);
       if (!m) continue;
-
-      const [, dia, mes, historico, valorStr] = m;
-      const mesNum = parseInt(mes);
-      const ano = this.inferirAno(mesNum, referenciaVencimento);
+      const [, dia, mes, historico, sinalNegativo, valorStr] = m;
+      if (sinalNegativo) continue; // crédito/ajuste, não é despesa
       const valor = parseFloat(valorStr.replace(/\./g, '').replace(',', '.'));
-
-      if (!valor || isNaN(valor)) continue;
-
-      const data = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-      const categoria = this.sugerirCategoria(historico);
-
-      itens.push({
-        data,
-        historico: historico.trim(),
-        valor,
-        classificacaoSugerida: categoria.classificacao,
-        subcategoriaSugerida: categoria.subcategoria
-      });
+      const item = this.montarItem(dia, mes, historico, valor, referenciaVencimento);
+      if (item) itens.push(item);
     }
-
     return itens;
+  }
+
+  static extrairTotalDeclarado(texto, banco) {
+    if (banco === 'bradesco') {
+      const m = texto.match(/Total:\s*[\d.,]+\s+([\d.,]+)/);
+      return m ? parseFloat(m[1].replace(/\./g, '').replace(',', '.')) : null;
+    }
+    if (banco === 'itau') {
+      const m = texto.match(/Total\s+desta\s+fatura\s+([\d.,]+)/i);
+      return m ? parseFloat(m[1].replace(/\./g, '').replace(',', '.')) : null;
+    }
+    return null;
   }
 
   // Ponto de entrada: recebe o Buffer do PDF, devolve os itens já parseados.
@@ -97,13 +137,25 @@ class FaturaCartaoParser {
     const resultado = await parser.getText();
     const texto = resultado.text;
 
+    const banco = this.detectarBanco(texto);
     const referenciaVencimento = this.extrairDataVencimento(texto);
-    const itens = this.extrairItens(texto, referenciaVencimento);
 
-    const totalMatch = texto.match(/Total:\s*[\d.,]+\s+([\d.,]+)/);
-    const totalDeclarado = totalMatch ? parseFloat(totalMatch[1].replace(/\./g, '').replace(',', '.')) : null;
+    let itens = [];
+    if (banco === 'bradesco') {
+      itens = this.extrairItensBradesco(texto, referenciaVencimento);
+    } else if (banco === 'itau') {
+      itens = this.extrairItensItau(texto, referenciaVencimento);
+    } else {
+      // Banco não identificado: tenta os dois formatos e usa o que achar mais itens
+      const tentativaBradesco = this.extrairItensBradesco(texto, referenciaVencimento);
+      const tentativaItau = this.extrairItensItau(texto, referenciaVencimento);
+      itens = tentativaBradesco.length >= tentativaItau.length ? tentativaBradesco : tentativaItau;
+    }
+
+    const totalDeclarado = this.extrairTotalDeclarado(texto, banco);
 
     return {
+      banco,
       dataVencimento: referenciaVencimento
         ? `${referenciaVencimento.ano}-${String(referenciaVencimento.mes).padStart(2, '0')}-${String(referenciaVencimento.dia).padStart(2, '0')}`
         : null,
